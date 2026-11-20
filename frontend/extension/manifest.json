@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Local YouTube Downloader",
+  "version": "1.0.0",
+  "description": "Inspect YouTube formats and download using your local yt-dlp backend.",
+  "permissions": ["activeTab", "nativeMessaging"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "action": { "default_title": "Open YouTube Downloader" },
+  "background": { "service_worker": "background.js" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'; connect-src http://127.0.0.1:8000; frame-src http://127.0.0.1:8000; img-src 'self' https: data:; style-src 'self' 'unsafe-inline'"
+  }
+}

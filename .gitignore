@@ -1,0 +1,11 @@
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/package-lock.json
+*.pyc
+.DS_Store
+data/
+downloads/
