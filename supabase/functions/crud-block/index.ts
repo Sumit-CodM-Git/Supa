@@ -1,3 +1,4 @@
+import { parseConfigurationActiveFilter, resolveSocietyLocation, SocietyConfigurationInputError } from "../_shared/society-configuration.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -122,7 +123,10 @@ interface CrudBlockRequest {
   blockId?: string;
   payload?: {
     block_name?: string;
+    blockName?: string;
     tower?: string | null;
+    towerId?: string | null;
+    towerName?: string | null;
     active?: boolean;
   };
 }
@@ -140,6 +144,7 @@ interface FormattedBlock {
   blockId: string;
   blockName: string | null;
   tower: string | null;
+  towerId: string | null;
   active: boolean;
   createdAt: string;
 }
@@ -212,7 +217,8 @@ function formatBlock(row: BlockRow): FormattedBlock {
   return {
     blockId: row.block_id,
     blockName: row.block_name,
-    tower: row.tower,
+    tower: row.tower ?? null,
+    towerId: row.tower ?? null,
     active: row.active ?? true,
     createdAt: row.created_at,
   };
@@ -305,6 +311,7 @@ async function handleView(
     Math.max(1, Number(req.limit) || DEFAULT_LIMIT),
   );
   const offset = (page - 1) * limit;
+  const activeFilter = parseConfigurationActiveFilter(req.filters?.active);
 
   let query = supabase
     .from("SSP_Block")
@@ -322,14 +329,10 @@ async function handleView(
     if (towers && towers.length > 0) {
       query = query.in("tower", towers);
     }
-
-    if (req.filters.active !== undefined && req.filters.active !== null) {
-      const activeVal = typeof req.filters.active === "boolean"
-        ? req.filters.active
-        : String(req.filters.active).toLowerCase() === "true";
-      query = query.eq("active", activeVal);
-    }
   }
+
+  // Default/all includes both active and inactive rows; filter only when explicit.
+  if (activeFilter !== null) query = query.eq("active", activeFilter);
 
   const requestedSortField = req.sort?.field || "created_at";
   const sortField = VALID_SORT_FIELDS.includes(
@@ -364,7 +367,7 @@ async function handleView(
     },
     filters: {
       tower: req.filters?.tower ?? null,
-      active: req.filters?.active ?? null,
+      active: activeFilter,
     },
     search: req.search ?? null,
     sort: { field: sortField, order: ascending ? "asc" : "desc" },
@@ -520,6 +523,20 @@ serve(async (req: Request) => {
     const auth = await authorizeAdmin(societyRegistrationNumber, adminId);
     if (!auth.ok) return auth.response;
 
+    if (["CREATE", "UPDATE"].includes(actionUpper) && body.payload) {
+      if (body.payload.block_name !== undefined && body.payload.blockName !== undefined &&
+          String(body.payload.block_name).trim() !== String(body.payload.blockName).trim()) {
+        throw new SocietyConfigurationInputError("Conflicting block names supplied.");
+      }
+      if (body.payload.block_name === undefined && body.payload.blockName !== undefined) {
+        body.payload.block_name = body.payload.blockName;
+      }
+      const tower = await resolveSocietyLocation(supabase, auth.societyId, "tower", [
+        body.payload.tower, body.payload.towerId, body.payload.towerName,
+      ]);
+      if (tower !== undefined) body.payload.tower = tower;
+    }
+
     switch (actionUpper) {
       case "VIEW":
         return await handleView(body, auth.societyId);
@@ -533,6 +550,7 @@ serve(async (req: Request) => {
         return fail("Unhandled action.", 400, "INVALID_ACTION");
     }
   } catch (err) {
+    if (err instanceof SocietyConfigurationInputError) return fail(err.message, 400, "INVALID_PARAMETERS");
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("❌ crud-block error:", msg);
     return fail(msg, 500, "SERVER_ERROR");

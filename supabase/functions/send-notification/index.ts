@@ -1,3 +1,5 @@
+import { notificationRoutingData } from "../_shared/notification-routing.ts";
+import { isUserAway } from "../_shared/user-availability.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import * as DJWT from "https://deno.land/x/djwt@v2.8/mod.ts";
@@ -58,8 +60,48 @@ serve(async (req) => {
     }
 
     const notificationId = notification.notification_id;
+    // Webhooks may have been queued before the user switched to away.
+    const { data: current, error: currentError } = await supabase.from("SSP_Notification")
+      .select("*").eq("notification_id", notificationId).maybeSingle();
+    if (currentError) throw currentError;
+    if (!current || current.delivery_status !== "pending") {
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: "already processed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    notification = current;
     const recipientId = notification.recipient_id;
     const recipientType = notification.recipient_type;
+
+    if (await isUserAway(supabase, recipientId)) {
+      const { error } = await supabase.from("SSP_Notification").update({
+        delivery_status: "failed",
+        extra_data: { ...(notification.extra_data ?? {}), suppressedReason: "user_away" },
+      }).eq("notification_id", notificationId);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true, skipped: true, reason: "user_away" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Recheck the current visitor, including notifications queued before OTP gating was deployed.
+    if (notification.reference_table === "SSP_Non_Society_User" &&
+        String(recipientType).toLowerCase() === "resident") {
+      const { data: visitor, error: visitorError } = await supabase
+        .from("SSP_Non_Society_User").select("is_otp_verified,role")
+        .eq("non_society_user_id", notification.reference_id).maybeSingle();
+      if (visitorError) throw new Error(`Visitor verification check failed: ${visitorError.message}`);
+      if (!visitor || (visitor.role === "visitor" && visitor.is_otp_verified !== true)) {
+        await supabase.from("SSP_Notification").update({
+          delivery_status: "failed",
+          extra_data: { ...(notification.extra_data ?? {}), suppressedReason: "visitor_phone_not_verified" },
+        }).eq("notification_id", notificationId);
+        return new Response(JSON.stringify({ success: true, skipped: true, reason: "visitor_phone_not_verified" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
 
     // === DEBUG — who do we think we're looking for? ===
     console.log("DBG_RECIPIENT", JSON.stringify({
@@ -182,15 +224,7 @@ serve(async (req) => {
                   title: notification.title ?? "",
                   body: notification.message ?? "",
                 },
-                data: {
-                  notificationId: String(notification.notification_id ?? ""),
-                  type: String(notification.notification_type ?? ""),
-                  screen: String(notification.navigation_screen ?? ""),
-                  referenceId: String(notification.reference_id ?? ""),
-                  referenceTable: String(notification.reference_table ?? ""),
-                  title: String(notification.title ?? ""),
-                  body: String(notification.message ?? ""),
-                },
+                data: notificationRoutingData(notification),
                 android: { priority: "high" },
                 apns: { payload: { aps: { sound: "default" } } },
               },

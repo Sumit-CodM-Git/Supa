@@ -1,3 +1,5 @@
+import { parkingCounts } from "../_shared/parking-counts.ts";
+import { contactParkingSlot } from "../_shared/contact.ts";
 // ============================================
 // get-dashboard - Using Shared Middleware
 // ============================================
@@ -10,6 +12,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 // TYPES
 // ============================================
 interface Contact {
+    parking_slot?: string | null;
     contact_id: string;
     name: string;
     phone: string;
@@ -21,12 +24,12 @@ interface Society {
     society_id: string;
     society_name: string;
     registration_number: string;
-    subscription_plan: string;
     address_line1: string;
     city: string;
     state: string;
     total_unit: number;
     parking_slot: number;
+    covered_parking: number | null;
 }
 
 // ✅ Camel-case response shapes
@@ -46,6 +49,7 @@ interface Alert {
     message: string;
     type: string;
     published_date: string;
+    expiry_date: string | null;
     created_at: string;
 }
 
@@ -70,12 +74,14 @@ interface FormattedAlert {
     message: string;
     type: string;
     publishedDate: string;
+    expiryDate: string | null;
     createdAt: string;
     isToday: boolean;
 }
 
 interface DashboardResponse {
     user: {
+        parkingSlot: string | null;
         id: string;
         name: string;
         phone: string;
@@ -95,7 +101,6 @@ interface DashboardResponse {
         id: string | null;
         name: string;
         registrationNumber: string | null;
-        subscriptionPlan: string;
         address: string;
         statistics: {
             totalFlats: number;
@@ -203,7 +208,7 @@ async function getSmartAlerts(
         const { data: allAlerts, error } = await supabaseAdmin
             .from("SSP_Alert")
             .select(
-                `alert_id, title, message, type, published_date, created_at`,
+                `alert_id, title, message, type, published_date, expiry_date, created_at`,
             )
             .eq("society", societyId)
             .gte("published_date", todayStr)
@@ -277,6 +282,7 @@ function formatAlertResponse(alert: Alert, isToday: boolean): FormattedAlert {
         message: alert.message || "",
         type: alert.type || "info",
         publishedDate: alert.published_date,
+        expiryDate: alert.expiry_date ?? null,
         createdAt: alert.created_at,
         isToday: isToday,
     };
@@ -353,7 +359,7 @@ Deno.serve(
                     const { data: contactData, error: contactError } =
                         await supabaseAdmin
                             .from("SSP_Contact")
-                            .select(`contact_id, name, phone, email, gender`)
+                            .select(`parking_slot, contact_id, name, phone, email, gender`)
                             .eq("phone", userPhone)
                             .maybeSingle();
 
@@ -417,7 +423,7 @@ Deno.serve(
                 const { data: contact, error: contactError } =
                     await supabaseAdmin
                         .from("SSP_Contact")
-                        .select(`contact_id, name, phone, email, gender`)
+                        .select(`parking_slot, contact_id, name, phone, email, gender`)
                         .eq("contact_id", userData.contact)
                         .single();
 
@@ -437,12 +443,12 @@ Deno.serve(
                         society_id,
                         society_name,
                         registration_number,
-                        subscription_plan,
                         address_line1,
                         city,
                         state,
                         total_unit,
-                        parking_slot
+                        parking_slot,
+                        covered_parking
                     `)
                         .eq("society_id", userData.society)
                         .single();
@@ -554,7 +560,7 @@ async function buildDashboardResponse(
                 if (contactIds.length > 0) {
                     const { data: contacts } = await supabaseAdmin
                         .from("SSP_Contact")
-                        .select("contact_id, vehicle_type")
+                        .select("parking_slot, contact_id, vehicle_type")
                         .in("contact_id", contactIds);
 
                     if (contacts) {
@@ -582,8 +588,7 @@ async function buildDashboardResponse(
 
         const totalFlats = Number(user.society?.total_unit ?? 0);
         const occupiedFlats = owners + tenants;
-        const totalParking = Number(user.society?.parking_slot ?? 0);
-        const occupiedParking = twoWheelers + fourWheelers;
+        const { totalParking, occupiedParking, vacantParking } = parkingCounts(user.society);
 
         let totalComplaints = 0, pendingComplaints = 0, resolvedComplaints = 0;
         let upcomingBookings = 0, confirmedBookings = 0;
@@ -633,6 +638,7 @@ async function buildDashboardResponse(
 
         const responseData: DashboardResponse = {
             user: {
+                parkingSlot: contactParkingSlot(user.contact),
                 id: user.user_id,
                 name: user.contact?.name || "User",
                 phone: user.contact?.phone || "",
@@ -652,7 +658,6 @@ async function buildDashboardResponse(
                 id: user.society?.society_id || null,
                 name: user.society?.society_name || "N/A",
                 registrationNumber: user.society?.registration_number || null,
-                subscriptionPlan: user.society?.subscription_plan || "growth",
                 address: user.society
                     ? `${user.society.address_line1 || ""}, ${
                         user.society.city || ""
@@ -667,7 +672,7 @@ async function buildDashboardResponse(
                     totalParking: totalParking || 0,
                     occupiedParking: occupiedParking || 0,
                     vacantParking:
-                        Math.max(0, totalParking - occupiedParking) || 0,
+                        vacantParking,
                     twoWheelers: twoWheelers || 0,
                     fourWheelers: fourWheelers || 0,
                 },
@@ -731,7 +736,6 @@ async function buildDashboardResponse(
 //   society_id: string;
 //   society_name: string;
 //   registration_number: string;
-//   subscription_plan: string;
 //   address_line1: string;
 //   city: string;
 //   state: string;
@@ -804,7 +808,6 @@ async function buildDashboardResponse(
 //     id: string | null;
 //     name: string;
 //     registrationNumber: string | null;
-//     subscriptionPlan: string;
 //     address: string;
 //     statistics: {
 //       totalFlats: number;
@@ -1162,7 +1165,6 @@ async function buildDashboardResponse(
 //                 society_id,
 //                 society_name,
 //                 registration_number,
-//                 subscription_plan,
 //                 address_line1,
 //                 city,
 //                 state,
@@ -1392,7 +1394,6 @@ async function buildDashboardResponse(
 //         id: user.society?.society_id || null,
 //         name: user.society?.society_name || "N/A",
 //         registrationNumber: user.society?.registration_number || null,
-//         subscriptionPlan: user.society?.subscription_plan || "growth",
 //         address: user.society
 //           ? `${user.society.address_line1 || ""}, ${
 //               user.society.city || ""

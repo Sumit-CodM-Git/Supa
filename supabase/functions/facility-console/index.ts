@@ -1,3 +1,4 @@
+import { loadResidentFacilityBookings, formatResidentFacilityBooking } from "../_shared/resident-facility-bookings.ts";
 import { requireAuth, type AuthContext } from "../_shared/auth.ts";
 import {
   corsHeaders,
@@ -480,81 +481,8 @@ Deno.serve(
       if (cleanAction === "FETCH_MY_BOOKINGS") {
         const residentId = authCtx.user.id;
 
-        const { data: bookingsList, error: dbErr } = await supabaseAdmin
-          .from("SSP_Facility_Booking")
-          .select(`
-            name, booking_status, booking_start_date, booking_end_date,
-            payment_status, capacity, purpose_of_visit, facility,
-            SSP_Facility!facility ( id, name )
-          `)
-          .eq("requested_by", residentId);
-
-        if (dbErr) {
-          return errorResponse(`Failed to retrieve records: ${dbErr.message}`, 500);
-        }
-
-        const bookings = (bookingsList ?? []) as unknown as MyBookingRaw[];
-        const facilityIds = bookings
-          .map((bk) => bk.facility)
-          .filter((f): f is string => Boolean(f));
-
-        // Payment map: one per facility (latest first)
-        const paymentMap = new Map<string, {
-          payRecId: string;
-          paymentMethod: string | null;
-          paymentStatus: string | null;
-        }>();
-
-        if (facilityIds.length > 0) {
-          const { data: payments } = await supabaseAdmin
-            .from("SSP_Payment")
-            .select("pay_rec_id, facility, payment_method, payment_status")
-            .eq("society_user", residentId)
-            .in("facility", facilityIds)
-            .order("created_at", { ascending: false });
-
-          ((payments ?? []) as PaymentRaw[]).forEach((pay) => {
-            if (pay.facility && !paymentMap.has(pay.facility)) {
-              paymentMap.set(pay.facility, {
-                payRecId: pay.pay_rec_id,
-                paymentMethod: pay.payment_method ?? null,
-                paymentStatus: pay.payment_status ?? null,
-              });
-            }
-          });
-        }
-
-        const myBookings: MyBookingResponse[] = bookings.map((bk) => {
-          const facilityObj = Array.isArray(bk.SSP_Facility)
-            ? bk.SSP_Facility[0]
-            : bk.SSP_Facility;
-
-          const pay = bk.facility ? paymentMap.get(bk.facility) : undefined;
-
-          // Preserve original paymentStatus resolution priority:
-          //  1. paymentMap value (joined payment record)
-          //  2. raw booking payment_status if it's "approved" or "rejected"
-          //  3. null
-          let resolvedPaymentStatus: string | null = null;
-          if (pay) {
-            resolvedPaymentStatus = pay.paymentStatus;
-          } else if (bk.payment_status === "approved" || bk.payment_status === "rejected") {
-            resolvedPaymentStatus = bk.payment_status;
-          }
-
-          return {
-            facilityName: facilityObj?.name ?? null,
-            bookingStatus: bk.booking_status ?? null,
-            startDateTime: bk.booking_start_date ?? null,
-            endDateTime: bk.booking_end_date ?? null,
-            paymentStatus: resolvedPaymentStatus,
-            paymentMethod: pay?.paymentMethod ?? null,
-            capacity: bk.capacity ? parseFloat(String(bk.capacity)) : null,
-            purpose: bk.purpose_of_visit ?? null,
-            facilityBookingId: bk.name ?? null,
-            payRecId: pay?.payRecId ?? null,
-          };
-        });
+        const bookings = await loadResidentFacilityBookings(supabaseAdmin, residentId);
+        const myBookings = bookings.map(formatResidentFacilityBooking);
 
         logger.info({
           level: "info",

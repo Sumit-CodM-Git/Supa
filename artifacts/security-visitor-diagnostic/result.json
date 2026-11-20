@@ -1,0 +1,122 @@
+{
+  "calls": [
+    {
+      "endpoint": "visitor-otp",
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitorId": "bba8fd28-0a53-41ed-9538-8acb665b6c6e",
+          "phoneNumber": "7007928772",
+          "name": null,
+          "visitorName": null,
+          "message": "OTP has been sent. Please verify OTP.",
+          "otpVerified": false,
+          "isNewVisitor": true,
+          "nextStep": "VERIFY_OTP",
+          "requiresVisitorDetails": true
+        }
+      },
+      "database_state": {
+        "is_otp_verified": false,
+        "name": "Unknown Visitor",
+        "non_society_user_id": "bba8fd28-0a53-41ed-9538-8acb665b6c6e",
+        "notification_eligible": false,
+        "visitor_approval_status": null,
+        "visitor_status": "otp_pending"
+      },
+      "otp_verification": {
+        "http_status": 200,
+        "response": {
+          "success": true,
+          "data": {
+            "visitorId": "bba8fd28-0a53-41ed-9538-8acb665b6c6e",
+            "phoneNumber": "7007928772",
+            "name": null,
+            "visitorName": null,
+            "message": "OTP verified successfully.",
+            "otpVerified": true,
+            "isNewVisitor": true,
+            "nextStep": "COMPLETED",
+            "requiresVisitorDetails": true
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "security-gate-console",
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "Visitors": [],
+          "visitorId": "a1526bf7-f88c-4dc9-98b8-763617c1bb3d",
+          "name": "Diagnostic Visitor 8fd662",
+          "visitorName": "Diagnostic Visitor 8fd662",
+          "success": true
+        }
+      },
+      "database_state": {
+        "is_otp_verified": false,
+        "name": "Diagnostic Visitor 8fd662",
+        "non_society_user_id": "a1526bf7-f88c-4dc9-98b8-763617c1bb3d",
+        "notification_eligible": false,
+        "visitor_approval_status": "pending",
+        "visitor_status": "Pending"
+      }
+    },
+    {
+      "endpoint": "visitor-pass-operations",
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitor": {
+            "parkingSlot": "DEMO-P-000099",
+            "visitorId": "f2fc0aa9-6a60-4cf4-be22-c235dd7d780e",
+            "name": "Diagnostic Visitor 1a209e",
+            "visitorName": "Diagnostic Visitor 1a209e",
+            "phone": "7007339548",
+            "platform": "N/A",
+            "purpose": "Temporary creation diagnostic; OTP unverified",
+            "vehicle": "N/A",
+            "status": "Pending",
+            "approvalStatus": "pending",
+            "preApproved": false,
+            "checkIn": null,
+            "checkOut": null,
+            "createdAt": "2026-11-16T07:27:47.225991+00:00",
+            "flat": "25046",
+            "block": "Alpha",
+            "tower": "Ashwairyam",
+            "residentName": "Sumit Haldar",
+            "imageUrl": null
+          },
+          "visitorId": "f2fc0aa9-6a60-4cf4-be22-c235dd7d780e",
+          "success": true
+        }
+      },
+      "database_state": {
+        "is_otp_verified": false,
+        "name": "Diagnostic Visitor 1a209e",
+        "non_society_user_id": "f2fc0aa9-6a60-4cf4-be22-c235dd7d780e",
+        "notification_eligible": false,
+        "visitor_approval_status": "pending",
+        "visitor_status": "Pending"
+      }
+    }
+  ],
+  "cleanup": [
+    "bba8fd28-0a53-41ed-9538-8acb665b6c6e",
+    "a1526bf7-f88c-4dc9-98b8-763617c1bb3d",
+    "f2fc0aa9-6a60-4cf4-be22-c235dd7d780e"
+  ],
+  "rollback_notification_test": {
+    "notification_count": 1,
+    "test_visitor_id": "5322afab-79db-42f6-873f-d1fa3528db71"
+  },
+  "rollback_cleanup_verified": {
+    "notifications": 0,
+    "visitors": 0
+  }
+}

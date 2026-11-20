@@ -1,0 +1,385 @@
+
+add-members [POST] auth=requireAuth middleware
+AddMemberRequest: {"registrationNumber":"string","memberType":"string","memberData":["MemberData"]}
+QUERY  CHECKS idProofType and idProofNumber are mandatory. | Aadhaar Card must be exactly 12 numeric digits. | PAN Card must be 10 characters formatted as 5 letters, 4 digits, and 1 letter. | Driving License must be 15 alphanumeric characters. | Voter ID must be 10 alphanumeric characters. | Only POST method is allowed. | Request body is required. | registrationNumber is mandatory. | memberType is mandatory. | memberData must be a non-empty array.
+
+admin-payments-console [POST] auth=requireAuth middleware
+MergedRequest: {"actionType":"ActionType","societyRegistrationNumber":"string","paymentStatus?":"string","paymentType?":"string","searchText?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"paymentId?":"string","action?":"string","rejectionReason?":"string"}
+RawBookingRequest: {"request_id":"string","created_at":{"union":["string","null"]},"requested_by":{"union":["string","null"]},"facility":"string","payment":"string","booking_start_date":{"union":["string","null"]},"booking_end_date":{"union":["string","null"]},"purpose_of_visit":{"union":["string","null"]},"is_all_day":{"union":["boolean","null"]}}
+QUERY page,limit CHECKS Only POST method is allowed. | actionType is mandatory. | societyRegistrationNumber is mandatory. | Missing mandatory fields: paymentId or action. | rejectionReason is required when action is REJECT.
+
+assign-complaint [POST] auth=requireAuth middleware
+AssignComplaintRequest: {"societyRegistrationNumber":"string","complaintId":"string","staffId?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | societyRegistrationNumber is mandatory. | complaintId is mandatory.
+
+cleanup-fcm-tokens [] auth=Authorization header inspected
+BODY 
+QUERY  CHECKS 
+
+complaint-otp [POST] auth=requireAuth middleware
+ComplaintOtpRequest: {"complaintId":"string","stage":"OtpStage","otp?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | Invalid stage. Must be START or END.
+
+create-complaint-resident [POST] auth=requireAuth middleware
+CreateComplaintRequest: {"societyRegistrationNumber":"string","residentId":"string","title":"string","description":"string","type?":"string","priority?":"string","images?":[{"fileName":"string","fileType":"string","fileSize?":{"union":["number","string"]}}],"fileName?":"string","fileType?":"string","fileSize?":{"union":["number","string"]}}
+QUERY  CHECKS Only POST method is allowed. | Request body is required.
+
+create-marketplace [POST] auth=requireAuth middleware
+FilePayload: {"fileName":"string","fileType?":"string","fileSize?":{"union":["number","string"]}}
+CreateMarketplaceRequest: {"registrationNumber":"string","title":"string","category":"string","price?":{"union":["number","string"]},"priceType?":"string","status?":"string","description?":"string","files":["FilePayload"]}
+DocumentInsertPayload: {"name":"string","file_name":"string","file_type":{"union":["string","null"]},"file_size":{"union":["number","null"]},"document_type":"string","s3_path":"string","society":"string","marketplace":"number","uploaded_by":"string","uploaded_on":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | registrationNumber, title, category, and price are mandatory (unless priceType is 'Free'). | At least one image file is required to create a post.
+
+create-razorpay-order [POST] auth=requireAuth middleware
+RequestBody: {"planCode":"string","billingPeriod":"string"}
+QUERY  CHECKS planCode is required | billingPeriod is required
+
+create-sos [POST] auth=requireAuth middleware
+CreateSosRequest: {"category":"string","note?":"string","idempotencyKey?":"string"}
+QUERY  CHECKS Only POST is allowed. | Request body required. | category is required.
+
+crud-block [POST] auth=Society admin credentials in body
+CrudBlockRequest: {"societyRegistrationNumber":"string","adminId":"string","action":{"union":["\"VIEW\"","\"CREATE\"","\"UPDATE\"","\"DELETE\""]},"search?":"string","filters?":{"tower?":{"union":["string",["string"]]},"active?":{"union":["boolean","string"]}},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"page?":"number","limit?":"number","blockId?":"string","payload?":{"block_name?":"string","blockName?":"string","tower?":{"union":["string","null"]},"towerId?":{"union":["string","null"]},"towerName?":{"union":["string","null"]},"active?":"boolean"}}
+QUERY  CHECKS adminId must be a valid UUID. | payload.block_name is required. | blockId is required for UPDATE. | blockId is required for DELETE. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber, adminId, and action are required.
+
+crud-document [POST] auth=Society admin credentials in body
+CrudDocumentRequest: {"societyRegistrationNumber":"string","adminId":"string","action":"Action","search?":"string","filters?":{"documentType?":{"union":["string",["string"]]},"fileType?":{"union":["string",["string"]]},"uploadedBy?":{"union":["string",["string"]]},"dateFrom?":"string","dateTo?":"string"},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"page?":"number","limit?":"number","phase?":"UploadPhase","payload?":{"documentTitle?":"string","category?":"string","fileName?":"string","fileType?":"string","fileSize?":{"union":["number","string"]},"objectKey?":"string"},"documentId?":"string"}
+QUERY  CHECKS adminId must be a valid UUID. | payload is required for UPLOAD. | payload.objectKey is required for confirm phase. | documentId is required for confirm phase. | documentId must be a valid UUID. | documentId is required. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber, adminId, and action are required.
+
+crud-facility [POST] auth=requireAuth middleware; Society admin credentials in body
+FacilityPayload: {"name?":"string","type?":"string","description?":"string","rules?":{"union":["string",["string"],"null"]},"bookingMode?":"string","closedDays?":{"union":["string",["string"],"null"]},"basePrice?":{"union":["number","null"]},"openingTime?":{"union":["string","null"]},"closingTime?":{"union":["string","null"]},"isChargeable?":{"union":["boolean","null"]},"onMaintenance?":"boolean","maintenanceStart?":{"union":["string","null"]},"maintenanceEnd?":{"union":["string","null"]},"maintenanceReason?":{"union":["string","null"]},"fileName?":"string","fileType?":"string","fileSize?":"number","deleteImage?":"boolean","deleteImageIds?":["string"],"images?":["FacilityImageInput"]}
+CreateFacilityRequest: {"registrationNumber":"string","adminPhone":"string","action":{"union":["\"VIEW\"","\"CREATE\"","\"UPDATE\"","\"DELETE\""]},"id?":"string","payload?":"FacilityPayload","search?":"string","filters?":{"facilityType?":{"union":["string",["string"]]},"bookingMode?":{"union":["string",["string"]]},"isChargeable?":{"union":["boolean","string"]},"onMaintenance?":{"union":["boolean","string"]}},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"page?":"number","limit?":"number"}
+FacilityImageInput: {"fileName":"string","fileType":"string","fileSize?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | Missing required parameters: registrationNumber, adminPhone, action are mandatory. | deleteImageIds must be an array of document IDs.
+
+crud-family [POST] auth=JWT verification; Authorization header inspected
+CrudFamilyRequest: {"flatTypeId?":{"union":["string","null"]},"flatType?":{"union":["string","null"]},"action":"Action","memberName?":"string","memberPhone?":"string","idProofType?":"string","idProofNumber?":"string","relationship?":"string","email?":"string","gender?":"string","occupation?":"string","description?":"string","whatsAppPhone?":"string","emergencyPhone?":"string","vehicleNumber?":"string","parkingSlot?":{"union":["string","null"]},"parking_slot?":{"union":["string","null"]},"vehicleType?":"string","role?":{"union":["string",["string"]]},"status?":{"union":["\"active\"","\"inactive\"","boolean"]},"ownershipType?":"string","targetResidentId?":"string","filters?":{"status?":{"union":["string","boolean"]},"role?":"string","ownershipType?":"string","relationship?":"string","search?":"string"},"sort?":{"by?":"string","dir?":{"union":["\"asc\"","\"desc\""]}},"pagination?":{"page?":"number","pageSize?":"number"},"includeDeleted?":"boolean","idempotencyKey?":"string"}
+QUERY  CHECKS Only the primary resident can add family members. | memberName is required. | Valid memberPhone (10-15 digits) is required. | idProofType is required. | idProofNumber is required. | relationship is required. | status must be "active" or "inactive". | targetResidentId is required. | Only the primary resident can edit other members. | Only the primary resident can change flat type assignments. | ownershipType must be 'primary' or 'secondary'. | Only the primary resident can remove members. | Only the primary resident can restore members. | Only the primary resident can change primary. | Only POS
+
+crud-flat-type [POST] auth=Society admin credentials in body
+CrudFlatTypeRequest: {"societyRegistrationNumber":"string","adminId":"string","action":"Action","search?":"string","filters?":{"flatType?":{"union":["string",["string"]]}},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"page?":"number","limit?":"number","flatTypeId?":"string","payload?":{"flatType?":"string","maintenanceCharges?":{"union":["number","string","null"]}}}
+QUERY  CHECKS societyRegistrationNumber is required. | adminId must be a valid UUID. | payload is required. | payload.flatType is required. | maintenanceCharges must be a non-negative number or empty. | flatTypeId is required for UPDATE. | flatTypeId must be a valid UUID. | flatTypeId is required for DELETE. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber, adminId, and action are required.
+
+crud-notice [POST] auth=requireAuth middleware
+CrudNoticeRequest: {"action":"Action","societyRegistrationNumber":"string","requesterId?":"string","noticeData?":{"noticeId?":"string","title?":"string","message?":"string","type?":"string","priority?":"string","targetAudience?":{"union":["string",["string"]]},"publishedDate?":"string","expiryDate?":"string"},"noticeId?":"string","filters?":{"type?":"string","priority?":"string","search?":"string"},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"pagination?":{"page?":"number","pageSize?":"number"},"idempotencyKey?":"string"}
+QUERY  CHECKS noticeData is mandatory. | Title is required. | Message is required. | Only Admin can update notices. | noticeId is mandatory for UPDATE. | noticeData with at least one field is required. | Only Admin can delete notices. | noticeId is mandatory. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber is mandatory.
+
+crud-pre-approved-visitor [POST] auth=JWT verification; Authorization header inspected
+ManageRequest: {"action":"Action","visitorData?":{"name?":"string","phoneNumber?":"string","purpose?":"string","email?":"string","gender?":"string","idProofType?":"string","idProofNumber?":"string","vehicleType?":"string","vehicleNumber?":"string","serviceProvider?":"string","isRecurring?":"boolean","recurringDays?":{"union":["string",["string"]]},"gateNo?":"string","approvalStatus?":"string"},"visitorImage?":{"fileName":"string","fileType":"string","fileSize?":"number"},"visitorId?":"string","preApproved?":"boolean","filters?":{"visitorStatus?":"string","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string"},"pagination?":{"page?":"number","pageSize?":"number"},"idempotencyKey?":"string"}
+QUERY  CHECKS visitorData is mandatory. | visitorData.name is required. | Valid visitorData.phoneNumber (10-15 digits) is required. | visitorData.purpose is required. | visitorData.recurringDays is required when isRecurring is true. | visitorId is mandatory for UPDATE. | recurringDays is required when isRecurring is true. | preApproved must be a boolean. | visitorId is mandatory for DELETE. | Only POST allowed. | Request body is required. | action is required.
+
+crud-resident-complaint [POST] auth=requireAuth middleware
+CrudResidentComplaintRequest: {"action":{"union":["\"CREATE\"","\"VIEW\"","\"UPDATE\""]},"complaintId?":"string","complaintData?":{"title?":"string","description?":"string","complaintType?":"string","priority?":"string"},"complaintImages?":[{"fileName":"string","fileType":"string","fileSize?":{"union":["number","string"]}}],"removeDocumentIds?":["string"],"idempotencyKey?":"string","filters?":{"status?":"string","priority?":"string","complaintType?":"string","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string"},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"pagination?":{"page?":"number","pageSize?":"number"}}
+QUERY  CHECKS complaintData is mandatory. | complaintData.title is required. | complaintData.description is required. | complaintId is mandatory for UPDATE. | Only POST method is allowed. | Request body is required.
+
+crud-resident-document [POST] auth=
+CrudResidentDocumentRequest: {"societyRegistrationNumber":"string","residentId":"string","action":"Action","scope?":"ViewScope","search?":"string","filters?":{"documentType?":{"union":["string",["string"]]},"fileType?":{"union":["string",["string"]]},"dateFrom?":"string","dateTo?":"string"},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"page?":"number","limit?":"number","phase?":"UploadPhase","payload?":{"documentType?":"string","fileName?":"string","fileType?":"string","fileSize?":{"union":["number","string"]},"objectKey?":"string"},"documentId?":"string"}
+QUERY  CHECKS residentId must be a valid UUID. | payload is required for UPLOAD. | payload.objectKey is required for confirm phase. | documentId (returned by the request phase) is required for confirm phase. | documentId must be a valid UUID. | documentId is required. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber, residentId, and action are required.
+
+crud-servant [POST] auth=requireAuth middleware
+CrudServantRequest: {"action":"Action","societyRegistrationNumber":"string","servantId?":"string","servantData?":{"servantId?":"string","name?":"string","phoneNumber?":"string","address?":"string","role?":{"union":["string",["string"]]},"shiftTiming?":{"union":["string",["string"]]},"gender?":"string","status?":"string","dateOfBirth?":"string","idProofType?":"string","idProofNumber?":"string","isRecurring?":"boolean","scheduledArrival?":"string","scheduledDeparture?":"string"},"servantImage?":{"fileName":"string","fileType":"string","fileSize?":"number"},"filters?":{"status?":"string","gender?":"string","role?":"string","shiftTiming?":"string","isRecurring?":"boolean","search?":"string"},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"pagination?":{"page?":"number","pageSize?":"number"},"idempotencyKey?":"string"}
+QUERY  CHECKS servantData is mandatory. | name is required. | phoneNumber is required. | idProofType is required. | idProofNumber is required. | Invalid phone number. Must be 10–15 digits. | Only Admin can update servants. | servantId is mandatory for UPDATE. | servantData with at least one field, or servantImage, is required. | Only Admin can delete servants. | servantId is mandatory. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber is mandatory.
+
+crud-society [POST] auth=Society admin credentials in body
+CrudSocietyRequest: {"societyRegistrationNumber":"string","adminId":"string","action":{"union":["\"VIEW\"","\"UPDATE\""]},"payload?":{"societyName?":"string","subscriptionPlan?":"string","addressLine1?":"string","addressLine2?":"string","city?":"string","state?":"string","postalCode?":"string","phoneNumber?":"string","email?":"string","totalParkingSlot?":{"union":["number","string"]}}}
+QUERY  CHECKS adminId must be a valid UUID. | totalParkingSlot must be a non-negative number. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber, adminId, and action are required.
+
+crud-society-staff [POST] auth=Society admin credentials in body
+CrudStaffRequest: {"societyRegistrationNumber":"string","adminId":"string","action":{"union":["\"VIEW\"","\"CREATE\"","\"UPDATE\"","\"DELETE\""]},"search?":"string","filters?":{"role?":{"union":["string",["string"]]},"availabilityStatus?":{"union":["string",["string"]]},"isEmergencyContact?":{"union":["boolean","string"]},"emergencyCategory?":{"union":["string",["string"]]},"shiftTiming?":{"union":["string",["string"]]}},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"page?":"number","limit?":"number","staffId?":"string","payload?":{"name?":"string","phone?":"string","alternatePhone?":{"union":["string","null"]},"role?":"string","isEmergencyContact?":"boolean","shiftTiming?":{"union":["string","null"]},"availabilityStatus?":{"union":["string","null"]},"idProofType?":{"union":["string","null"]},"idProofNumber?":{"union":["string","null"]},"address?":{"union":["string","null"]},"emergencyCategory?":{"union":["string","null"]}}}
+QUERY  CHECKS adminId must be a valid UUID. | payload is required. | payload.name is required. | payload.phone is required. | payload.role is required. | phone must be 10-15 digits. | alternatePhone must be 10-15 digits. | staffId is required for UPDATE. | staffId must be a valid UUID. | staffId is required for DELETE. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber, adminId, and action are required.
+
+crud-tower [POST] auth=Society admin credentials in body
+CrudTowerRequest: {"societyRegistrationNumber":"string","adminId":"string","action":{"union":["\"VIEW\"","\"CREATE\"","\"UPDATE\"","\"DELETE\""]},"search?":"string","filters?":{"block?":{"union":["string",["string"]]},"active?":{"union":["boolean","string"]}},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"page?":"number","limit?":"number","towerId?":"string","payload?":{"name?":"string","block?":{"union":["string","null"]},"blockId?":{"union":["string","null"]},"blockName?":{"union":["string","null"]},"active?":"boolean","floors?":"number","flats_per_floor?":{"union":["number","string"]}}}
+QUERY  CHECKS adminId must be a valid UUID. | payload is required. | payload.name is required. | payload.active is required. | towerId is required for UPDATE. | towerId must be a valid UUID. | floors must be a non-negative integer. | flats_per_floor must be a non-negative integer. | towerId is required for DELETE. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber, adminId, and action are required.
+
+delete-members [POST,DELETE] auth=requireAuth middleware
+DeleteMemberRequest: {"memberId":"string","memberType?":"string"}
+QUERY  CHECKS Only POST or DELETE methods are allowed. | Request body is required. | memberId is mandatory. | Invalid memberType. Must be 'society' or 'vendor'. | Only a society admin can delete members.
+
+facility-booking-action [POST] auth=requireAuth middleware
+ActionRequest: {"societyRegistrationNumber?":"string","bookingId":"string","action":"string","reasonForRejecting?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Booking ID and Action are mandatory. | reasonForRejecting is required when rejecting a booking.
+
+facility-booking-admin [POST] auth=requireAuth middleware
+MergedRequest: {"actionType":"ActionType","societyRegistrationNumber":"string","payId?":"string","approvalStatus?":"string","rejectionReason?":"string","bookingId?":"string","action?":"string","reasonForRejecting?":"string"}
+QUERY  CHECKS Only POST method is allowed. | actionType is mandatory. | societyRegistrationNumber is mandatory. | Missing mandatory fields: payId or approvalStatus. | Booking ID and Action are mandatory. | reasonForRejecting is required when rejecting a booking.
+
+facility-console [POST] auth=requireAuth middleware
+MergedRequestBody: {"actionType":"ActionType","societyRegistrationNumber":"string","facilityName?":"string","facilityType?":"string","bookingDate?":"string"}
+QUERY  CHECKS Only POST method is allowed. | actionType is mandatory. | Society Registration Number is mandatory. | Facility Name/Type and Booking Date are mandatory.
+
+generate-payment-receipt [POST] auth=JWT verification; Authorization header inspected
+DownloadRequest: {"paymentId":"string","responseFormat?":{"union":["\"file\"","\"url\""]}}
+ListRequest: {"list":"true","filters?":{"paymentStatus?":"string","startDate?":"string","endDate?":"string","searchQuery?":"string"},"pagination?":{"page?":"number","pageSize?":"number"}}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | paymentId is required. | responseFormat must be file or url.
+
+get-complaints [POST] auth=requireAuth middleware
+GetComplaintsRequest: {"societyRegistrationNumber":"string","status?":"string","priority?":"string","type?":"string","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | societyRegistrationNumber is mandatory. | fromDate and toDate are required for Custom filter.
+
+get-dashboard [GET] auth=requireAuth middleware
+BODY 
+QUERY  CHECKS Only GET method is allowed.
+
+get-facilities-details [POST] auth=requireAuth middleware
+BODY societyRegistrationNumber
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | Society Registration Number is mandatory.
+
+get-facility-bookings [] auth=
+BODY societyRegistrationNumber,status,facilityId,facilityName,startDate,endDate,searchQuery,page = 1,limit = 10; data,error
+QUERY  CHECKS societyRegistrationNumber is mandatory. | facilityName must be text.
+
+get-facility-schedule [POST] auth=requireAuth middleware
+ScheduleRequestBody: {"societyRegistrationNumber":"string","facilityName?":"string","facilityType?":"string","bookingDate":"string"}
+QUERY  CHECKS Only POST method is allowed. | Society Registration Number, Facility Name/Type, and Booking Date are mandatory.
+
+get-marketplace [POST] auth=requireAuth middleware
+GetMarketplaceRequest: {"registrationNumber":"string","category?":"string","status?":"string","search?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | registrationNumber is mandatory.
+
+get-members [POST] auth=requireAuth middleware
+GetMembersRequest: {"registrationNumber":"string","role?":"string","flat?":"string","block?":"string","tower?":"string","search?":"string","page?":"number","limit?":"number","status?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | registrationNumber is mandatory.
+
+get-my-facility-bookings [] auth=
+BODY societyRegistrationNumber,residentId
+QUERY  CHECKS Society Registration Number and residentId are mandatory fields.
+
+get-otp [POST] auth=
+GetOTPRequest: {"phoneNumber":"string","registrationNumber":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | phoneNumber and registrationNumber are required.
+
+get-payments-list [] auth=JWT verification; Authorization header inspected
+GetPaymentsPayload: {"societyRegistrationNumber?":"string","paymentStatus?":"string","paymentType?":"string","searchText?":"string"}
+QUERY page,limit CHECKS 
+
+get-pending-approvals [] auth=JWT verification; Authorization header inspected
+BODY 
+QUERY complaintPage,complaintLimit,bookingPage,bookingLimit CHECKS 
+
+get-picklists [POST] auth=
+GetPicklistsRequest: {"societyRegistrationNumber":"string","requesterId":"string","scope?":["string"],"language?":"string"}
+QUERY  CHECKS requesterId must be a valid UUID. | table_name,field_name,field_label,field_placeholder,field_helper_text,input_type,is_required,is_visible,default_value,validation_regex,sort_order | Only POST method is allowed. | Request body is required. | societyRegistrationNumber is required. | requesterId is required. | scope must be a non-empty array of table names.
+
+get-profile [] auth=JWT verification; Authorization header inspected
+BODY 
+QUERY  CHECKS phoneNumber, registrationNumber and role are mandatory.
+
+get-resident-notices [POST] auth=requireAuth middleware
+GetResidentNoticesRequest: {"societyRegistrationNumber":"string","residentId":"string","type?":"string","priority?":"string","search?":"string","page?":"number","limit?":"number","sortBy?":{"union":["\"publishedDate\"","\"createdAt\"","\"expiryDate\"","\"priority\""]},"sortOrder?":{"union":["\"asc\"","\"desc\""]},"showExpired?":"boolean","dateFrom?":"string","dateTo?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | societyRegistrationNumber is mandatory. | residentId is mandatory.
+
+get-residents-profile [] auth=JWT verification; Authorization header inspected
+BODY 
+QUERY page,limit CHECKS societyRegistrationNumber and residentId are mandatory.
+
+get-societies [GET] auth=
+BODY 
+QUERY  CHECKS Authentication required
+
+get-society-settings [POST] auth=Society admin credentials in body
+GetSocietySettingsRequest: {"societyRegistrationNumber":"string","adminId":"string"}
+QUERY  CHECKS adminId must be a valid UUID. | Unauthorized. Admin access required for this society. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber is required. | adminId is required.
+
+get-subscription-info [GET] auth=
+BODY 
+QUERY action,page,limit CHECKS Authentication required for action=myPlan | Authentication required for action=history
+
+get-visitors [POST] auth=requireAuth middleware
+GetVisitorsRequest: {"societyRegistrationNumber":"string","approvalStatus?":"string","status?":"string","role?":{"union":["string",["string"]]},"hostedBy?":"string","tower?":"string","block?":"string","flatNumber?":"string","isRecurring?":"boolean","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required.
+
+hired-available-servants [POST] auth=
+HiredAvailableServantsRequest: {"residentId":"string","societyRegistrationNumber":"string","search?":"string","role?":{"union":["string",["string"]]},"recurringDays?":{"union":["string",["string"]]},"shiftTiming?":{"union":["string",["string"]]},"filterOption?":{"union":["\"all\"","\"hired\"","\"available\"","\"today\"","\"thisweek\"","\"lastweek\"","\"thismonth\"","\"lastmonth\"","\"custom\""]},"fromDate?":"string","toDate?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | residentId is required. | societyRegistrationNumber is required. | fromDate and toDate are required for custom date filter.
+
+make-resident-payment [] auth=JWT verification; Authorization header inspected
+BODY 
+QUERY page,limit CHECKS societyRegistrationNumber, residentId, and paymentId are mandatory.
+
+manage-complaint-admin [POST] auth=requireAuth middleware
+CrudComplaintAdminRequest: {"action":{"union":["\"VIEW\"","\"ASSIGN\"","\"STAFF_LIST\""]},"filters?":{"status?":"string","priority?":"string","complaintType?":"string","assignedAgentId?":"string","assignedVendorId?":"string","residentId?":"string","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string"},"sort?":{"field?":"string","order?":{"union":["\"asc\"","\"desc\""]}},"pagination?":{"page?":"number","pageSize?":"number"},"complaintId?":"string","staffId?":"string"}
+QUERY  CHECKS complaintId is mandatory. | staffId is mandatory. | staffId must be a valid vendor or service_agent in this society. | Only POST method is allowed. | Request body is required. | Only Admin or SuperAdmin can access this API.
+
+manage-resident-servants [POST] auth=requireAuth middleware
+ResidentServantsRequest: {"action":"ActionType","servantId?":"string","roles?":["string"],"isRecurring?":"boolean","recurringDays?":["string"],"filters?":{"search?":"string","role?":"string","shiftTiming?":"string","recurringDays?":{"union":[["string"],"string"]},"hiredStatus?":{"union":["\"all\"","\"hired\"","\"available\""]},"dateOption?":"string","fromDate?":"string","toDate?":"string"},"pagination?":{"page?":"number","pageSize?":"number"}}
+QUERY  CHECKS servantId is mandatory. | At least one role must be specified for hiring. | recurringDays is required when isRecurring is true. | Only POST method is allowed. | Request body is required.
+
+manage-servant-hire [POST] auth=
+ManageServantHireRequest: {"societyRegistrationNumber":"string","residentId":"string","servantId":"string","action":{"union":["\"hire\"","\"layoff\""]},"roles?":{"union":["string",["string"]]},"isRecurring?":"boolean","recurringDays?":["string"]}
+QUERY  CHECKS Only POST method is allowed. | societyRegistrationNumber is required. | residentId is required. | servantId is required. | action must be either "hire" or "layoff". | At least one role must be specified for hiring. | recurringDays is required when isRecurring is true.
+
+manage-subscription [POST] auth=requireAuth middleware
+RequestBody: {"action":{"union":["\"ACTIVATE_FREE\"","\"CANCEL\""]},"reason?":"string"}
+QUERY  CHECKS action is required
+
+manage-subscription-payment [POST] auth=requireAuth middleware
+RequestBody: {"action":{"union":["\"RENEW\"","\"UPGRADE\""]},"billingPeriod":"string","newPlanCode?":"string"}
+QUERY  CHECKS action is required | billingPeriod is required | Invalid billingPeriod. Must be one of: MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY, THREE_YEAR | Only the subscription owner can perform this action. | newPlanCode is required for UPGRADE
+
+manage-transfer [POST] auth=requireAuth middleware
+RequestBody: {"action":{"union":["\"REQUEST\"","\"ACCEPT\"","\"CANCEL\"","\"LIST\""]},"transferType?":{"union":["\"SOCIETY\"","\"MEMBER\"","\"GIFT\""]},"toSocietyUser?":"string","toSociety?":"string","toTower?":"string","toBlock?":"string","toFlatNumber?":"string","transferId?":"string","reason?":"string","filter?":{"union":["\"incoming\"","\"outgoing\"","\"all\""]}}
+QUERY  CHECKS action is required | transferType is required for REQUEST | transferId is required for ACCEPT | transferId is required for CANCEL
+
+marketplace-browse [POST] auth=requireAuth middleware
+MergedRequest: {"actionType?":"ActionType","action?":"string","registrationNumber?":"string","societyRegistrationNumber?":"string","category?":"string","status?":"string","search?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"marketplaceItemId?":{"union":["string","number"]}}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | actionType is mandatory. Allowed: BROWSE, TOGGLE_WISHLIST, FETCH_WISHLIST. | registrationNumber is mandatory. | Missing mandatory parameter: marketplaceItemId.
+
+my-visitors [POST] auth=requireAuth middleware
+MyVisitorsRequest: {"societyRegistrationNumber":"string","residentId":"string","flatNumber":"string","approvalStatus?":"string","visitorStatus?":"string","role?":{"union":["string",["string"]]},"isRecurring?":"boolean","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required.
+
+process-csv-import [] auth=requireAuth middleware
+BODY 
+QUERY  CHECKS Missing required field 'entity_type' ('society_user' or 'non_society_user') | Missing mandatory fields for society user: 'name' or 'phone' | Missing mandatory fields for non-society user: 'name' or 'phone'
+
+razorpay-webhook [POST] auth=Razorpay signature
+BODY data: existing,error: lookupErr; error
+QUERY  CHECKS Only POST is allowed | payment.captured: order notes missing required fields
+
+renew-subscription [POST] auth=requireAuth middleware
+RequestBody: {"billingPeriod":"string"}
+QUERY  CHECKS billingPeriod is required | Invalid billingPeriod. Must be one of: MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY, THREE_YEAR | Only the subscription owner can renew.
+
+request-refund [POST] auth=requireAuth middleware
+RequestBody: {"action":{"union":["\"PREVIEW\"","\"REQUEST\""]},"reason?":"string"}
+QUERY  CHECKS action must be PREVIEW or REQUEST | Only the subscription owner can request a refund. | A reason of at least 10 characters is required for prorated refunds.
+
+resident-complaints [POST] auth=requireAuth middleware
+ResidentComplaintsRequest: {"societyRegistrationNumber":"string","residentId":"string","status?":"string","priority?":"string","type?":"string","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | fromDate and toDate are required for Custom filter.
+
+resident-facility-booking [POST] auth=requireAuth middleware
+BookingRequest: {"action?":"BookingAction","societyRegistrationNumber":"string","residentId?":"string","facilityName?":"string","bookingStartDateTime?":"string","bookingEndDateTime?":"string","isAllDay?":{"union":["boolean","string"]},"paymentMode?":"string","purpose?":"string","fileName?":"string","fileType?":"string","fileSize?":{"union":["number","string"]},"bookingRequestId?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"statusFilter?":"string"}
+QUERY  CHECKS Only POST method is allowed. | societyRegistrationNumber is mandatory. | residentId is required. | facilityName and bookingStartDateTime are required. | bookingRequestId is required to cancel a booking. | bookingRequestId is required to abort a pending booking. | facilityName is required to book a facility. | bookingStartDateTime and bookingEndDateTime are required for booking. | Booking start date-time must be earlier than end date-time.
+
+resident-marketplace [POST] auth=requireAuth middleware
+BODY operation,societyRegistrationNumber,marketPlaceId,title,category,price,priceType,status,description,page = 1,limit = 10,search,files,documentIds
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | operation and societyRegistrationNumber are mandatory. | marketPlaceId is mandatory for this operation. | At least one file object is required in 'files'. | Array of 'documentIds' is required for deleting images.
+
+resident-marketplace-console [POST] auth=requireAuth middleware
+FileInput: {"fileName":"string","fileType?":"string","fileSize?":{"union":["number","string"]}}
+MergedRequest: {"actionType":"ActionType","societyRegistrationNumber":"string","title?":"string","category?":"string","price?":{"union":["number","string"]},"priceType?":"string","status?":"string","description?":"string","files?":["FileInput"],"marketPlaceId?":{"union":["number","string"]},"documentIds?":["(string | number)"],"page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"search?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | actionType is mandatory. | societyRegistrationNumber is mandatory. | title, category, and price are mandatory (unless priceType is 'Free'). | marketPlaceId is mandatory for this action. | At least one file object is required in 'files'. | Array of 'documentIds' is required for deleting images.
+
+resident-payments-console [POST] auth=requireAuth middleware
+MergedRequest: {"actionType":"ActionType","societyRegistrationNumber":"string","residentId?":"string","paymentId?":"string","status?":"string","fileName?":"string","fileType?":"string","fileSize?":{"union":["number","string"]},"page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"paymentType?":"string","search?":"string"}
+QUERY  CHECKS Only POST method is allowed. | actionType is mandatory. | societyRegistrationNumber is mandatory. | paymentId is mandatory.
+
+resident-profile-console [POST] auth=requireAuth middleware
+MergedRequest: {"flatTypeId?":{"union":["string","null"]},"flatType?":{"union":["string","null"]},"actionType?":"ActionType","operation?":"string","societyRegistrationNumber":"string","residentId?":"string","role?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"search?":"string","filterRole?":"string","filterStatus?":{"union":["boolean","string"]},"filterUserType?":"string","filterUserOwnershipType?":"string","filterTower?":"string","filterBlock?":"string","name?":{"union":["string","null"]},"description?":{"union":["string","null"]},"gender?":{"union":["string","null"]},"occupation?":{"union":["string","null"]},"idProofType?":{"union":["string","null"]},"idProofNumber?":{"union":["string","null"]},"vehicleType?":{"union":["string","null"]},"vehicleRegNo?":{"union":["string","null"]},"parkingSlot?":{"union":["string","null"]},"parking_slot?":{"union":["string","null"]},"email?":{"union":["string","null"]},"phone?":{"union":["string","null"]},"whatsAppPhone?":{"union":["string","null"]},"emergencyPhone?":{"union":["string","null"]},"flatNumber?":{"union":["string","null"]},"status?":{"union":["boolean","string","null"]},"userType?":{"union":["string","null"]},"userOwnershipType?":{"union":["string","null"]},"moveInDate?":{"union":["string","null"]},"moveOutDate?":{"union":["string","null"]},"block?":{"union":["string","null"]},"tower?":{"union":["string","null"]}}
+QUERY  CHECKS Only POST method is allowed. | societyRegistrationNumber is mandatory. | actionType is mandatory. Allowed: FETCH_ONE, FETCH_ALL, UPDATE.  | residentId is mandatory. | residentId is mandatory for UPDATE operation. | Field 'email' must be a valid email address. | Field 'emergencyPhone' must be different from 'phone'. | Field 'moveOutDate' must be later than 'moveInDate'.
+
+resident-visitor [POST] auth=requireAuth middleware
+ResidentVisitorRequest: {"action":{"union":["\"VIEW\"","\"LOGS\""]},"preApproved?":"boolean","approvalStatus?":"string","visitorStatus?":"string","role?":{"union":["string",["string"]]},"isRecurring?":"boolean","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | preApproved must be a boolean.
+
+resident-visitor-logs [POST] auth=requireAuth middleware
+ResidentLogVisitorsRequest: {"societyRegistrationNumber":"string","residentId":"string","role?":{"union":["string",["string"]]},"visitorStatus?":"string","filterOption?":"string","fromDate?":"string","toDate?":"string","search?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required.
+
+resident-wishlist [] auth=requireAuth middleware
+BODY action = "LIST",societyUserId,marketplaceItemId,page = 1,limit = 10
+QUERY  CHECKS Missing mandatory parameter: societyUserId. | Missing mandatory parameter: marketplaceItemId.
+
+save-fcm-token [POST] auth=requireAuth middleware
+BODY data,error
+QUERY  CHECKS Only POST allowed. | Request body required. | role is required for society_user. | fcmToken is required.
+
+search-contacts [POST] auth=requireAuth middleware
+BODY searchKey,registrationNumber,page,limit; data: contacts,error: dbErr,count
+QUERY  CHECKS Only POST is allowed. | Request body is required. | searchKey is mandatory. | registrationNumber is mandatory — contacts must be searched within a single society.
+
+search-resident [POST] auth=requireAuth middleware
+SearchResidentRequest: {"societyRegistrationNumber":"string","flatNumber":"string","sortBy?":{"union":["\"towerName\"","\"blockName\"","\"name\"","\"createdAt\""]},"sortDir?":{"union":["\"asc\"","\"desc\""]},"page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | societyRegistrationNumber is mandatory. | flatNumber is mandatory. | Only security personnel can access this endpoint.
+
+security-gate-console [POST] auth=requireAuth middleware
+SecurityGatePayload: {"actionType":{"union":["\"FETCH_PRE_APPROVALS\"","\"REQUEST_APPROVAL\"","\"UPDATE_STATUS\"","\"FETCH_INSIDE_LOGS\""]},"societyRegistrationNumber":"string","societyUserId?":"string","securityGuardId?":"string","flatNumber?":"string","block?":"string","tower?":"string","visitorId?":"string","newStatus?":"string","visitorName?":"string","phone?":"string","email?":"string","gender?":"string","role?":"string","idProofType?":"string","idProofNumber?":"string","gateNumber?":"string","platform?":"string","vehicleNumber?":"string","vehicleType?":"string","purpose?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"searchTerm?":"string","startDate?":"string","endDate?":"string"}
+QUERY  CHECKS Only POST method is allowed. | societyRegistrationNumber is mandatory. | societyUserId is required. | visitorName and phone/phoneNumber (or an OTP visitorId) are required.
+
+security-guard-image [POST] auth=requireAuth middleware
+SecurityGuardImagePayload: {"operation":{"union":["\"UPLOAD\"","\"FETCH\"","\"FETCH_ALL\""]},"societyRegistrationNumber?":"string","fileName?":"string","fileType?":"string","fileSize?":{"union":["string","number"]},"fileBase64?":"string","documentId?":"string","visitorId?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"searchTerm?":"string","startDate?":"string","endDate?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Operation parameter is mandatory. | Missing required fields: societyRegistrationNumber, visitorId, fileName, and fileType are mandatory. | fileBase64 must be text. | documentId parameter is required for FETCH operation.
+
+send-notification [POST] auth=
+BODY 
+QUERY  CHECKS 
+
+send-sos-push [POST] auth=
+BODY error
+QUERY  CHECKS Only POST is allowed.
+
+servant-detail [POST] auth=
+ServantDetailRequest: {"servantId":"string"}
+QUERY  CHECKS Only POST method is allowed. | servantId is required.
+
+staff-complaint-images [POST] auth=requireAuth middleware
+FileInput: {"fileName":"string","fileType":"string","fileSize?":{"union":["number","string"]},"objectKey?":"string"}
+ComplaintImagesRequest: {"operation":"ImageOperation","societyRegistrationNumber?":"string","complaintId?":"string","documentType?":"ImageType","files?":["FileInput"],"isUploaded?":{"union":["boolean","string"]},"documentId?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | files array is required and cannot be empty. | Only Service Agents or Vendors can upload BEFORE/AFTER images.
+
+staff-complaint-workflow [POST] auth=requireAuth middleware
+FileInput: {"fileName":"string","fileType":"string","fileSize?":{"union":["number","string"]},"objectKey?":"string"}
+StaffComplaintWorkflowRequest: {"action":"ActionType","complaintId?":"string","imageType?":"ImageType","files?":["FileInput"],"isUploaded?":{"union":["boolean","string"]},"documentId?":"string","otp?":"string","stage?":{"union":["\"START\"","\"END\""]}}
+QUERY  CHECKS Only Service Agents or Vendors can access this API. | complaintId is mandatory. | imageType must be 'BEFORE' or 'AFTER'. | files array is required. | documentId is mandatory. | Only before/after complaint images can be deleted here. | otp is mandatory. | complaintId and stage (START or END) are required. | Only POST method is allowed. | Request body is required.
+
+staff-complaints [POST] auth=requireAuth middleware
+StaffComplaintsRequest: {"societyRegistrationNumber":"string","staffType":"StaffType","staffId":"string","actionType":"ActionType","status?":"string","complaintType?":"string","priority?":"string","search?":"string","filterOption?":"string","fromDate?":"string","toDate?":"string","complaintId?":"string","newStatus?":"string","agentAvailabilityStatus?":"string","page?":"number","limit?":"number"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | fromDate and toDate are required for Custom filter.
+
+switch-user [] auth=JWT verification; Authorization header inspected
+SwitchRequestBody: {"phoneNumber?":"string","registrationNumber?":"string","role?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"filters?":{"statusFilter?":{"union":["string","null"]},"userTypeFilter?":{"union":["string","null"]},"complaintStatus?":{"union":["string","null"]},"bookingStatus?":{"union":["string","null"]},"searchQuery?":{"union":["string","null"]}}}
+QUERY  CHECKS phoneNumber, registrationNumber, and role are mandatory.
+
+update-approval-status [] auth=requireAuth middleware
+BODY actionType,societyRegistrationNumber,visitorId,page = 1,limit = 10,filters = {}
+QUERY  CHECKS Missing required fields: actionType, societyRegistrationNumber, and visitorId are required. | Only the host resident can approve or reject this visitor. | Only society security can request resident approval.
+
+update-member [POST] auth=requireAuth middleware
+UpdateMemberRequest: {"memberId":"string","updatedData":{"flatTypeId?":{"union":["string","null"]},"flatType?":{"union":["string","null"]},"vendorName?":"string","vendorServiceType?":"string","vendorRating?":{"union":["number","string"]},"vendorId?":"string","name?":"string","phoneNumber?":"string","serviceType?":"string","vehicleNumber?":"string","fullName?":"string","parkingSlot?":{"union":["string","null"]},"parking_slot?":{"union":["string","null"]},"phone?":"string","email?":"string","gender?":"string","occupation?":"string","idProofType?":"string","idProofNumber?":"string","whatsappPhone?":"string","emergencyPhone?":"string","vehicleType?":"string","vehicleRegistrationNumber?":"string","blockName?":"string","towerName?":"string","unitFlatNumber?":"string","userType?":"string","userOwnershipType?":"string","status?":{"union":["string","boolean"]},"moveInDate?":"string","moveOutDate?":"string","shift?":"string","securityZone?":"string","securityGuardStatus?":"string","gateNumber?":"string","securityGuardId?":"string","serviceAgentRating?":{"union":["number","string"]},"agentAvailabilityStatus?":"string","serviceAgentServices?":{"union":[["string"],"string"]},"role?":{"union":[["string"],"string"]}}}
+QUERY  CHECKS Society context is required to resolve block. | Society context is required to resolve tower. | userType must be 'owner' or 'tenant'. | Only POST method is allowed. | Request body is required. | memberId is mandatory. | updatedData is mandatory and cannot be empty. | vendorRating must be between 0 and 5. | parkingSlot must be text or null. | serviceAgentRating must be between 0 and 5. | role must be an array of strings.
+
+update-parking-occupancy [POST] auth=
+UpdateParkingOccupancyRequest: {"societyRegistrationNumber":"string","memberId":"string","coveredParking":{"union":["number","string"]}}
+QUERY  CHECKS memberId must be a valid UUID. | Only POST method is allowed. | Request body is required. | societyRegistrationNumber is required. | memberId is required. | coveredParking is required. | coveredParking must be a non-negative number.
+
+update-residents-profile [] auth=JWT verification; Authorization header inspected
+BODY operation = "UPDATE",societyRegistrationNumber,residentId,page = 1,limit = 10,search,filterRole,filterStatus,filterUserType,filterUserOwnershipType,filterTower,filterBlock
+QUERY  CHECKS societyRegistrationNumber is mandatory. | residentId is mandatory for UPDATE operation.
+
+upgrade-subscription [POST] auth=requireAuth middleware
+RequestBody: {"newPlanCode":"string","billingPeriod":"string"}
+QUERY  CHECKS newPlanCode is required | Invalid billingPeriod. Must be one of: MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY, THREE_YEAR | Only the subscription owner can upgrade.
+
+vendor-management [POST] auth=requireAuth middleware
+BODY operation,societyRegistrationNumber,recordId,vendorId,name,phoneNumber,email,gender,role,serviceType,idProofType,idProofNumber,vehicleNumber,vehicleType,vendorRating,page,limit,search
+QUERY  CHECKS Only POST method is allowed. | Operation is mandatory. | societyRegistrationNumber is required. | name, phoneNumber, and role are required for CREATE. | recordId is required for UPDATE. | recordId is required for DELETE.
+
+verify-booking-facility [POST] auth=requireAuth middleware
+VerifyBookingPayload: {"societyRegistrationNumber":"string","payId":"string","approvalStatus":"string","rejectionReason?":"string"}
+QUERY  CHECKS Only POST method is allowed. | Missing mandatory fields: societyRegistrationNumber, payId, or approvalStatus.
+
+verify-otp [POST] auth=
+VerifyOTPRequest: {"phoneNumber":"string","registrationNumber":"string","otp":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | phoneNumber, registrationNumber, and otp are required.
+
+verify-payment [] auth=
+BODY error: bookingError; error: requestUpdateError
+QUERY  CHECKS Missing mandatory fields.
+
+verify-razorpay-payment [POST] auth=requireAuth middleware
+RequestBody: {"razorpay_order_id":"string","razorpay_payment_id":"string","razorpay_signature":"string"}
+QUERY  CHECKS razorpay_order_id is required | razorpay_payment_id is required | razorpay_signature is required | Order notes missing required fields
+
+view-resident-payments [POST] auth=requireAuth middleware
+BODY societyRegistrationNumber,status,paymentType,search,page = 1,limit = 10
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | societyRegistrationNumber is mandatory.
+
+visitor-otp [POST] auth=requireAuth middleware
+VisitorOtpRequest: {"phoneNumber":"string","visitorName?":"string","name?":"string","otp?":"string","visitorId?":"string","societyUserId":"string"}
+QUERY  CHECKS Only POST method is allowed. | Request body is required. | Validation failed: phoneNumber and societyUserId are required. | Invalid OTP format. OTP must be 6 digits.
+
+visitor-pass-operations [POST] auth=requireAuth middleware
+UnifiedSecurityPayload: {"actionType?":{"union":["\"FETCH_PRE_APPROVALS\"","\"REQUEST_APPROVAL\"","\"UPDATE_STATUS\"","\"FETCH_INSIDE_LOGS\"","\"FETCH_RESIDENTS_BY_FLAT\"","\"FETCH_SERVANTS_BY_FLAT\"","\"UPDATE_SERVANT_STATUS\""]},"operation?":{"union":["\"UPLOAD\"","\"CONFIRM_UPLOAD\"","\"FETCH\"","\"FETCH_ALL\""]},"societyRegistrationNumber?":"string","societyServantId?":"string","visitorId?":"string","page?":{"union":["number","string"]},"limit?":{"union":["number","string"]},"searchTerm?":"string","startDate?":"string","endDate?":"string","societyUserId?":"string","securityGuardId?":"string","flatNumber?":"string","block?":"string","tower?":"string","newStatus?":"string","visitorName?":"string","name?":"string","phone?":"string","phoneNumber?":"string","email?":"string","gender?":"string","role?":"string","idProofType?":"string","idProofNumber?":"string","gateNumber?":"string","platform?":"string","vehicleNumber?":"string","vehicleType?":"string","purpose?":"string","fileName?":"string","fileType?":"string","fileSize?":{"union":["string","number"]},"fileBase64?":"string","objectKey?":"string","documentId?":"string"}
+QUERY  CHECKS Only POST method is allowed. | actionType or operation parameter is mandatory. | societyRegistrationNumber is mandatory. | societyUserId is required to request resident approval. | visitorName and phone/phoneNumber (or an OTP visitorId) are required. | A required field is missing. Check that name, phone, and role are provided. | flatNumber is required for FETCH_RESIDENTS_BY_FLAT. | flatNumber is required for FETCH_SERVANTS_BY_FLAT. | societyServantId is required for UPDATE_SERVANT_STATUS. | newStatus is required for UPDATE_SERVANT_STATUS. | Missing required fields: societyRegistrationNumber, v

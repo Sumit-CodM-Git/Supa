@@ -1,0 +1,147 @@
+{
+  "databaseCounts": {
+    "assigned": 1,
+    "inProgress": 0,
+    "resolved": 32
+  },
+  "checks": [
+    {
+      "request": {
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "staffType": "SERVICE_AGENT",
+        "staffId": "b5253054-4336-4d5b-bf62-db4d13ae766d",
+        "actionType": "FETCH",
+        "page": 1,
+        "limit": 1
+      },
+      "httpStatus": 200,
+      "statusCounts": {
+        "assigned": 1,
+        "inProgress": 0,
+        "resolved": 32
+      },
+      "pagination": {
+        "total": 38,
+        "page": 1,
+        "limit": 1,
+        "totalPages": 38
+      },
+      "returned": 1
+    },
+    {
+      "request": {
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "staffType": "SERVICE_AGENT",
+        "staffId": "b5253054-4336-4d5b-bf62-db4d13ae766d",
+        "actionType": "FETCH",
+        "page": 2,
+        "limit": 1
+      },
+      "httpStatus": 200,
+      "statusCounts": {
+        "assigned": 1,
+        "inProgress": 0,
+        "resolved": 32
+      },
+      "pagination": {
+        "total": 38,
+        "page": 2,
+        "limit": 1,
+        "totalPages": 38
+      },
+      "returned": 1
+    },
+    {
+      "request": {
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "staffType": "SERVICE_AGENT",
+        "staffId": "b5253054-4336-4d5b-bf62-db4d13ae766d",
+        "actionType": "FETCH",
+        "page": 1,
+        "limit": 100
+      },
+      "httpStatus": 200,
+      "statusCounts": {
+        "assigned": 1,
+        "inProgress": 0,
+        "resolved": 32
+      },
+      "pagination": {
+        "total": 38,
+        "page": 1,
+        "limit": 100,
+        "totalPages": 1
+      },
+      "returned": 38
+    },
+    {
+      "request": {
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "staffType": "SERVICE_AGENT",
+        "staffId": "b5253054-4336-4d5b-bf62-db4d13ae766d",
+        "actionType": "FETCH",
+        "page": 99999,
+        "limit": 10
+      },
+      "httpStatus": 200,
+      "statusCounts": {
+        "assigned": 1,
+        "inProgress": 0,
+        "resolved": 32
+      },
+      "pagination": {
+        "total": 38,
+        "page": 99999,
+        "limit": 10,
+        "totalPages": 4
+      },
+      "returned": 0
+    },
+    {
+      "request": {
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "staffType": "SERVICE_AGENT",
+        "staffId": "b5253054-4336-4d5b-bf62-db4d13ae766d",
+        "actionType": "FETCH",
+        "status": "resolved",
+        "limit": 1
+      },
+      "httpStatus": 200,
+      "statusCounts": {
+        "assigned": 1,
+        "inProgress": 0,
+        "resolved": 32
+      },
+      "pagination": {
+        "total": 32,
+        "page": 1,
+        "limit": 1,
+        "totalPages": 32
+      },
+      "returned": 1
+    },
+    {
+      "request": {
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "staffType": "SERVICE_AGENT",
+        "staffId": "b5253054-4336-4d5b-bf62-db4d13ae766d",
+        "actionType": "FETCH",
+        "search": "no-such-complaint-count-check",
+        "limit": 1
+      },
+      "httpStatus": 200,
+      "statusCounts": {
+        "assigned": 1,
+        "inProgress": 0,
+        "resolved": 32
+      },
+      "pagination": {
+        "total": 0,
+        "page": 1,
+        "limit": 1,
+        "totalPages": 0
+      },
+      "returned": 0
+    }
+  ]
+}

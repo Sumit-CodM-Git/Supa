@@ -1,3 +1,4 @@
+import { complaintAssignmentISTISO } from "../_shared/complaint-time.ts";
 // deno-lint-ignore-file no-import-prefix no-explicit-any
 // ============================================
 // crud-resident-complaint
@@ -390,7 +391,7 @@ async function getContext(
             block,
             tower,
             deleted_at,
-            contact:SSP_Contact!contact ( name, phone, email )
+            contact:SSP_Contact!contact (parking_slot, name, phone, email )
         `)
         .eq("user_id", userId)
         .maybeSingle();
@@ -774,7 +775,7 @@ async function fetchAgentNames(
 
     const { data } = await supabaseAdmin
         .from("SSP_Society_User")
-        .select("user_id, contact:SSP_Contact!contact ( name )")
+        .select("user_id, contact:SSP_Contact!contact (parking_slot, name )")
         .in("user_id", agentIds);
 
     for (
@@ -1447,7 +1448,7 @@ async function handleView(
             priority: c.priority || "medium",
             complaintType: c.complaint_type || "general",
             createdAt: c.created_at,
-            assignedDateTime: c.assigned_date_time,
+            assignedDateTime: complaintAssignmentISTISO(c.assigned_date_time),
             completionDateTime: c.completion_date_time,
             assignedAgent: {
                 agentId: c.assigned_agent || null,

@@ -1,3 +1,4 @@
+import { contactParkingSlot } from "../_shared/contact.ts";
 // deno-lint-ignore-file no-import-prefix no-explicit-any
 // ============================================
 // manage-pre-approved-visitor
@@ -667,10 +668,10 @@ async function getSocietyRegNum(societyId: string): Promise<string> {
 // ============================================
 async function getHostInfo(
     userId: string,
-): Promise<{ name: string; flatNumber: string }> {
+): Promise<{ name: string; flatNumber: string; parkingSlot?: string | null }> {
     const { data } = await admin
         .from("SSP_Society_User")
-        .select("unit_flat_number, contact:SSP_Contact!contact ( name )")
+        .select("unit_flat_number, contact:SSP_Contact!contact (parking_slot, name )")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -678,6 +679,7 @@ async function getHostInfo(
         ? data.contact[0]
         : data?.contact;
     return {
+        parkingSlot: contactParkingSlot(contact),
         name: (contact as { name?: string } | null)?.name ?? "",
         flatNumber: String(data?.unit_flat_number ?? ""),
     };

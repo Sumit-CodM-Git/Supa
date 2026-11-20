@@ -1,3 +1,6 @@
+import { visitorTimeISTISO } from "../_shared/visitor-time.ts";
+import { visitorApprovalState } from "../_shared/visitor-approval.ts";
+import { contactParkingSlot } from "../_shared/contact.ts";
 // deno-lint-ignore-file no-import-prefix no-explicit-any
 // ============================================
 // resident-visitor — Resident-side read APIs
@@ -34,6 +37,7 @@ interface ResidentVisitorRequest {
 }
 
 interface VisitorItem {
+  visitorName?: string;
     visitorId: string;
     name: string;
     phoneNumber: string;
@@ -42,6 +46,9 @@ interface VisitorItem {
     purpose: string | null;
     preApproved: boolean;
     approvalStatus: string | null;
+    requiresApproval: boolean;
+    canApprove: boolean;
+    canReject: boolean;
     vehicleNumber: string | null;
     idProofType: string | null;
     gateNumber: string | null;
@@ -334,7 +341,9 @@ async function fetchImageMap(
         .select("non_society_user, s3_path")
         .in("non_society_user", visitorIds)
         .eq("society", societyId)
-        .not("s3_path", "is", null);
+        .not("s3_path", "is", null)
+        .in("document_type", ["visitor_image", "security_guard_image", "guest_image", "photo"])
+        .order("created_at", { ascending: false });
 
     const imagePathMap = new Map<string, string>();
     for (
@@ -372,17 +381,18 @@ function toVisitorItem(
     return {
         visitorId: raw.non_society_user_id,
         name: raw.name || "N/A",
+        visitorName: raw.name || "N/A",
         phoneNumber: raw.phone_number || "N/A",
         role: raw.role || "visitor",
         visitorStatus: raw.visitor_status || null,
         purpose: raw.purpose || null,
         preApproved: raw.pre_approved === true,
-        approvalStatus: raw.visitor_approval_status || null,
+        ...visitorApprovalState(raw),
         vehicleNumber: raw.vehicle_number || null,
         idProofType: raw.id_proof_type || null,
         gateNumber: raw.gate_no || null,
-        checkInTime: raw.check_in || null,
-        checkOutTime: raw.check_out || null,
+        checkInTime: visitorTimeISTISO(raw.check_in),
+        checkOutTime: visitorTimeISTISO(raw.check_out),
         imageUrl,
         createdAt: raw.created_at || new Date().toISOString(),
     };
@@ -671,7 +681,7 @@ async function handleView(
         .select(`
             user_id,
             unit_flat_number,
-            contact:contact ( name, phone, email )
+            contact:contact (parking_slot, name, phone, email )
         `)
         .eq("user_id", callerUserId)
         .eq("society", societyId)
@@ -682,8 +692,10 @@ async function handleView(
         .from("SSP_Non_Society_User")
         .select(SELECT_VISITOR)
         .eq("hosted_by", callerUserId)
+        .eq("society", societyId)
         .eq("role", "visitor");
 
+    const queryGroups: string[] = ["visitor_status.is.null,visitor_status.neq.otp_pending"];
     if (typeof preApproved === "boolean") {
         visitorQuery = visitorQuery.eq("pre_approved", preApproved);
     }
@@ -691,16 +703,17 @@ async function handleView(
         approvalStatus && approvalStatus.trim() !== "" &&
         approvalStatus.toLowerCase() !== "all"
     ) {
-        visitorQuery = visitorQuery.eq(
-            "visitor_approval_status",
-            approvalStatus.trim(),
-        );
+        if (approvalStatus.trim().toLowerCase() === "pending") {
+            queryGroups.push("visitor_approval_status.ilike.pending,and(visitor_approval_status.is.null,visitor_status.ilike.pending)");
+        } else {
+            visitorQuery = visitorQuery.ilike("visitor_approval_status", approvalStatus.trim());
+        }
     }
     if (
         visitorStatus && visitorStatus.trim() !== "" &&
         visitorStatus.toLowerCase() !== "all"
     ) {
-        visitorQuery = visitorQuery.eq("visitor_status", visitorStatus.trim());
+        visitorQuery = visitorQuery.ilike("visitor_status", visitorStatus.trim());
     }
     if (isRecurring !== undefined) {
         visitorQuery = visitorQuery.eq("is_recurring", isRecurring);
@@ -712,16 +725,17 @@ async function handleView(
         toDate,
     );
     if (dateBounds) {
-        visitorQuery = visitorQuery
-            .gte("check_in", dateBounds.startISO)
-            .lt("check_in", dateBounds.endISO);
+        queryGroups.push(
+            `and(check_in.gte.${dateBounds.startISO},check_in.lt.${dateBounds.endISO}),` +
+            `and(check_in.is.null,created_at.gte.${dateBounds.startISO},created_at.lt.${dateBounds.endISO})`,
+        );
     }
 
     // Push the search filter to SQL — the JS filter later only re-applies for safety
     if (search && search.trim() !== "") {
         const term = search.trim().replace(/[%_,()]/g, "");
         if (term) {
-            visitorQuery = visitorQuery.or(
+            queryGroups.push(
                 `name.ilike.%${term}%,` +
                     `phone_number.ilike.%${term}%,` +
                     `email.ilike.%${term}%,` +
@@ -729,6 +743,10 @@ async function handleView(
                     `purpose.ilike.%${term}%`,
             );
         }
+    }
+
+    if (queryGroups.length) {
+        visitorQuery = visitorQuery.or(`and(${queryGroups.map(group => `or(${group})`).join(",")})`);
     }
 
     // Apply SQL-side ordering. Note: some rows may have NULL check_in.
@@ -815,6 +833,7 @@ async function handleView(
         totalPages: Math.ceil(total / limitNum),
         visitors: items,
         residentDetails: {
+            parkingSlot: contactParkingSlot(contactData),
             residentId: residentData.user_id,
             name: contactData?.name || "Unknown",
             phone: contactData?.phone || "",

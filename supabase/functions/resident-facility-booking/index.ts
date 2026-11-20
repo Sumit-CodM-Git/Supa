@@ -1,3 +1,5 @@
+import { releaseUnpaidReservation } from "../_shared/facility-reservations.ts";
+import { loadResidentFacilityBookings } from "../_shared/resident-facility-bookings.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { requireAuth, AuthContext } from "../_shared/auth.ts";
 import {
@@ -547,9 +549,9 @@ Deno.serve(
 
         const { data: blocks, error: blockErr } = await supabaseAdmin
           .from("SSP_Facility_Booking_Request")
-          .select("booking_start_date, booking_end_date, is_all_day")
+          .select("booking_start_date, booking_end_date, is_all_day, status, requested_by, payment:payment(payment_status)")
           .eq("facility", facId)
-          .in("status", [...BLOCKING_BOOKING_STATUSES])
+          .or(BLOCKING_BOOKING_STATUSES.map(status => `status.ilike.${status}`).join(","))
           .lt("booking_start_date", endOfDay.toISOString())
           .gt("booking_end_date", startOfDay.toISOString());
 
@@ -559,7 +561,19 @@ Deno.serve(
 
         return successResponse({
           action: "get_blocked_slots",
-          blockedSlots: blocks ?? [],
+          blockedSlots: (blocks ?? []).filter((block: any) => {
+            const payment = Array.isArray(block.payment) ? block.payment[0] : block.payment;
+            const unpaid = ["unpaid", "pending", "waiting_payment"].includes(
+              String(payment?.payment_status ?? "").trim().toLowerCase(),
+            );
+            // The caller can retry their own unfinished payment; others still see the hold.
+            return !(block.requested_by === societyUserId && unpaid &&
+              String(block.status ?? "").trim().toLowerCase() === "waiting_payment");
+          }).map((block: any) => ({
+            booking_start_date: block.booking_start_date,
+            booking_end_date: block.booking_end_date,
+            is_all_day: block.is_all_day,
+          })),
           availableFacilities: null,
           facilityBooking: null,
           bookings: null,
@@ -580,34 +594,16 @@ Deno.serve(
         );
         const offset = (pageNum - 1) * limitNum;
 
-        let listQ = supabaseAdmin
-          .from("SSP_Facility_Booking_Request")
-          .select(
-            `
-            request_id, status, booking_start_date, booking_end_date, is_all_day,
-            purpose_of_visit, created_at,
-            facility:facility ( id, name, booking_mode, base_price ),
-            payment:payment ( pay_rec_id, payment_id, amount, payment_status, payment_method )
-          `,
-            { count: "exact" },
-          )
-          .eq("requested_by", societyUserId);
+        const allBookings = await loadResidentFacilityBookings(supabaseAdmin, societyUserId);
+        const cleanStatus = statusFilter ? String(statusFilter).trim().toLowerCase() : 'all';
+        const matching = cleanStatus === 'all' ? allBookings
+          : allBookings.filter(row => String(row.status ?? '').toLowerCase() === cleanStatus);
+        const count = matching.length;
+        const bookings = matching.slice(offset, offset + limitNum);
 
-        if (statusFilter) {
-          listQ = listQ.eq("status", String(statusFilter).trim().toLowerCase());
-        }
-
-        const { data: bookings, count, error: listErr } = await listQ
-          .order("created_at", { ascending: false })
-          .range(offset, offset + limitNum - 1);
-
-        if (listErr) {
-          throw new Error(`Failed to fetch bookings: ${listErr.message}`);
-        }
-
-        const items = (bookings ?? []).map((b: Record<string, unknown>) => {
-          const fac = Array.isArray(b.facility) ? b.facility[0] : b.facility;
-          const pay = Array.isArray(b.payment) ? b.payment[0] : b.payment;
+        const items = bookings.map((b) => {
+          const fac = b.SSP_Facility;
+          const pay = b.SSP_Payment;
           const payStatusRaw = String(
             (pay as Record<string, unknown> | null)?.payment_status ?? "",
           ).toLowerCase();
@@ -617,7 +613,9 @@ Deno.serve(
             payStatusRaw === "waiting_payment";
             
           return {
-            requestId: b.request_id,
+            requestId: b.request_id ?? b.name,
+            bookingId: b.recordType === "booking" ? b.name : null,
+            recordType: b.recordType,
             status: b.status,
             bookingStart: b.booking_start_date,
             bookingEnd: b.booking_end_date,
@@ -640,7 +638,7 @@ Deno.serve(
                 }
               : null,
             canCancel:
-              isPaymentPending &&
+              b.recordType === "request" && isPaymentPending &&
               ["waiting_payment", "requested"].includes(
                 String(b.status).toLowerCase(),
               ),
@@ -695,7 +693,7 @@ Deno.serve(
         }
 
         const bRec = booking as Record<string, unknown>;
-        const currentStatus = String(bRec.status ?? "").toLowerCase();
+        const currentStatus = String(bRec.status ?? "").trim().toLowerCase();
         const payRow = Array.isArray(bRec.payment)
           ? bRec.payment[0]
           : bRec.payment;
@@ -703,7 +701,7 @@ Deno.serve(
           ?.pay_rec_id as string | undefined;
         const payStatus = String(
           (payRow as Record<string, unknown> | null)?.payment_status ?? "",
-        ).toLowerCase();
+        ).trim().toLowerCase();
 
         if (currentStatus === "cancelled") {
           return errorResponse(
@@ -717,26 +715,15 @@ Deno.serve(
           payStatus === "pending" ||
           payStatus === "waiting_payment";
 
-        // ✅ FIX FOR SSP-0111: If unpaid, hard-delete the record so the slot is freed immediately.
-        // Otherwise, the DB exclusion constraint will permanently block that slot.
+        // Release request and payment together; never report success after a failed write.
         if (paymentPending) {
-          if (payRecId) {
-            await supabaseAdmin.from("SSP_Document").delete().eq("payment", payRecId);
-          }
-          await supabaseAdmin
-            .from("SSP_Facility_Booking_Request")
-            .delete()
-            .eq("request_id", bookingRequestId.trim());
-            
-          if (payRecId) {
-            await supabaseAdmin
-              .from("SSP_Payment")
-              .delete()
-              .eq("pay_rec_id", payRecId);
-          }
+          const released = await releaseUnpaidReservation(
+            supabaseAdmin, bookingRequestId.trim(), societyUserId,
+          );
+          if (!released) return errorResponse("Booking or payment changed. Refresh your bookings before cancelling.", 409);
 
           logger.info({
-            action: "resident_facility_booking_cancel_hard_delete",
+            action: "resident_facility_booking_cancel_unpaid",
             requestId: bookingRequestId,
           });
 
@@ -826,7 +813,7 @@ Deno.serve(
         }
 
         const bRec = booking as Record<string, unknown>;
-        const currentStatus = String(bRec.status ?? "").toLowerCase();
+        const currentStatus = String(bRec.status ?? "").trim().toLowerCase();
         const payRow = Array.isArray(bRec.payment)
           ? bRec.payment[0]
           : bRec.payment;
@@ -834,7 +821,7 @@ Deno.serve(
           ?.pay_rec_id as string | undefined;
         const payStatus = String(
           (payRow as Record<string, unknown> | null)?.payment_status ?? "",
-        ).toLowerCase();
+        ).trim().toLowerCase();
 
         const paymentPending =
           payStatus === "unpaid" ||
@@ -860,26 +847,10 @@ Deno.serve(
           );
         }
 
-        if (payRecId) {
-          await supabaseAdmin.from("SSP_Document").delete().eq("payment", payRecId);
-        }
-
-        const { error: delBookingErr } = await supabaseAdmin
-          .from("SSP_Facility_Booking_Request")
-          .delete()
-          .eq("request_id", cleanBookingId);
-        if (delBookingErr) {
-          throw new Error(
-            `Failed to abort booking: ${delBookingErr.message}`,
-          );
-        }
-
-        if (payRecId) {
-          await supabaseAdmin
-            .from("SSP_Payment")
-            .delete()
-            .eq("pay_rec_id", payRecId);
-        }
+        const released = await releaseUnpaidReservation(
+          supabaseAdmin, cleanBookingId, societyUserId,
+        );
+        if (!released) return errorResponse("Booking or payment changed. Refresh your bookings before aborting.", 409);
 
         logger.info({
           action: "resident_facility_booking_abort_success",
@@ -895,7 +866,7 @@ Deno.serve(
             aborted: true,
             partial: false,
             message:
-              "Booking aborted and removed. You can book again anytime.",
+              "Booking aborted and the slot released. You can book again anytime.",
           },
           availableFacilities: null,
           bookings: null,
@@ -1075,38 +1046,32 @@ Deno.serve(
         return errorResponse(hoursCheck.message, 400);
       }
 
-      // ------------------------------------------------------------------
-      // 🧹 CLEANUP STALE BOOKINGS (Abandoned Carts)
-      // Unpaid bookings older than 5 minutes are deleted to free the slot
-      // ------------------------------------------------------------------
-      const EXPIRATION_MINUTES = 5;
-      const expirationTime = new Date(Date.now() - EXPIRATION_MINUTES * 60 * 1000).toISOString();
-
-      const { data: expiredReqs } = await supabaseAdmin
-        .from("SSP_Facility_Booking_Request")
-        .select("request_id, payment")
-        .eq("facility", targetFacility.id)
-        .eq("status", "waiting_payment")
-        .lt("created_at", expirationTime);
-
-      if (expiredReqs && expiredReqs.length > 0) {
-        const expiredPayIds = expiredReqs.map(r => r.payment).filter(Boolean) as string[];
-        const expiredReqIds = expiredReqs.map(r => r.request_id);
-
-        // Delete linked documents and payments first
-        if (expiredPayIds.length > 0) {
-          await supabaseAdmin.from("SSP_Document").delete().in("payment", expiredPayIds);
-          await supabaseAdmin.from("SSP_Payment").delete().in("pay_rec_id", expiredPayIds);
-        }
-        // Delete the booking requests
-        await supabaseAdmin.from("SSP_Facility_Booking_Request").delete().in("request_id", expiredReqIds);
-        
-        logger.info({
-          action: "resident_facility_booking_expired_cleanup",
-          facilityId: targetFacility.id,
-          deletedCount: expiredReqIds.length,
-          expirationMinutes: EXPIRATION_MINUTES
-        });
+      // Release only abandoned unpaid holds, and the caller's exact-slot retry.
+      // Paid, submitted, confirmed and other residents' fresh requests stay intact.
+      const expirationTime = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const [expiredResult, retryResult] = await Promise.all([
+        supabaseAdmin.from("SSP_Facility_Booking_Request")
+          .select("request_id, requested_by")
+          .eq("facility", targetFacility.id).ilike("status", "waiting_payment")
+          .lt("created_at", expirationTime),
+        supabaseAdmin.from("SSP_Facility_Booking_Request")
+          .select("request_id, requested_by")
+          .eq("facility", targetFacility.id).eq("requested_by", societyUserId)
+          .ilike("status", "waiting_payment")
+          .eq("booking_start_date", reqStart.toISOString())
+          .eq("booking_end_date", reqEnd.toISOString()),
+      ]);
+      if (expiredResult.error) throw new Error(`Abandoned booking lookup failed: ${expiredResult.error.message}`);
+      if (retryResult.error) throw new Error(`Existing booking lookup failed: ${retryResult.error.message}`);
+      const retryIds = new Set((retryResult.data ?? []).map(row => row.request_id));
+      const candidates = new Map([
+        ...(expiredResult.data ?? []), ...(retryResult.data ?? []),
+      ].map(row => [row.request_id, row]));
+      for (const candidate of candidates.values()) {
+        await releaseUnpaidReservation(
+          supabaseAdmin, candidate.request_id, candidate.requested_by,
+          retryIds.has(candidate.request_id) ? null : expirationTime,
+        );
       }
 
       // ------------------------------------------------------------------
@@ -1118,7 +1083,7 @@ Deno.serve(
           "request_id, status, booking_start_date, booking_end_date, is_all_day",
         )
         .eq("facility", targetFacility.id)
-        .in("status", [...BLOCKING_BOOKING_STATUSES])
+        .or(BLOCKING_BOOKING_STATUSES.map(status => `status.ilike.${status}`).join(","))
         .lt("booking_start_date", reqEnd.toISOString())
         .gt("booking_end_date", reqStart.toISOString())
         .limit(1);
@@ -1254,7 +1219,7 @@ Deno.serve(
           const cleanName = safeFileName(fileName);
           const objectKey = `${safeSocietySlug(
             societyRegistrationNumber,
-          )}/Financial/${Date.now()}_${cleanName}`;
+          )}/financial/${Date.now()}_${cleanName}`;
 
           const { data: uploadUrlData, error: storageErr } = await supabaseAdmin
             .storage.from(BUCKET_NAME)
@@ -1273,7 +1238,7 @@ Deno.serve(
                 file_name: fileName,
                 file_type: fileType,
                 file_size: fileSize ? parseFloat(String(fileSize)) : null,
-                document_type: "Financial",
+                document_type: "financial",
                 s3_path: objectKey,
                 society: societyId,
                 payment: payment.pay_rec_id,

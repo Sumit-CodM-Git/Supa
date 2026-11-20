@@ -141,7 +141,7 @@ import { ArrayHandler } from "../_shared/array-handler.ts";
 import { logger } from "../_shared/logger.ts";
 
 serve(
-  requireAuth(async (req: Request, _ctx: AuthContext) => {
+  requireAuth(async (req: Request, ctx: AuthContext) => {
     try {
       const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -182,7 +182,9 @@ serve(
       const offset = (pageNum - 1) * limitNum;
 
       // Input Sanitization
-      const cleanAction = sanitizeString(actionType).toLowerCase();
+      const action = sanitizeString(actionType).trim().toLowerCase();
+      const cleanAction = ["accept", "accepted", "approve", "allow", "allowed"].includes(action)
+        ? "approved" : ["rejected", "deny", "denied"].includes(action) ? "reject" : action;
       const cleanRegNum = sanitizeString(societyRegistrationNumber);
       const cleanVisitorId = sanitizeString(visitorId);
 
@@ -254,6 +256,23 @@ serve(
         );
       }
 
+      // Only the host resident may allow or reject this visitor.
+      if (["approved", "reject"].includes(cleanAction) && ctx.user.id !== hostUserId) {
+        throw new ApiError(ErrorCodes.FORBIDDEN, "Only the host resident can approve or reject this visitor.", 403);
+      }
+      if (cleanAction === "sendforapproval") {
+        const { data: caller, error: callerError } = await supabase.from("SSP_Society_User")
+          .select("user_id, role, society").eq("user_id", ctx.user.id).eq("society", visitor.society).maybeSingle();
+        if (callerError) throw new ApiError(ErrorCodes.SERVER_ERROR, callerError.message, 500);
+        const roles = ArrayHandler.toArray(caller?.role).map((role: unknown) => String(role).trim().toLowerCase());
+        if (!caller || !roles.includes("security")) {
+          throw new ApiError(ErrorCodes.FORBIDDEN, "Only society security can request resident approval.", 403);
+        }
+      }
+      if (visitor.check_in || visitor.check_out || ["inside", "outside", "completed"].includes(String(visitor.visitor_status ?? "").toLowerCase())) {
+        throw new ApiError(ErrorCodes.CONFLICT, "This visitor has already checked in or completed the visit.", 409);
+      }
+
       // 3. State Machine Evaluation & Status Update
       let newStatus: string;
       let responseFlag: boolean;
@@ -281,7 +300,11 @@ serve(
 
       const { error: updateErr } = await supabase
         .from("SSP_Non_Society_User")
-        .update({ visitor_approval_status: newStatus })
+        .update({
+          visitor_approval_status: newStatus.toLowerCase(),
+          visitor_status: newStatus,
+          pre_approved: cleanAction === "approved",
+        })
         .eq("non_society_user_id", visitor.non_society_user_id);
 
       if (updateErr) {
@@ -330,7 +353,7 @@ serve(
       if (searchQuery) {
         const cleanSearch = sanitizeString(searchQuery);
         visitorQuery = visitorQuery.or(
-          `name.ilike.%\({cleanSearch}%,phone_number.ilike.%\){cleanSearch}%`
+          `name.ilike.${JSON.stringify(`%${cleanSearch}%`)},phone_number.ilike.${JSON.stringify(`%${cleanSearch}%`)}`
         );
       }
 
@@ -362,6 +385,11 @@ serve(
         status: {
           result: responseFlag,
           updatedStatus: newStatus,
+          visitorId: visitor.non_society_user_id,
+          approvalStatus: newStatus.toLowerCase(),
+          visitorStatus: newStatus,
+          name: visitor.name ?? "",
+          visitorName: visitor.name ?? "",
         },
         visitors: normalizedVisitors,
         pagination: {

@@ -1,3 +1,5 @@
+import { complaintAssignmentISTISO } from "../_shared/complaint-time.ts";
+import { contactParkingSlot } from "../_shared/contact.ts";
 // deno-lint-ignore-file no-import-prefix no-explicit-any
 // ============================================
 // crud-complaint-admin
@@ -743,7 +745,7 @@ async function handleView(
                     unit_flat_number, 
                     tower:SSP_Tower ( name ), 
                     block:SSP_Block ( block_name ), 
-                    contact:SSP_Contact!contact ( name, phone, email )
+                    contact:SSP_Contact!contact (parking_slot, name, phone, email )
                 `)
                 .in("user_id", allUserIds)
             : Promise.resolve({ data: [], error: null } as const),
@@ -808,9 +810,10 @@ async function handleView(
             priority: String(c.priority ?? "medium").toLowerCase(),
             complaintType: String(c.complaint_type ?? "general").toLowerCase(),
             createdAt: c.created_at ?? null,
-            assignedDateTime: c.assigned_date_time ?? null,
+            assignedDateTime: complaintAssignmentISTISO(c.assigned_date_time),
             completionDateTime: c.completion_date_time ?? null,
             residentDetails: {
+                parkingSlot: contactParkingSlot(residentContact),
                 residentId,
                 name: (residentContact as { name?: string } | null)?.name ??
                     "Unknown",
@@ -830,6 +833,7 @@ async function handleView(
                 })(),
             },
             assignedAgent: {
+                parkingSlot: contactParkingSlot(agentContact),
                 agentId,
                 name: agentId
                     ? (agentContact as { name?: string } | null)?.name ?? null
@@ -960,6 +964,14 @@ async function handleAssign(
         assigned_by: ctx.callerUserId,
         status: "assigned",
         assigned_date_time: getISTISOString(),
+        // A new assignment starts a fresh work-verification cycle.
+        start_otp: null,
+        start_otp_generated_at: null,
+        start_otp_verified_at: null,
+        end_otp: null,
+        end_otp_generated_at: null,
+        end_otp_verified_at: null,
+        completion_date_time: null,
     };
 
     if (targetType === "vendor") {
@@ -1010,7 +1022,7 @@ async function handleAssign(
             ? {
                 complaintId: updated.complaint_id,
                 status: updated.status,
-                assignedDateTime: updated.assigned_date_time,
+                assignedDateTime: complaintAssignmentISTISO(updated.assigned_date_time),
                 assignedAgentId: updated.assigned_agent,
                 assignedVendorId: updated.non_society_user,
                 assignedBy: updated.assigned_by,
@@ -1074,7 +1086,7 @@ async function handleStaffList(
         .select(`
             user_id, role, service_agent_services,
             agent_availability_status, service_agent_rating,
-            contact:SSP_Contact!contact ( name, phone )
+            contact:SSP_Contact!contact (parking_slot, name, phone )
         `)
         .eq("society", ctx.callerSocietyId);
 
@@ -1092,8 +1104,10 @@ async function handleStaffList(
         if (!roles.includes("service_agent")) continue;
 
         const services = parseServiceTypes(a.service_agent_services);
-        if (services.length === 0) continue;
-        if (!matchesComplaintType(services, normalized, isOther)) continue;
+        // General complaints can be handled by any service agent, including
+        // those without a configured specialty.
+        if (normalized !== "general" &&
+            (services.length === 0 || !matchesComplaintType(services, normalized, isOther))) continue;
 
         const c = Array.isArray(a.contact) ? a.contact[0] : a.contact;
         const rating = a.service_agent_rating !== null &&
@@ -1131,8 +1145,8 @@ async function handleStaffList(
         }>
     ) {
         const services = parseServiceTypes(v.service_type);
-        if (services.length === 0) continue;
-        if (!matchesComplaintType(services, normalized, isOther)) continue;
+        if (normalized !== "general" &&
+            (services.length === 0 || !matchesComplaintType(services, normalized, isOther))) continue;
 
         availableStaff.push({
             id: v.non_society_user_id,

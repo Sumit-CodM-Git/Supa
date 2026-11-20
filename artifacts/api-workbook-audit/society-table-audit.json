@@ -1,0 +1,994 @@
+{
+  "typescriptFilesParsed": 121,
+  "apiAndHelperFilesReferencingSociety": 69,
+  "files": [
+    "supabase/functions/add-members/index.ts",
+    "supabase/functions/admin-payments-console/index.ts",
+    "supabase/functions/assign-complaint/index.ts",
+    "supabase/functions/create-complaint-resident/index.ts",
+    "supabase/functions/create-marketplace/index.ts",
+    "supabase/functions/crud-block/index.ts",
+    "supabase/functions/crud-document/index.ts",
+    "supabase/functions/crud-facility/index.ts",
+    "supabase/functions/crud-family/index.ts",
+    "supabase/functions/crud-flat-type/index.ts",
+    "supabase/functions/crud-notice/index.ts",
+    "supabase/functions/crud-pre-approved-visitor/index.ts",
+    "supabase/functions/crud-resident-complaint/index.ts",
+    "supabase/functions/crud-resident-document/index.ts",
+    "supabase/functions/crud-servant/index.ts",
+    "supabase/functions/crud-society-staff/index.ts",
+    "supabase/functions/crud-society/index.ts",
+    "supabase/functions/crud-tower/index.ts",
+    "supabase/functions/facility-booking-action/index.ts",
+    "supabase/functions/facility-booking-admin/index.ts",
+    "supabase/functions/facility-console/index.ts",
+    "supabase/functions/generate-payment-receipt/index.ts",
+    "supabase/functions/get-complaints/index.ts",
+    "supabase/functions/get-dashboard/index.ts",
+    "supabase/functions/get-facilities-details/index.ts",
+    "supabase/functions/get-facility-schedule/index.ts",
+    "supabase/functions/get-marketplace/index.ts",
+    "supabase/functions/get-members/index.ts",
+    "supabase/functions/get-my-facility-bookings/index.ts",
+    "supabase/functions/get-otp/index.ts",
+    "supabase/functions/get-payments-list/index.ts",
+    "supabase/functions/get-pending-approvals/index.ts",
+    "supabase/functions/get-picklists/index.ts",
+    "supabase/functions/get-profile/index.ts",
+    "supabase/functions/get-resident-notices/index.ts",
+    "supabase/functions/get-residents-profile/index.ts",
+    "supabase/functions/get-societies/index.ts",
+    "supabase/functions/get-society-settings/index.ts",
+    "supabase/functions/get-visitors/index.ts",
+    "supabase/functions/hired-available-servants/index.ts",
+    "supabase/functions/make-resident-payment/index.ts",
+    "supabase/functions/manage-servant-hire/index.ts",
+    "supabase/functions/marketplace-browse/index.ts",
+    "supabase/functions/my-visitors/index.ts",
+    "supabase/functions/process-csv-import/index.ts",
+    "supabase/functions/resident-complaints/index.ts",
+    "supabase/functions/resident-facility-booking/index.ts",
+    "supabase/functions/resident-marketplace-console/index.ts",
+    "supabase/functions/resident-marketplace/index.ts",
+    "supabase/functions/resident-payments-console/index.ts",
+    "supabase/functions/resident-profile-console/index.ts",
+    "supabase/functions/resident-visitor-logs/index.ts",
+    "supabase/functions/search-contacts/index.ts",
+    "supabase/functions/search-resident/index.ts",
+    "supabase/functions/security-gate-console/index.ts",
+    "supabase/functions/security-guard-image/index.ts",
+    "supabase/functions/staff-complaint-images/index.ts",
+    "supabase/functions/staff-complaint-workflow/index.ts",
+    "supabase/functions/staff-complaints/index.ts",
+    "supabase/functions/switch-user/index.ts",
+    "supabase/functions/update-approval-status/index.ts",
+    "supabase/functions/update-parking-occupancy/index.ts",
+    "supabase/functions/update-residents-profile/index.ts",
+    "supabase/functions/vendor-management/index.ts",
+    "supabase/functions/verify-booking-facility/index.ts",
+    "supabase/functions/verify-otp/index.ts",
+    "supabase/functions/verify-payment/index.ts",
+    "supabase/functions/view-resident-payments/index.ts",
+    "supabase/functions/visitor-pass-operations/index.ts"
+  ],
+  "directColumnOperations": 127,
+  "embeddedSocietyJoins": 25,
+  "invalidColumnReferences": [],
+  "directOperations": [
+    {
+      "file": "supabase/functions/add-members/index.ts",
+      "line": 1588,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/add-members/index.ts",
+      "line": 1588,
+      "method": "select",
+      "fields": "society_id, society_name, registration_number"
+    },
+    {
+      "file": "supabase/functions/admin-payments-console/index.ts",
+      "line": 275,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/admin-payments-console/index.ts",
+      "line": 275,
+      "method": "select",
+      "fields": "society_id, registration_number"
+    },
+    {
+      "file": "supabase/functions/assign-complaint/index.ts",
+      "line": 369,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/assign-complaint/index.ts",
+      "line": 369,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/create-complaint-resident/index.ts",
+      "line": 448,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/create-complaint-resident/index.ts",
+      "line": 448,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/create-marketplace/index.ts",
+      "line": 236,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/create-marketplace/index.ts",
+      "line": 236,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-block/index.ts",
+      "line": 256,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-block/index.ts",
+      "line": 256,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-document/index.ts",
+      "line": 280,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-document/index.ts",
+      "line": 280,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-facility/index.ts",
+      "line": 1182,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-facility/index.ts",
+      "line": 1182,
+      "method": "select",
+      "fields": "society_id, society_name, registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-family/index.ts",
+      "line": 1990,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-family/index.ts",
+      "line": 1990,
+      "method": "select",
+      "fields": "society_id, society_name, registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-flat-type/index.ts",
+      "line": 471,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-flat-type/index.ts",
+      "line": 471,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-notice/index.ts",
+      "line": 171,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-notice/index.ts",
+      "line": 171,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-pre-approved-visitor/index.ts",
+      "line": 658,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-pre-approved-visitor/index.ts",
+      "line": 658,
+      "method": "select",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-resident-complaint/index.ts",
+      "line": 454,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-resident-complaint/index.ts",
+      "line": 454,
+      "method": "select",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-resident-document/index.ts",
+      "line": 1355,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-resident-document/index.ts",
+      "line": 1355,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 244,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 244,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 294,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 294,
+      "method": "select",
+      "fields": "society_id,society_name,registration_number,address_line1,address_line2,city,state,postal_code,phone_number,email,total_unit,open_parking,covered_parking,parking_slot,amenities,active,updated_at"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 411,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 411,
+      "method": "select",
+      "fields": "covered_parking"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 443,
+      "method": "select",
+      "fields": "society_id,updated_at"
+    },
+    {
+      "file": "supabase/functions/crud-society/index.ts",
+      "line": 443,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-society-staff/index.ts",
+      "line": 1006,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-society-staff/index.ts",
+      "line": 1006,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/crud-tower/index.ts",
+      "line": 292,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/crud-tower/index.ts",
+      "line": 292,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/facility-booking-admin/index.ts",
+      "line": 147,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/facility-booking-admin/index.ts",
+      "line": 147,
+      "method": "select",
+      "fields": "society_id, registration_number"
+    },
+    {
+      "file": "supabase/functions/facility-console/index.ts",
+      "line": 180,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/facility-console/index.ts",
+      "line": 180,
+      "method": "select",
+      "fields": "society_id, registration_number"
+    },
+    {
+      "file": "supabase/functions/get-complaints/index.ts",
+      "line": 1180,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-complaints/index.ts",
+      "line": 1180,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/get-dashboard/index.ts",
+      "line": 437,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/get-dashboard/index.ts",
+      "line": 437,
+      "method": "select",
+      "fields": "\n                        society_id,\n                        society_name,\n                        registration_number,\n                        address_line1,\n                        city,\n                        state,\n                        total_unit,\n                        parking_slot,\n                        covered_parking\n                    "
+    },
+    {
+      "file": "supabase/functions/get-marketplace/index.ts",
+      "line": 276,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-marketplace/index.ts",
+      "line": 276,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/get-members/index.ts",
+      "line": 573,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-members/index.ts",
+      "line": 573,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/get-payments-list/index.ts",
+      "line": 261,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-payments-list/index.ts",
+      "line": 261,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/get-picklists/index.ts",
+      "line": 466,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-picklists/index.ts",
+      "line": 466,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/get-profile/index.ts",
+      "line": 72,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-profile/index.ts",
+      "line": 72,
+      "method": "select",
+      "fields": "society_id, address_line1, address_line2, country, city, state, postal_code"
+    },
+    {
+      "file": "supabase/functions/get-resident-notices/index.ts",
+      "line": 647,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-resident-notices/index.ts",
+      "line": 647,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/get-residents-profile/index.ts",
+      "line": 339,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-residents-profile/index.ts",
+      "line": 339,
+      "method": "select",
+      "fields": "society_id, society_name, address_line1, city, state, postal_code"
+    },
+    {
+      "file": "supabase/functions/get-societies/index.ts",
+      "line": 89,
+      "method": "select",
+      "fields": "society_name, registration_number"
+    },
+    {
+      "file": "supabase/functions/get-societies/index.ts",
+      "line": 160,
+      "method": "in",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/get-societies/index.ts",
+      "line": 160,
+      "method": "select",
+      "fields": "society_name, registration_number"
+    },
+    {
+      "file": "supabase/functions/get-societies/index.ts",
+      "line": 198,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/get-societies/index.ts",
+      "line": 198,
+      "method": "select",
+      "fields": "society_name, registration_number"
+    },
+    {
+      "file": "supabase/functions/get-society-settings/index.ts",
+      "line": 262,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-society-settings/index.ts",
+      "line": 262,
+      "method": "select",
+      "fields": "society_id,society_name,registration_number,address_line1,address_line2,city,state,postal_code,phone_number,email,total_unit,open_parking,covered_parking,parking_slot,amenities,active"
+    },
+    {
+      "file": "supabase/functions/get-visitors/index.ts",
+      "line": 1557,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-visitors/index.ts",
+      "line": 1557,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/hired-available-servants/index.ts",
+      "line": 1319,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/hired-available-servants/index.ts",
+      "line": 1319,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/make-resident-payment/index.ts",
+      "line": 229,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/make-resident-payment/index.ts",
+      "line": 229,
+      "method": "select",
+      "fields": "society_id, society_name, city, state, postal_code"
+    },
+    {
+      "file": "supabase/functions/manage-servant-hire/index.ts",
+      "line": 288,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/manage-servant-hire/index.ts",
+      "line": 288,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/marketplace-browse/index.ts",
+      "line": 282,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/marketplace-browse/index.ts",
+      "line": 282,
+      "method": "select",
+      "fields": "society_id, registration_number"
+    },
+    {
+      "file": "supabase/functions/my-visitors/index.ts",
+      "line": 1351,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/my-visitors/index.ts",
+      "line": 1351,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/process-csv-import/index.ts",
+      "line": 443,
+      "method": "select",
+      "fields": "society_id, registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-complaints/index.ts",
+      "line": 934,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-complaints/index.ts",
+      "line": 934,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/resident-facility-booking/index.ts",
+      "line": 397,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-facility-booking/index.ts",
+      "line": 397,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/resident-marketplace/index.ts",
+      "line": 271,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-marketplace/index.ts",
+      "line": 271,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/resident-marketplace-console/index.ts",
+      "line": 282,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-marketplace-console/index.ts",
+      "line": 282,
+      "method": "select",
+      "fields": "society_id, registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-payments-console/index.ts",
+      "line": 202,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-payments-console/index.ts",
+      "line": 202,
+      "method": "select",
+      "fields": "society_id, society_name, city, state, postal_code"
+    },
+    {
+      "file": "supabase/functions/resident-profile-console/index.ts",
+      "line": 631,
+      "method": "ilike",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-profile-console/index.ts",
+      "line": 631,
+      "method": "select",
+      "fields": "society_id, society_name, address_line1, city, state, postal_code"
+    },
+    {
+      "file": "supabase/functions/resident-visitor-logs/index.ts",
+      "line": 1431,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/resident-visitor-logs/index.ts",
+      "line": 1431,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/search-contacts/index.ts",
+      "line": 147,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/search-contacts/index.ts",
+      "line": 147,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/security-gate-console/index.ts",
+      "line": 709,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/security-gate-console/index.ts",
+      "line": 709,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/security-guard-image/index.ts",
+      "line": 340,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/security-guard-image/index.ts",
+      "line": 340,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/staff-complaint-images/index.ts",
+      "line": 519,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/staff-complaint-images/index.ts",
+      "line": 519,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/staff-complaints/index.ts",
+      "line": 1521,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/staff-complaints/index.ts",
+      "line": 1521,
+      "method": "select",
+      "fields": "society_id, registration_number, society_name"
+    },
+    {
+      "file": "supabase/functions/switch-user/index.ts",
+      "line": 664,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/switch-user/index.ts",
+      "line": 664,
+      "method": "select",
+      "fields": "*"
+    },
+    {
+      "file": "supabase/functions/update-parking-occupancy/index.ts",
+      "line": 270,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/update-parking-occupancy/index.ts",
+      "line": 270,
+      "method": "select",
+      "fields": "society_id,parking_slot,covered_parking,open_parking"
+    },
+    {
+      "file": "supabase/functions/update-parking-occupancy/index.ts",
+      "line": 310,
+      "method": "eq",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/update-residents-profile/index.ts",
+      "line": 263,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/update-residents-profile/index.ts",
+      "line": 263,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/vendor-management/index.ts",
+      "line": 313,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/vendor-management/index.ts",
+      "line": 313,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/verify-booking-facility/index.ts",
+      "line": 228,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/verify-booking-facility/index.ts",
+      "line": 228,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/verify-payment/index.ts",
+      "line": 39,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/verify-payment/index.ts",
+      "line": 39,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/view-resident-payments/index.ts",
+      "line": 214,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/view-resident-payments/index.ts",
+      "line": 214,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/visitor-pass-operations/index.ts",
+      "line": 292,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/visitor-pass-operations/index.ts",
+      "line": 292,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/visitor-pass-operations/index.ts",
+      "line": 1133,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/visitor-pass-operations/index.ts",
+      "line": 1133,
+      "method": "select",
+      "fields": "society_id"
+    },
+    {
+      "file": "supabase/functions/visitor-pass-operations/index.ts",
+      "line": 1293,
+      "method": "eq",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/visitor-pass-operations/index.ts",
+      "line": 1293,
+      "method": "select",
+      "fields": "society_id"
+    }
+  ],
+  "joins": [
+    {
+      "file": "supabase/functions/crud-servant/index.ts",
+      "line": 291,
+      "method": "join",
+      "fields": " society_id, registration_number "
+    },
+    {
+      "file": "supabase/functions/facility-booking-action/index.ts",
+      "line": 118,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/facility-booking-admin/index.ts",
+      "line": 572,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/facility-console/index.ts",
+      "line": 222,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/facility-console/index.ts",
+      "line": 326,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/facility-console/index.ts",
+      "line": 335,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/generate-payment-receipt/index.ts",
+      "line": 1891,
+      "method": "join",
+      "fields": "\n                society_id, society_name, registration_number,\n                address_line1, address_line2, city, state,\n                postal_code, email, phone_number, logo_url\n            "
+    },
+    {
+      "file": "supabase/functions/get-facilities-details/index.ts",
+      "line": 305,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/get-facility-schedule/index.ts",
+      "line": 447,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/get-facility-schedule/index.ts",
+      "line": 468,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/get-my-facility-bookings/index.ts",
+      "line": 29,
+      "method": "join",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-otp/index.ts",
+      "line": 199,
+      "method": "join",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-otp/index.ts",
+      "line": 257,
+      "method": "join",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/get-pending-approvals/index.ts",
+      "line": 332,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/get-pending-approvals/index.ts",
+      "line": 355,
+      "method": "join",
+      "fields": " \n              registration_number,\n              amenities \n            "
+    },
+    {
+      "file": "supabase/functions/marketplace-browse/index.ts",
+      "line": 306,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/resident-facility-booking/index.ts",
+      "line": 478,
+      "method": "join",
+      "fields": " society_id, registration_number "
+    },
+    {
+      "file": "supabase/functions/search-resident/index.ts",
+      "line": 333,
+      "method": "join",
+      "fields": "\n            society_id,\n            registration_number\n          "
+    },
+    {
+      "file": "supabase/functions/staff-complaint-workflow/index.ts",
+      "line": 232,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/staff-complaint-workflow/index.ts",
+      "line": 290,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/staff-complaint-workflow/index.ts",
+      "line": 376,
+      "method": "join",
+      "fields": "registration_number"
+    },
+    {
+      "file": "supabase/functions/switch-user/index.ts",
+      "line": 714,
+      "method": "join",
+      "fields": "\n            society_id, society_name, registration_number,\n            address_line1, city, total_unit, parking_slot, covered_parking\n          "
+    },
+    {
+      "file": "supabase/functions/update-approval-status/index.ts",
+      "line": 230,
+      "method": "join",
+      "fields": " registration_number "
+    },
+    {
+      "file": "supabase/functions/verify-otp/index.ts",
+      "line": 224,
+      "method": "join",
+      "fields": "\n                        society_id,\n                        society_name,\n                        registration_number\n                    "
+    },
+    {
+      "file": "supabase/functions/verify-otp/index.ts",
+      "line": 372,
+      "method": "join",
+      "fields": "\n                        society_id,\n                        society_name,\n                        registration_number\n                    "
+    }
+  ]
+}

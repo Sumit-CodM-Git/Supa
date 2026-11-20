@@ -1,0 +1,7 @@
+{
+  "engine": "local PostgreSQL (PGlite)",
+  "migration": "passed",
+  "database_trigger_tests": "passed",
+  "production_changed": false,
+  "push_sent": false
+}

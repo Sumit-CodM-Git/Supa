@@ -150,6 +150,7 @@ function buildErrorResponse(code: string, message: string, statusCode: number) {
 }*/
 
 import { createClient } from "npm:@supabase/supabase-js@^2.48.0";
+import { receiptExists } from "../_shared/receipt-storage.ts";
 import { Validator } from "../_shared/validation.ts";
 import { sanitizePagination } from "../_shared/sanitizer.ts";
 import { corsHeaders } from "../_shared/response.ts";
@@ -212,6 +213,19 @@ Deno.serve(async (req: Request) => {
     const cleanRegNo = sanitizeString(String(body.societyRegistrationNumber));
     const cleanResidentId = sanitizeString(String(body.residentId));
     const cleanPaymentId = sanitizeString(String(body.paymentId));
+    const actionType = String(body.actionType ?? "SUBMIT_PAYMENT").trim().toUpperCase();
+    if (!["SUBMIT_PAYMENT", "CONFIRM_RECEIPT_UPLOAD"].includes(actionType)) {
+      throw new ApiError("BAD_REQUEST", "actionType must be SUBMIT_PAYMENT or CONFIRM_RECEIPT_UPLOAD.", 400);
+    }
+
+    const authenticatedResidentId =
+      typeof authUser.user_metadata?.user_id === "string"
+        ? authUser.user_metadata.user_id
+        : authUser.id;
+    if (cleanResidentId !== authenticatedResidentId) {
+      throw new ApiError("FORBIDDEN", "residentId does not match the authenticated user.", 403);
+    }
+
     const fileName = body.fileName ? sanitizeString(String(body.fileName)) : null;
     const fileType = body.fileType ? sanitizeString(String(body.fileType)) : null;
     const statusFilter = body.status ? sanitizeString(String(body.status)) : null;
@@ -259,8 +273,9 @@ Deno.serve(async (req: Request) => {
     // 7. STEP C: VERIFY TARGET PAYMENT ITEM RECORD (WITH OPTIONAL FILTER & PAGINATION)
     let paymentQuery = supabase
       .from("SSP_Payment")
-      .select("pay_rec_id, payment_id, payment_status, amount", { count: "exact" })
-      .eq("payment_id", cleanPaymentId);
+      .select("pay_rec_id, payment_id, payment_status, amount, receipt_url", { count: "exact" })
+      .eq("payment_id", cleanPaymentId)
+      .eq("society_user", cleanResidentId);
 
    if (statusFilter) {
   paymentQuery = paymentQuery.ilike("payment_status", statusFilter);
@@ -288,16 +303,59 @@ Deno.serve(async (req: Request) => {
     const needsUnderReview =
       statusVal === "UNPAID" || statusVal === "REJECTED" || statusVal === "";
 
-    if (needsUnderReview) {
-      const { error: updateErr } = await supabase
-        .from("SSP_Payment")
-        .update({ payment_status: "UNDER REVIEW" })
-        .eq("pay_rec_id", paymentRecordUuid);
-
-      if (updateErr) {
-        throw new ApiError("SERVER_ERROR", `Payment status update failed: ${updateErr.message}`, 500);
+    if (actionType === "CONFIRM_RECEIPT_UPLOAD") {
+      const { data: documents, error: documentError } = await supabase
+        .from("SSP_Document")
+        .select("s3_path")
+        .eq("payment", paymentRecordUuid)
+        .eq("society", societyId);
+      if (documentError) {
+        throw new ApiError("SERVER_ERROR", `Receipt lookup failed: ${documentError.message}`, 500);
       }
+
+      const paths = [
+        currentPayment.receipt_url,
+        ...(documents ?? []).map((document: { s3_path: string | null }) => document.s3_path),
+      ].filter((path): path is string => typeof path === "string" && !!path.trim());
+      const uploaded = await Promise.all(paths.map((path) => receiptExists(supabase, path)));
+      if (!uploaded.some(Boolean)) {
+        throw new ApiError("CONFLICT", "Receipt upload is incomplete. Upload the image before confirming payment.", 409);
+      }
+
+      if (needsUnderReview) {
+        let updateQuery = supabase
+          .from("SSP_Payment")
+          .update({ payment_status: "UNDER REVIEW" })
+          .eq("pay_rec_id", paymentRecordUuid)
+          .eq("society_user", cleanResidentId);
+        updateQuery = currentPayment.payment_status === null
+          ? updateQuery.is("payment_status", null)
+          : updateQuery.eq("payment_status", currentPayment.payment_status);
+        const { error: updateErr } = await updateQuery;
+
+        if (updateErr) {
+          throw new ApiError("SERVER_ERROR", `Payment status update failed: ${updateErr.message}`, 500);
+        }
+      }
+
+      const responsePayload = {
+        paymentSubmission: {
+          submitted: true,
+          receiptUploadStatus: "uploaded",
+          paymentRecordId: paymentRecordUuid,
+          status: needsUnderReview ? "UNDER REVIEW" : statusVal,
+        },
+        errorResponse: null,
+      };
+
+      return new Response(JSON.stringify(responsePayload), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    // The payment stays in its current state until the storage object is confirmed.
+    // A client should call CONFIRM_RECEIPT_UPLOAD after uploading the returned URL.
 
     // 9. FILE UPLOAD METADATA PREPARATION
     let uploadPresignedUrl: string | null = null;
@@ -306,28 +364,28 @@ Deno.serve(async (req: Request) => {
     if (fileName && fileType) {
       const cleanFileName = fileName.replace(/\s+/g, "_");
       const uniqueFileName = `${Date.now()}_${cleanFileName}`;
-      const targetObjectKey = `${cleanRegNo}/Financial/${uniqueFileName}`;
+      const targetObjectKey = `${cleanRegNo}/financial/${uniqueFileName}`;
 
       const { data: uploadPayload, error: storageLinkErr } = await supabase.storage
         .from(BUCKET_NAME)
         .createSignedUploadUrl(targetObjectKey);
 
-      if (storageLinkErr) {
+      if (storageLinkErr || !uploadPayload?.signedUrl) {
         throw new ApiError(
           "SERVER_ERROR",
-          `Storage URL generation failed: ${storageLinkErr.message}`,
+          `Storage URL generation failed: ${storageLinkErr?.message ?? "No signed upload URL returned."}`,
           500
         );
       }
 
-      uploadPresignedUrl = uploadPayload?.signedUrl ?? null;
+      uploadPresignedUrl = uploadPayload.signedUrl;
       const fullS3Path = `${supabaseUrl}/storage/v1/object/public/${BUCKET_NAME}/${targetObjectKey}`;
 
       const { data: newDoc, error: docInsertErr } = await supabase
         .from("SSP_Document")
         .insert({
           name: fileName,
-          document_type: "Financial",
+          document_type: "financial",
           s3_path: fullS3Path,
           payment: paymentRecordUuid,
           society: societyId,
@@ -344,6 +402,14 @@ Deno.serve(async (req: Request) => {
       }
 
       documentUuid = newDoc.document_id;
+      const { error: receiptUpdateErr } = await supabase
+        .from("SSP_Payment")
+        .update({ receipt_url: fullS3Path })
+        .eq("pay_rec_id", paymentRecordUuid)
+        .eq("society_user", cleanResidentId);
+      if (receiptUpdateErr) {
+        throw new ApiError("SERVER_ERROR", `Receipt reference update failed: ${receiptUpdateErr.message}`, 500);
+      }
     }
 
     // 10. CONSTRUCT RESPONSE PAYLOAD
@@ -351,7 +417,8 @@ Deno.serve(async (req: Request) => {
       paymentSubmission: {
         submitted: true,
         paymentRecordId: paymentRecordUuid,
-        status: needsUnderReview ? "UNDER REVIEW" : statusVal,
+        status: statusVal,
+        receiptUploadStatus: uploadPresignedUrl ? "pending_upload" : "not_provided",
       },
       uploadUrl: uploadPresignedUrl,
       documentId: documentUuid,

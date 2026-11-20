@@ -1,3 +1,4 @@
+import { parseConfigurationActiveFilter, resolveSocietyLocation, SocietyConfigurationInputError } from "../_shared/society-configuration.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -141,9 +142,11 @@ interface CrudTowerRequest {
   payload?: {
     name?: string;
     block?: string | null;
+    blockId?: string | null;
+    blockName?: string | null;
     active?: boolean;
     floors?: number;
-    flatsPerFloor?: number;
+    flats_per_floor?: number | string;
   };
 }
 
@@ -162,9 +165,11 @@ interface FormattedTower {
   towerId: string;
   name: string | null;
   block: string | null;
+  blockId: string | null;
   active: boolean;
   floors: number;
   flatsPerFloor: number;
+  totalFlats: number;
   createdAt: string;
 }
 
@@ -245,10 +250,12 @@ function formatTower(row: TowerRow): FormattedTower {
   return {
     towerId: row.tower_id,
     name: row.name,
-    block: row.block,
+    block: row.block ?? null,
+    blockId: row.block ?? null,
     active: row.active,
     floors: row.floors ?? 0,
     flatsPerFloor: row.flats_per_floor ?? 0,
+    totalFlats: Number(row.floors ?? 0) * Number(row.flats_per_floor ?? 0),
     createdAt: row.created_at,
   };
 }
@@ -340,6 +347,7 @@ async function handleView(
     Math.max(1, Number(req.limit) || DEFAULT_LIMIT),
   );
   const offset = (page - 1) * limit;
+  const activeFilter = parseConfigurationActiveFilter(req.filters?.active);
 
   let query = supabase
     .from("SSP_Tower")
@@ -360,14 +368,10 @@ async function handleView(
     if (blocks && blocks.length > 0) {
       query = query.in("block", blocks);
     }
-
-    if (req.filters.active !== undefined && req.filters.active !== null) {
-      const activeVal = typeof req.filters.active === "boolean"
-        ? req.filters.active
-        : String(req.filters.active).toLowerCase() === "true";
-      query = query.eq("active", activeVal);
-    }
   }
+
+  // Default/all includes both active and inactive rows; filter only when explicit.
+  if (activeFilter !== null) query = query.eq("active", activeFilter);
 
   // Sort
   const requestedSortField = req.sort?.field || "created_at";
@@ -404,7 +408,7 @@ async function handleView(
     },
     filters: {
       block: req.filters?.block ?? null,
-      active: req.filters?.active ?? null,
+      active: activeFilter,
     },
     search: req.search ?? null,
     sort: { field: sortField, order: ascending ? "asc" : "desc" },
@@ -430,7 +434,7 @@ async function handleCreate(
 
   const blockId = p.block && String(p.block).trim() !== "" ? p.block : null;
   const floors = parseInteger(p.floors) ?? 0;
-  const flatsPerFloor = parseInteger(p.flatsPerFloor) ?? 0;
+  const flatsPerFloor = parseInteger(p.flats_per_floor) ?? 0;
 
   // DB payload uses snake_case
   const insertPayload = {
@@ -496,11 +500,11 @@ async function handleUpdate(
     }
     updatePayload.floors = floors;
   }
-  if (req.payload.flatsPerFloor !== undefined) {
-    const flats = parseInteger(req.payload.flatsPerFloor);
+  if (req.payload.flats_per_floor !== undefined) {
+    const flats = parseInteger(req.payload.flats_per_floor);
     if (flats === null) {
       return fail(
-        "flatsPerFloor must be a non-negative integer.",
+        "flats_per_floor must be a non-negative integer.",
         400,
         "INVALID_PARAMETERS",
       );
@@ -606,6 +610,13 @@ serve(async (req: Request) => {
     const auth = await authorizeAdmin(societyRegistrationNumber, adminId);
     if (!auth.ok) return auth.response;
 
+    if (["CREATE", "UPDATE"].includes(actionUpper) && body.payload) {
+      const block = await resolveSocietyLocation(supabase, auth.societyId, "block", [
+        body.payload.block, body.payload.blockId, body.payload.blockName,
+      ]);
+      if (block !== undefined) body.payload.block = block;
+    }
+
     switch (actionUpper) {
       case "VIEW":
         return await handleView(body, auth.societyId);
@@ -619,6 +630,7 @@ serve(async (req: Request) => {
         return fail("Unhandled action.", 400, "INVALID_ACTION");
     }
   } catch (err) {
+    if (err instanceof SocietyConfigurationInputError) return fail(err.message, 400, "INVALID_PARAMETERS");
     const msg = err instanceof Error ? err.message : "Unknown error";
     console.error("❌ crud-tower error:", msg);
     return fail(msg, 500, "SERVER_ERROR");

@@ -1,3 +1,8 @@
+import {
+  CONTACT_PHONE_DUPLICATE_MESSAGE,
+  contactPhoneAlreadyExists,
+  normalizeParkingSlot,
+} from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import Papa from "https://esm.sh/papaparse@5.4.1"
@@ -369,6 +374,7 @@ interface ProcessedRow {
   entityType: string;
   identifier: string;
   status: "success";
+  parkingSlot?: string | null;
 }
 
 interface FailedReportRow extends ProcessingError {
@@ -508,8 +514,25 @@ const parseResult = Papa.parse(fileText, {
               whatsapp_phone: row.whatsapp_phone ? sanitizeString(row.whatsapp_phone) : null,
             };
 
-            if (row.contact_id) {
-              contactPayload.contact_id = sanitizeString(row.contact_id);
+            const parkingSlot = normalizeParkingSlot(row.parking_slot !== undefined ? row.parking_slot : row.parkingSlot);
+            if (parkingSlot !== undefined) contactPayload.parking_slot = parkingSlot;
+
+            const contactId = row.contact_id
+              ? sanitizeString(row.contact_id)
+              : undefined;
+            if (
+              await contactPhoneAlreadyExists(
+                supabaseAdmin,
+                targetSocietyId,
+                phoneClean,
+                contactId,
+              )
+            ) {
+              throw new Error(CONTACT_PHONE_DUPLICATE_MESSAGE);
+            }
+
+            if (contactId) {
+              contactPayload.contact_id = contactId;
             }
 
             const { data: contactData, error: contactErr } = await supabaseAdmin
@@ -596,6 +619,7 @@ const parseResult = Papa.parse(fileText, {
               rowNumber: rowNum,
               entityType: "society_user",
               identifier: phoneClean,
+              ...(parkingSlot !== undefined ? { parkingSlot } : {}),
               status: "success",
             });
           } else if (entityType === "non_society_user") {

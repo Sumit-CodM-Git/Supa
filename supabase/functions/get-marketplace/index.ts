@@ -1,3 +1,4 @@
+import { contactParkingSlot } from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -117,7 +118,8 @@ serve(async (req: Request) => {
         status: mp.status || '',
         description: mp.description || '',
         postedBy: contact?.name || 'Resident',
-        sellerPhone: contact?.phone || 'N/A'
+        sellerPhone: contact?.phone || 'N/A',
+        parkingSlot: contactParkingSlot(contact),
       }
     })
 
@@ -307,7 +309,7 @@ Deno.serve(
           SSP_Society_User!inner (
             user_id,
             society,
-            SSP_Contact (
+            SSP_Contact (parking_slot,
               name,
               phone
             )
@@ -410,6 +412,7 @@ Deno.serve(
             description: mp.description || "",
             postedBy: contact?.name || "Resident",
             sellerPhone: contact?.phone || "N/A",
+            parkingSlot: contactParkingSlot(contact),
             createdAt: mp.created_at,
             imageCount: images.length,
             images,        // full image metadata

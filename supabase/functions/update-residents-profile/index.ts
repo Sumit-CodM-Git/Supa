@@ -1,3 +1,9 @@
+import { resolveResidentFlatType, residentFlatTypeFields, ResidentFlatTypeError } from "../_shared/resident-flat-type.ts";
+import {
+  CONTACT_PHONE_DUPLICATE_MESSAGE,
+  contactPhoneAlreadyExists,
+  normalizeParkingSlot,
+} from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -191,6 +197,8 @@ const corsHeaders = {
 };
 
 interface ResidentRecord {
+  flat_type_id?: string | null;
+  flatTypeRecord?: {flat_type?: string | null} | null;
   user_id: string;
   role: string[] | null;
   contact:
@@ -282,7 +290,7 @@ serve(async (req: Request): Promise<Response> => {
         .select(
           `
           user_id,
-          unit_flat_number,
+          unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type),
           role,
           user_type,
           user_ownership_type,
@@ -291,7 +299,7 @@ serve(async (req: Request): Promise<Response> => {
           move_out_date,
           tower:SSP_Tower(tower_id, name),
           block:SSP_Block(block_id, block_name),
-          contact:SSP_Contact!inner(
+          contact:SSP_Contact!inner(parking_slot,
             contact_id,
             name,
             description,
@@ -363,7 +371,7 @@ serve(async (req: Request): Promise<Response> => {
               limit: limitNum,
               totalPages: Math.ceil((totalRecords || 0) / limitNum),
             },
-            residents: records,
+            residents: (records ?? []).map(row => ({...row, ...residentFlatTypeFields(row)})),
           },
           errorResponse: null,
         }),
@@ -385,9 +393,9 @@ serve(async (req: Request): Promise<Response> => {
       .from("SSP_Society_User")
       .select(
         `
-        user_id,
+        user_id, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type),
         role,
-        contact:SSP_Contact!inner(contact_id, name)
+        contact:SSP_Contact!inner(parking_slot, contact_id, name)
       `,
       )
       .eq("society", societyContext.society_id);
@@ -425,7 +433,11 @@ serve(async (req: Request): Promise<Response> => {
 
     // Build Mutation Object Dictionaries
     const contactUpdates: Record<string, unknown> = {};
+    const parkingSlot = normalizeParkingSlot(requestObj.parkingSlot !== undefined ? requestObj.parkingSlot : requestObj.parking_slot);
+    if (parkingSlot !== undefined) contactUpdates.parking_slot = parkingSlot;
     const userUpdates: Record<string, unknown> = {};
+    const resolvedFlatType = await resolveResidentFlatType(supabase, societyContext.society_id, requestObj);
+    if (resolvedFlatType) userUpdates.flat_type_id = resolvedFlatType.flatTypeId;
 
     // Validation & Population: SSP_Contact Fields
     if (requestObj.name !== undefined) contactUpdates.name = validateString("name", requestObj.name);
@@ -504,6 +516,24 @@ serve(async (req: Request): Promise<Response> => {
       targetContactId = su.contact.contact_id || null;
     }
 
+    if (
+      typeof contactUpdates.phone === "string" &&
+      contactUpdates.phone &&
+      targetContactId &&
+      await contactPhoneAlreadyExists(
+        supabase,
+        societyContext.society_id,
+        contactUpdates.phone,
+        targetContactId,
+      )
+    ) {
+      return buildErrorResponse(
+        "DUPLICATE_CONTACT_PHONE",
+        CONTACT_PHONE_DUPLICATE_MESSAGE,
+        400,
+      );
+    }
+
     if (Object.keys(contactUpdates).length > 0 && targetContactId) {
       const { error: conUpdateErr } = await supabase
         .from("SSP_Contact")
@@ -526,14 +556,17 @@ serve(async (req: Request): Promise<Response> => {
       JSON.stringify({
         profileUpdate: {
           updated: `Profile for identifier '${cleanResidentId}' updated successfully.`,
+          ...(resolvedFlatType ?? residentFlatTypeFields(su)),
           recordId: su.user_id,
           contactId: targetContactId,
+          ...(parkingSlot !== undefined ? { parkingSlot } : {}),
         },
         errorResponse: null,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error: unknown) {
+    if (error instanceof ResidentFlatTypeError) return buildErrorResponse("INVALID_PARAMETERS", error.message, 400);
     const errorMessage = error instanceof Error ? error.message : "Fatal execution error.";
     return buildErrorResponse(
       "SERVER_ERROR",

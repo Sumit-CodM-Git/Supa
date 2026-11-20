@@ -11,7 +11,7 @@
 //   • openParkingCount → totalParkingSlot - coveredParking
 //
 // Editable fields (admin):
-//   • societyName, subscriptionPlan, address*, city, state,
+//   • societyName, address*, city, state,
 //     postalCode, phoneNumber, email, totalParkingSlot
 //
 // NOTE: coveredParking is updated by the gate keeper via the
@@ -31,7 +31,6 @@ interface CrudSocietyRequest {
     action: "VIEW" | "UPDATE";
     payload?: {
         societyName?: string;
-        subscriptionPlan?: string;
         addressLine1?: string;
         addressLine2?: string;
         city?: string;
@@ -52,7 +51,6 @@ interface SocietyRow {
     society_id: string;
     society_name: string | null;
     registration_number: string | null;
-    subscription_plan: string | null;
     address_line1: string | null;
     address_line2: string | null;
     city: string | null;
@@ -93,7 +91,7 @@ const VALID_ACTIONS = ["VIEW", "UPDATE"] as const;
 const ADMIN_ROLE = "admin";
 
 const SOCIETY_SELECT_FIELDS =
-    "society_id,society_name,registration_number,subscription_plan," +
+    "society_id,society_name,registration_number," +
     "address_line1,address_line2,city,state,postal_code," +
     "phone_number,email,total_unit,open_parking,covered_parking," +
     "parking_slot,amenities,active,updated_at";
@@ -159,7 +157,6 @@ function formatSociety(
         societyId: s.society_id,
         societyName: s.society_name ?? "Unnamed Society",
         registrationNumber: s.registration_number,
-        subscriptionPlan: s.subscription_plan,
         address: formatAddress(s),
         phoneNumber: s.phone_number,
         email: s.email,
@@ -347,12 +344,6 @@ async function handleUpdate(
         }
         updatePayload.society_name = v;
         updatedFields.push("societyName");
-    }
-    if (p.subscriptionPlan !== undefined) {
-        updatePayload.subscription_plan = p.subscriptionPlan
-            ? String(p.subscriptionPlan).trim()
-            : null;
-        updatedFields.push("subscriptionPlan");
     }
     if (p.addressLine1 !== undefined) {
         updatePayload.address_line1 = p.addressLine1

@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {resolveResidentFlatType,residentFlatTypeFields,ResidentFlatTypeError} from '../functions/_shared/resident-flat-type.ts';
+const id='00000000-0000-4000-8000-000000000001';
+const rows=[{flat_type_id:id,society:'A',active:true,flat_type:'2 BHK'},{flat_type_id:'00000000-0000-4000-8000-000000000002',society:'B',active:true,flat_type:'3 BHK'},{flat_type_id:'00000000-0000-4000-8000-000000000003',society:'A',active:false,flat_type:'4 BHK'}];
+let failure=null;
+const client={from(table){assert.equal(table,'SSP_Flat_Type');const filters=[];return{select(){return this},eq(k,v){filters.push(r=>r[k]===v);return this},ilike(k,v){filters.push(r=>r[k].toLowerCase()===v.toLowerCase());return this},async maybeSingle(){const data=rows.filter(r=>filters.every(f=>f(r)));return {data:data[0]??null,error:failure??(data.length>1?{code:'PGRST116'}:null)}}}}};
+const expected={flatTypeId:id,flatType:'2 BHK'};
+assert.equal(await resolveResidentFlatType(client,'A',{}),undefined);
+for(const input of [{flatTypeId:id},{flatType:'2 bhk'},{flatTypeId:id,flatType:'2 BHK'}])assert.deepEqual(await resolveResidentFlatType(client,'A',input),expected);
+for(const input of [{flatTypeId:null},{flatType:''},{flatType:'  '}])assert.deepEqual(await resolveResidentFlatType(client,'A',input),{flatTypeId:null,flatType:null});
+for(const input of [{flatTypeId:rows[1].flat_type_id},{flatType:'4 BHK'},{flatType:'Missing'},{flatTypeId:123},{flatTypeId:'bad'},{flatTypeId:id,flatType:null}])await assert.rejects(()=>resolveResidentFlatType(client,'A',input),ResidentFlatTypeError);
+rows.push({...rows[0]});await assert.rejects(()=>resolveResidentFlatType(client,'A',{flatType:'2 BHK'}),/Multiple/);rows.pop();
+failure={message:'database offline'};await assert.rejects(()=>resolveResidentFlatType(client,'A',{flatTypeId:id}),/database offline/);
+assert.deepEqual(residentFlatTypeFields({flat_type_id:id,flatTypeRecord:{flat_type:'2 BHK'}}),expected);
+assert.deepEqual(residentFlatTypeFields({flat_type_id:id,flatTypeRecord:[{flat_type:'2 BHK'}]}),expected);
+assert.deepEqual(residentFlatTypeFields({}),{flatTypeId:null,flatType:null});
+console.log('Resident flat type: ID/name resolution, preserve/clear, case-insensitive names, inactive/cross-society rejection, conflict/type validation, ambiguity, database errors and response formatting passed.');

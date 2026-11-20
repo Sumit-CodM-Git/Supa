@@ -1,3 +1,6 @@
+import { contactParkingSlot } from "../_shared/contact.ts";
+import { isPaymentStaffRole } from "../_shared/payment-access.ts";
+import { createReceiptSignedUrl } from "../_shared/receipt-storage.ts";
 import { requireAuth, type AuthContext } from "../_shared/auth.ts";
 import {
   corsHeaders,
@@ -22,19 +25,6 @@ const logger = createLogger("admin-payments-console");
 
 const ENFORCE_STAFF_ROLE =
   (Deno.env.get("ENFORCE_STAFF_ROLE") ?? "true").toLowerCase() === "true";
-
-const STAFF_ROLES = [
-  "society_admin",
-  "admin",
-  "facility_manager",
-  "facility_admin",
-  "committee",
-  "committee_member",
-  "secretary",
-  "manager",
-  "treasurer",
-  "accounts",
-];
 
 // ============================================
 // TYPES
@@ -100,6 +90,7 @@ interface RawPaymentRow {
 
 interface RawBookingRequest {
   request_id: string;
+  created_at: string | null;
   requested_by: string | null;
   facility: string;
   payment: string;
@@ -129,50 +120,6 @@ function firstOrNull<T>(arr: T | T[] | null | undefined): T | null {
   if (!arr) return null;
   if (Array.isArray(arr)) return arr.length > 0 ? arr[0] : null;
   return arr;
-}
-
-function isStaffRole(role: unknown): boolean {
-  if (!role) return false;
-  const roles = Array.isArray(role) ? role : [role];
-  return roles.some((r) => {
-    if (typeof r !== "string") return false;
-    return STAFF_ROLES.includes(r.toLowerCase().trim());
-  });
-}
-
-function extractStorageKey(path: string): string | null {
-  if (!path) return null;
-  const raw = path.trim();
-  const publicMarker = `/storage/v1/object/public/${BUCKET_NAME}/`;
-  const signedMarker = `/storage/v1/object/sign/${BUCKET_NAME}/`;
-  if (raw.includes(publicMarker)) return raw.split(publicMarker)[1].split("?")[0];
-  if (raw.includes(signedMarker)) return raw.split(signedMarker)[1].split("?")[0];
-  if (raw.includes(".amazonaws.com/")) return raw.split(".amazonaws.com/")[1].split("?")[0];
-  return raw.split("?")[0];
-}
-
-function buildPublicUrl(s3Path: string | null): string {
-  if (!s3Path) return "";
-  const raw = s3Path.trim();
-  if (!raw) return "";
-  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
-  const clean = raw.startsWith("/") ? raw.slice(1) : raw;
-  return `${Deno.env.get("SUPABASE_URL") ?? ""}/storage/v1/object/public/${BUCKET_NAME}/${clean}`;
-}
-
-async function signOrPublic(s3Path: string | null): Promise<string> {
-  if (!s3Path) return "";
-  const key = extractStorageKey(s3Path);
-  if (!key) return buildPublicUrl(s3Path);
-  try {
-    const { data, error } = await supabaseAdmin.storage
-      .from(BUCKET_NAME)
-      .createSignedUrl(key, SIGNED_URL_EXPIRY);
-    if (error || !data?.signedUrl) return buildPublicUrl(s3Path);
-    return data.signedUrl;
-  } catch {
-    return buildPublicUrl(s3Path);
-  }
 }
 
 // ============================================
@@ -308,7 +255,7 @@ Deno.serve(
         return errorResponse("You are not a member of this society.", 403);
       }
 
-      if (ENFORCE_STAFF_ROLE && !isStaffRole(membership.role)) {
+      if (ENFORCE_STAFF_ROLE && !isPaymentStaffRole(membership.role)) {
         logger.warn({
           level: "warn",
           timestamp: new Date().toISOString(),
@@ -352,7 +299,7 @@ Deno.serve(
             society_user:SSP_Society_User!inner(
               unit_flat_number,
               society,
-              contact:SSP_Contact( name )
+              contact:SSP_Contact(parking_slot, name )
             ),
             SSP_Document ( s3_path, file_name )
           `,
@@ -376,7 +323,7 @@ Deno.serve(
             .select(`
               user_id,
               unit_flat_number,
-              contact:SSP_Contact( name )
+              contact:SSP_Contact(parking_slot, name )
             `)
             .eq("society", society.society_id);
 
@@ -428,12 +375,18 @@ Deno.serve(
         // Sign receipt URLs in parallel
         // FIX SSP-0013: Look at receipt_url first, then fallback to SSP_Document
         const signedReceipts = await Promise.all(
-          rawRows.map((p) => {
-            if (p.receipt_url) return signOrPublic(p.receipt_url);
-            
+          rawRows.map(async (p) => {
             const doc = firstOrNull(p.SSP_Document);
-            if (doc?.s3_path) return signOrPublic(doc.s3_path);
-            
+            const candidates = [p.receipt_url, doc?.s3_path]
+              .filter((path): path is string => typeof path === "string" && !!path.trim());
+            for (const path of candidates) {
+              const signedUrl = await createReceiptSignedUrl(
+                supabaseAdmin,
+                path,
+                SIGNED_URL_EXPIRY,
+              );
+              if (signedUrl) return signedUrl;
+            }
             return "";
           }),
         );
@@ -444,6 +397,7 @@ Deno.serve(
           const clickableImageUrl = signedReceipts[idx] || "N/A";
 
           return {
+            parkingSlot: contactParkingSlot(contact),
             paymentName: p.payment_id ?? "N/A",
             amount: p.amount != null ? String(p.amount) : "0",
             dueDate: p.due_date ? String(p.due_date) : null,
@@ -602,6 +556,8 @@ Deno.serve(
               .from("SSP_Facility_Booking")
               .insert({
                 requested_by: req.requested_by,
+                // Preserve when the resident created the booking request.
+                created_at: req.created_at ?? undefined,
                 facility: req.facility,
                 payment: req.payment,
                 booking_start_date: req.booking_start_date,

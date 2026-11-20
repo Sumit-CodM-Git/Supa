@@ -44,6 +44,35 @@ export async function getFlatForUser(
     };
 }
 
+/**
+ * Resolve an order's block from the current flat profile only when the order
+ * omitted it and the remaining location fields still identify that same flat.
+ * Razorpay order notes are immutable, while a resident's block may be filled
+ * in or corrected between order creation and payment capture.
+ */
+export async function resolveBlockForOrder(
+    supabase: ReturnType<typeof serviceClient>,
+    userId: string,
+    orderScope: {
+        society: string;
+        tower: string | null;
+        block: string | null;
+        flatNumber: string;
+    },
+): Promise<string | null> {
+    if (orderScope.block?.trim()) return orderScope.block.trim();
+
+    const flat = await getFlatForUser(supabase, userId);
+    if (!flat?.block) return null;
+
+    const sameFlat = flat.society === orderScope.society &&
+        (flat.tower ?? null) === (orderScope.tower ?? null) &&
+        flat.flatNumber.trim().toUpperCase() ===
+            orderScope.flatNumber.trim().toUpperCase();
+
+    return sameFlat ? flat.block : null;
+}
+
 // ─────────────────────────────────────────────
 // Billing helpers
 // ─────────────────────────────────────────────

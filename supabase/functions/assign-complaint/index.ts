@@ -1,3 +1,4 @@
+import { contactParkingSlot } from "../_shared/contact.ts";
 import { requireAuth } from "../_shared/auth.ts";
 import {
   corsHeaders,
@@ -23,6 +24,7 @@ interface AssignmentStatus {
 }
 
 interface AvailableStaff {
+  parkingSlot?: string | null;
   id: string;
   name: string;
   phone: string | null;
@@ -237,6 +239,14 @@ async function assignStaffToRecord(
           assigned_agent: null,
           status: "Assigned",
           assigned_date_time: getISTISOString(),
+          // A new assignment starts a fresh work-verification cycle.
+          start_otp: null,
+          start_otp_generated_at: null,
+          start_otp_verified_at: null,
+          end_otp: null,
+          end_otp_generated_at: null,
+          end_otp_verified_at: null,
+          completion_date_time: null,
         })
         .eq("complaint_id", complaintId);
 
@@ -274,6 +284,14 @@ async function assignStaffToRecord(
           non_society_user: null,
           status: "Assigned",
           assigned_date_time: getISTISOString(),
+          // A new assignment starts a fresh work-verification cycle.
+          start_otp: null,
+          start_otp_generated_at: null,
+          start_otp_verified_at: null,
+          end_otp: null,
+          end_otp_generated_at: null,
+          end_otp_verified_at: null,
+          completion_date_time: null,
         })
         .eq("complaint_id", complaintId);
 
@@ -439,7 +457,7 @@ Deno.serve(
           service_agent_services,
           agent_availability_status,
           service_agent_rating,
-          contact:contact (
+          contact:contact (parking_slot,
             name,
             phone
           )
@@ -484,7 +502,9 @@ Deno.serve(
         });
 
         // If no matches, show all service agents
-        const agentsToShow = matchedAgents.length > 0
+        const agentsToShow = normalizedComplaintType === "general"
+          ? serviceAgents
+          : matchedAgents.length > 0
           ? matchedAgents
           : serviceAgents;
 
@@ -510,6 +530,7 @@ Deno.serve(
           }
 
           availableStaff.push({
+            parkingSlot: contactParkingSlot(contact),
             id: agent.user_id,
             name: contact?.name || "Unknown Agent",
             phone: contact?.phone || null,
@@ -545,7 +566,9 @@ Deno.serve(
           );
         });
 
-        const vendorsToShow = matchedVendors.length > 0
+        const vendorsToShow = normalizedComplaintType === "general"
+          ? allVendors
+          : matchedVendors.length > 0
           ? matchedVendors
           : allVendors;
 

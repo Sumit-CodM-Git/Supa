@@ -1,0 +1,331 @@
+{
+  "authentication": {
+    "user_id": "516b517f-40c3-4fab-906a-c9da736ce24d",
+    "roles": [
+      "security"
+    ],
+    "method": "get-otp followed by verify-otp",
+    "http_status": 200
+  },
+  "calls": [
+    {
+      "endpoint": "visitor-otp",
+      "request": {
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "phoneNumber": "7001999605",
+        "fullName": "Abc Live Early Name"
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitorId": "dcc66bc0-798a-427b-9374-80ceee05424f",
+          "phoneNumber": "7001999605",
+          "name": "Abc Live Early Name",
+          "visitorName": "Abc Live Early Name",
+          "message": "OTP has been sent. Please verify OTP.",
+          "otpVerified": false,
+          "isNewVisitor": true,
+          "nextStep": "VERIFY_OTP",
+          "requiresVisitorDetails": false
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-otp",
+      "request": {
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "phoneNumber": "7001999605",
+        "visitorId": "dcc66bc0-798a-427b-9374-80ceee05424f",
+        "otp": "[REDACTED]"
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitorId": "dcc66bc0-798a-427b-9374-80ceee05424f",
+          "phoneNumber": "7001999605",
+          "name": "Abc Live Early Name",
+          "visitorName": "Abc Live Early Name",
+          "message": "OTP verified successfully.",
+          "otpVerified": true,
+          "isNewVisitor": true,
+          "nextStep": "COMPLETED",
+          "requiresVisitorDetails": false
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-pass-operations",
+      "request": {
+        "actionType": "REQUEST_APPROVAL",
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "securityGuardId": "516b517f-40c3-4fab-906a-c9da736ce24d",
+        "purpose": "Codex visitor-name API test",
+        "role": "visitor",
+        "visitorId": "dcc66bc0-798a-427b-9374-80ceee05424f",
+        "visitorName": "Abc Live Early Name"
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitor": {
+            "parkingSlot": "DEMO-P-000099",
+            "visitorId": "dcc66bc0-798a-427b-9374-80ceee05424f",
+            "name": "Abc Live Early Name",
+            "visitorName": "Abc Live Early Name",
+            "phone": "7001999605",
+            "platform": "N/A",
+            "purpose": "Codex visitor-name API test",
+            "vehicle": "N/A",
+            "status": "Pending",
+            "approvalStatus": "pending",
+            "preApproved": false,
+            "checkIn": null,
+            "checkOut": null,
+            "createdAt": "2026-11-10T06:31:03.099+00:00",
+            "flat": "25046",
+            "block": "N/A",
+            "tower": "Ashwairyam",
+            "residentName": "Sumit Haldar",
+            "imageUrl": null
+          },
+          "visitorId": "dcc66bc0-798a-427b-9374-80ceee05424f",
+          "success": true
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-otp",
+      "request": {
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "phoneNumber": "7002999605"
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitorId": "3e63e318-83e9-49d6-af45-0bc666847b5b",
+          "phoneNumber": "7002999605",
+          "name": null,
+          "visitorName": null,
+          "message": "OTP has been sent. Please verify OTP.",
+          "otpVerified": false,
+          "isNewVisitor": true,
+          "nextStep": "VERIFY_OTP",
+          "requiresVisitorDetails": true
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-otp",
+      "request": {
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "phoneNumber": "7002999605",
+        "visitorId": "3e63e318-83e9-49d6-af45-0bc666847b5b",
+        "otp": "[REDACTED]"
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitorId": "3e63e318-83e9-49d6-af45-0bc666847b5b",
+          "phoneNumber": "7002999605",
+          "name": null,
+          "visitorName": null,
+          "message": "OTP verified successfully.",
+          "otpVerified": true,
+          "isNewVisitor": true,
+          "nextStep": "COMPLETED",
+          "requiresVisitorDetails": true
+        }
+      }
+    },
+    {
+      "endpoint": "security-gate-console",
+      "request": {
+        "actionType": "REQUEST_APPROVAL",
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "securityGuardId": "516b517f-40c3-4fab-906a-c9da736ce24d",
+        "purpose": "Codex visitor-name API test",
+        "role": "visitor",
+        "visitorId": "3e63e318-83e9-49d6-af45-0bc666847b5b",
+        "fullName": "Abc Live Late Name"
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "Visitors": [],
+          "visitorId": "3e63e318-83e9-49d6-af45-0bc666847b5b",
+          "name": "Abc Live Late Name",
+          "visitorName": "Abc Live Late Name",
+          "success": true
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-otp",
+      "request": {
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "phoneNumber": "7003999605",
+        "visitorData": {
+          "fullName": "Abc Live Nested Name"
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitorId": "8d169cf3-31ae-40c5-979d-3588ef4a4feb",
+          "phoneNumber": "7003999605",
+          "name": "Abc Live Nested Name",
+          "visitorName": "Abc Live Nested Name",
+          "message": "OTP has been sent. Please verify OTP.",
+          "otpVerified": false,
+          "isNewVisitor": true,
+          "nextStep": "VERIFY_OTP",
+          "requiresVisitorDetails": false
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-pass-operations",
+      "request": {
+        "actionType": "REQUEST_APPROVAL",
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "securityGuardId": "516b517f-40c3-4fab-906a-c9da736ce24d",
+        "purpose": "Codex visitor-name API test",
+        "role": "visitor",
+        "visitorId": "8d169cf3-31ae-40c5-979d-3588ef4a4feb",
+        "visitorData": {
+          "name": "Abc Live Nested Name"
+        }
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitor": {
+            "parkingSlot": "DEMO-P-000099",
+            "visitorId": "8d169cf3-31ae-40c5-979d-3588ef4a4feb",
+            "name": "Abc Live Nested Name",
+            "visitorName": "Abc Live Nested Name",
+            "phone": "7003999605",
+            "platform": "N/A",
+            "purpose": "Codex visitor-name API test",
+            "vehicle": "N/A",
+            "status": "Pending",
+            "approvalStatus": "pending",
+            "preApproved": false,
+            "checkIn": null,
+            "checkOut": null,
+            "createdAt": "2026-11-10T06:31:32.971+00:00",
+            "flat": "25046",
+            "block": "N/A",
+            "tower": "Ashwairyam",
+            "residentName": "Sumit Haldar",
+            "imageUrl": null
+          },
+          "visitorId": "8d169cf3-31ae-40c5-979d-3588ef4a4feb",
+          "success": true
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-otp",
+      "request": {
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "phoneNumber": "7004999605"
+      },
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "data": {
+          "visitorId": "e97e9347-4754-43b7-93bf-03c6d549e26e",
+          "phoneNumber": "7004999605",
+          "name": null,
+          "visitorName": null,
+          "message": "OTP has been sent. Please verify OTP.",
+          "otpVerified": false,
+          "isNewVisitor": true,
+          "nextStep": "VERIFY_OTP",
+          "requiresVisitorDetails": true
+        }
+      }
+    },
+    {
+      "endpoint": "visitor-pass-operations",
+      "request": {
+        "actionType": "REQUEST_APPROVAL",
+        "societyRegistrationNumber": "GZB-1234-ab",
+        "societyUserId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+        "securityGuardId": "516b517f-40c3-4fab-906a-c9da736ce24d",
+        "purpose": "Codex visitor-name API test",
+        "role": "visitor",
+        "visitorId": "e97e9347-4754-43b7-93bf-03c6d549e26e"
+      },
+      "http_status": 400,
+      "response": {
+        "success": false,
+        "error": "ERROR",
+        "message": "visitorName and phone/phoneNumber (or an OTP visitorId) are required."
+      }
+    }
+  ],
+  "database_checks": [
+    [
+      {
+        "is_otp_verified": false,
+        "name": "Abc Live Early Name",
+        "non_society_user_id": "dcc66bc0-798a-427b-9374-80ceee05424f",
+        "visitor_approval_status": null,
+        "visitor_status": "otp_pending"
+      }
+    ],
+    [
+      {
+        "is_otp_verified": true,
+        "name": "Abc Live Early Name",
+        "non_society_user_id": "dcc66bc0-798a-427b-9374-80ceee05424f",
+        "visitor_approval_status": "pending",
+        "visitor_status": "Pending"
+      }
+    ],
+    [
+      {
+        "is_otp_verified": true,
+        "name": "Abc Live Late Name",
+        "non_society_user_id": "3e63e318-83e9-49d6-af45-0bc666847b5b",
+        "visitor_approval_status": "pending",
+        "visitor_status": "Pending"
+      }
+    ],
+    [
+      {
+        "is_otp_verified": false,
+        "name": "Abc Live Nested Name",
+        "non_society_user_id": "8d169cf3-31ae-40c5-979d-3588ef4a4feb",
+        "visitor_approval_status": null,
+        "visitor_status": "otp_pending"
+      }
+    ],
+    [
+      {
+        "is_otp_verified": false,
+        "name": "Abc Live Nested Name",
+        "non_society_user_id": "8d169cf3-31ae-40c5-979d-3588ef4a4feb",
+        "visitor_approval_status": "pending",
+        "visitor_status": "Pending"
+      }
+    ]
+  ],
+  "result": "passed",
+  "cleanup": {
+    "test_visitors_removed": 4
+  }
+}

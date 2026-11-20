@@ -1,0 +1,1706 @@
+[
+  {
+    "field_name": "priority",
+    "label": "Low",
+    "table_name": "SSP_Alert",
+    "value": "low"
+  },
+  {
+    "field_name": "priority",
+    "label": "Medium",
+    "table_name": "SSP_Alert",
+    "value": "medium"
+  },
+  {
+    "field_name": "priority",
+    "label": "High",
+    "table_name": "SSP_Alert",
+    "value": "high"
+  },
+  {
+    "field_name": "priority",
+    "label": "Urgent",
+    "table_name": "SSP_Alert",
+    "value": "urgent"
+  },
+  {
+    "field_name": "priority",
+    "label": "Critical",
+    "table_name": "SSP_Alert",
+    "value": "critical"
+  },
+  {
+    "field_name": "target_audience",
+    "label": "Owners",
+    "table_name": "SSP_Alert",
+    "value": "owners"
+  },
+  {
+    "field_name": "target_audience",
+    "label": "Tenants",
+    "table_name": "SSP_Alert",
+    "value": "tenants"
+  },
+  {
+    "field_name": "target_audience",
+    "label": "Both",
+    "table_name": "SSP_Alert",
+    "value": "both"
+  },
+  {
+    "field_name": "type",
+    "label": "General",
+    "table_name": "SSP_Alert",
+    "value": "general"
+  },
+  {
+    "field_name": "type",
+    "label": "Maintenance",
+    "table_name": "SSP_Alert",
+    "value": "maintenance"
+  },
+  {
+    "field_name": "type",
+    "label": "Event",
+    "table_name": "SSP_Alert",
+    "value": "event"
+  },
+  {
+    "field_name": "type",
+    "label": "Emergency",
+    "table_name": "SSP_Alert",
+    "value": "emergency"
+  },
+  {
+    "field_name": "type",
+    "label": "Security",
+    "table_name": "SSP_Alert",
+    "value": "security"
+  },
+  {
+    "field_name": "type",
+    "label": "Financial",
+    "table_name": "SSP_Alert",
+    "value": "financial"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "Electrical Issues",
+    "table_name": "SSP_Complaint",
+    "value": "electrical"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "General Maintenance",
+    "table_name": "SSP_Complaint",
+    "value": "maintenance"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "Plumbing Repairs",
+    "table_name": "SSP_Complaint",
+    "value": "plumbing"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "Housekeeping Services",
+    "table_name": "SSP_Complaint",
+    "value": "housekeeping"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "Parking Issues",
+    "table_name": "SSP_Complaint",
+    "value": "parking"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "General",
+    "table_name": "SSP_Complaint",
+    "value": "general"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "Other Complaints",
+    "table_name": "SSP_Complaint",
+    "value": "others"
+  },
+  {
+    "field_name": "complaint_type",
+    "label": "Security",
+    "table_name": "SSP_Complaint",
+    "value": "security"
+  },
+  {
+    "field_name": "priority",
+    "label": "High Priority",
+    "table_name": "SSP_Complaint",
+    "value": "high"
+  },
+  {
+    "field_name": "priority",
+    "label": "Medium Priority",
+    "table_name": "SSP_Complaint",
+    "value": "medium"
+  },
+  {
+    "field_name": "priority",
+    "label": "Low Priority",
+    "table_name": "SSP_Complaint",
+    "value": "low"
+  },
+  {
+    "field_name": "status",
+    "label": "In Progress",
+    "table_name": "SSP_Complaint",
+    "value": "in_progress"
+  },
+  {
+    "field_name": "status",
+    "label": "New Ticket",
+    "table_name": "SSP_Complaint",
+    "value": "new"
+  },
+  {
+    "field_name": "status",
+    "label": "Pending Input",
+    "table_name": "SSP_Complaint",
+    "value": "pending"
+  },
+  {
+    "field_name": "status",
+    "label": "Resolved / Closed",
+    "table_name": "SSP_Complaint",
+    "value": "resolved"
+  },
+  {
+    "field_name": "status",
+    "label": "Assigned",
+    "table_name": "SSP_Complaint",
+    "value": "assigned"
+  },
+  {
+    "field_name": "gender",
+    "label": "Male",
+    "table_name": "SSP_Contact",
+    "value": "male"
+  },
+  {
+    "field_name": "gender",
+    "label": "Female",
+    "table_name": "SSP_Contact",
+    "value": "female"
+  },
+  {
+    "field_name": "gender",
+    "label": "Other",
+    "table_name": "SSP_Contact",
+    "value": "other"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Aadhaar Card",
+    "table_name": "SSP_Contact",
+    "value": "aadhaar"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "PAN Card",
+    "table_name": "SSP_Contact",
+    "value": "pan"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Driving License",
+    "table_name": "SSP_Contact",
+    "value": "driving_license"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Voter ID",
+    "table_name": "SSP_Contact",
+    "value": "voter_id"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Passport",
+    "table_name": "SSP_Contact",
+    "value": "passport"
+  },
+  {
+    "field_name": "vehicle_type",
+    "label": "Two Wheeler",
+    "table_name": "SSP_Contact",
+    "value": "two_wheeler"
+  },
+  {
+    "field_name": "vehicle_type",
+    "label": "Four Wheeler",
+    "table_name": "SSP_Contact",
+    "value": "four_wheeler"
+  },
+  {
+    "field_name": "vehicle_type",
+    "label": "None",
+    "table_name": "SSP_Contact",
+    "value": "none"
+  },
+  {
+    "field_name": "document_type",
+    "label": "Society Bylaws",
+    "table_name": "SSP_Document",
+    "value": "bylaws"
+  },
+  {
+    "field_name": "document_type",
+    "label": "Society Rules",
+    "table_name": "SSP_Document",
+    "value": "society_rules"
+  },
+  {
+    "field_name": "document_type",
+    "label": "Legal",
+    "table_name": "SSP_Document",
+    "value": "legal"
+  },
+  {
+    "field_name": "document_type",
+    "label": "Agreement",
+    "table_name": "SSP_Document",
+    "value": "agreement"
+  },
+  {
+    "field_name": "file_type",
+    "label": "PDF Document",
+    "table_name": "SSP_Document",
+    "value": "application/pdf"
+  },
+  {
+    "field_name": "file_type",
+    "label": "AVIF Image",
+    "table_name": "SSP_Document",
+    "value": "image/avif"
+  },
+  {
+    "field_name": "file_type",
+    "label": "JPEG Image",
+    "table_name": "SSP_Document",
+    "value": "image/jpeg"
+  },
+  {
+    "field_name": "file_type",
+    "label": "PNG Image",
+    "table_name": "SSP_Document",
+    "value": "image/png"
+  },
+  {
+    "field_name": "booking_mode",
+    "label": "Hourly Booking",
+    "table_name": "SSP_Facility",
+    "value": "hourly"
+  },
+  {
+    "field_name": "booking_mode",
+    "label": "Slot Based Booking",
+    "table_name": "SSP_Facility",
+    "value": "slot_base"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "Friday",
+    "table_name": "SSP_Facility",
+    "value": "friday"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "Sunday",
+    "table_name": "SSP_Facility",
+    "value": "sunday"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "Tuesday",
+    "table_name": "SSP_Facility",
+    "value": "tuesday"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "Monday",
+    "table_name": "SSP_Facility",
+    "value": "monday"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "Wednesday",
+    "table_name": "SSP_Facility",
+    "value": "wednesday"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "Thursday",
+    "table_name": "SSP_Facility",
+    "value": "thursday"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "Saturday",
+    "table_name": "SSP_Facility",
+    "value": "saturday"
+  },
+  {
+    "field_name": "closed_days",
+    "label": "None",
+    "table_name": "SSP_Facility",
+    "value": "none"
+  },
+  {
+    "field_name": "facility_type",
+    "label": "Clubhouse",
+    "table_name": "SSP_Facility",
+    "value": "clubhouse"
+  },
+  {
+    "field_name": "facility_type",
+    "label": "Recreational Area",
+    "table_name": "SSP_Facility",
+    "value": "recreational"
+  },
+  {
+    "field_name": "facility_type",
+    "label": "Sports Arena",
+    "table_name": "SSP_Facility",
+    "value": "sports"
+  },
+  {
+    "field_name": "approval_status",
+    "label": "Pending Review",
+    "table_name": "SSP_Facility_Booking",
+    "value": "pending"
+  },
+  {
+    "field_name": "approval_status",
+    "label": "Rejected",
+    "table_name": "SSP_Facility_Booking",
+    "value": "rejected"
+  },
+  {
+    "field_name": "approval_status",
+    "label": "Approved",
+    "table_name": "SSP_Facility_Booking",
+    "value": "approved"
+  },
+  {
+    "field_name": "booking_status",
+    "label": "Approved",
+    "table_name": "SSP_Facility_Booking",
+    "value": "approved"
+  },
+  {
+    "field_name": "booking_status",
+    "label": "Rejected",
+    "table_name": "SSP_Facility_Booking",
+    "value": "rejected"
+  },
+  {
+    "field_name": "booking_status",
+    "label": "Requested",
+    "table_name": "SSP_Facility_Booking",
+    "value": "requested"
+  },
+  {
+    "field_name": "booking_status",
+    "label": "Canceled",
+    "table_name": "SSP_Facility_Booking",
+    "value": "canceled"
+  },
+  {
+    "field_name": "booking_status",
+    "label": "Confirmed",
+    "table_name": "SSP_Facility_Booking",
+    "value": "confirmed"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "Studio",
+    "table_name": "SSP_Flat_Type",
+    "value": "studio"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "1 RK",
+    "table_name": "SSP_Flat_Type",
+    "value": "1_rk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "1 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "1_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "1.5 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "1.5_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "2 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "2_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "2.5 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "2.5_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "3 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "3_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "3.5 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "3.5_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "4 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "4_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "5 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "5_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "6 BHK",
+    "table_name": "SSP_Flat_Type",
+    "value": "6_bhk"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "Duplex",
+    "table_name": "SSP_Flat_Type",
+    "value": "duplex"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "Triplex",
+    "table_name": "SSP_Flat_Type",
+    "value": "triplex"
+  },
+  {
+    "field_name": "flat_type",
+    "label": "Penthouse",
+    "table_name": "SSP_Flat_Type",
+    "value": "penthouse"
+  },
+  {
+    "field_name": "category",
+    "label": "Electronics & Appliances",
+    "table_name": "SSP_Market_Place",
+    "value": "electronics"
+  },
+  {
+    "field_name": "category",
+    "label": "Furniture",
+    "table_name": "SSP_Market_Place",
+    "value": "furniture"
+  },
+  {
+    "field_name": "category",
+    "label": "Cars",
+    "table_name": "SSP_Market_Place",
+    "value": "cars"
+  },
+  {
+    "field_name": "category",
+    "label": "Household Items",
+    "table_name": "SSP_Market_Place",
+    "value": "household"
+  },
+  {
+    "field_name": "category",
+    "label": "Mobile",
+    "table_name": "SSP_Market_Place",
+    "value": "mobile"
+  },
+  {
+    "field_name": "category",
+    "label": "Properties",
+    "table_name": "SSP_Market_Place",
+    "value": "properties"
+  },
+  {
+    "field_name": "category",
+    "label": "Bikes",
+    "table_name": "SSP_Market_Place",
+    "value": "bikes"
+  },
+  {
+    "field_name": "category",
+    "label": "Fashion",
+    "table_name": "SSP_Market_Place",
+    "value": "fashion"
+  },
+  {
+    "field_name": "category",
+    "label": "Books/Sports/Hobbies",
+    "table_name": "SSP_Market_Place",
+    "value": "books_sports_hobbies"
+  },
+  {
+    "field_name": "category",
+    "label": "Service",
+    "table_name": "SSP_Market_Place",
+    "value": "service"
+  },
+  {
+    "field_name": "category",
+    "label": "Others",
+    "table_name": "SSP_Market_Place",
+    "value": "others"
+  },
+  {
+    "field_name": "price_type",
+    "label": "Free / Give Away",
+    "table_name": "SSP_Market_Place",
+    "value": "free"
+  },
+  {
+    "field_name": "price_type",
+    "label": "Fixed",
+    "table_name": "SSP_Market_Place",
+    "value": "fixed"
+  },
+  {
+    "field_name": "price_type",
+    "label": "Price Negotiable",
+    "table_name": "SSP_Market_Place",
+    "value": "negotiable"
+  },
+  {
+    "field_name": "status",
+    "label": "Active Listing",
+    "table_name": "SSP_Market_Place",
+    "value": "active"
+  },
+  {
+    "field_name": "status",
+    "label": "In-Active",
+    "table_name": "SSP_Market_Place",
+    "value": "in_active"
+  },
+  {
+    "field_name": "gender",
+    "label": "Female",
+    "table_name": "SSP_Non_Society_User",
+    "value": "female"
+  },
+  {
+    "field_name": "gender",
+    "label": "Male",
+    "table_name": "SSP_Non_Society_User",
+    "value": "male"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Aadhaar Card",
+    "table_name": "SSP_Non_Society_User",
+    "value": "aadhaar"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Pan Card",
+    "table_name": "SSP_Non_Society_User",
+    "value": "pan"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Driving License",
+    "table_name": "SSP_Non_Society_User",
+    "value": "driving_license"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Voter ID",
+    "table_name": "SSP_Non_Society_User",
+    "value": "voter_id"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Passport",
+    "table_name": "SSP_Non_Society_User",
+    "value": "passport"
+  },
+  {
+    "field_name": "purpose",
+    "label": "Guest Visit",
+    "table_name": "SSP_Non_Society_User",
+    "value": "guest"
+  },
+  {
+    "field_name": "purpose",
+    "label": "Delivery",
+    "table_name": "SSP_Non_Society_User",
+    "value": "delivery"
+  },
+  {
+    "field_name": "purpose",
+    "label": "Maintenance",
+    "table_name": "SSP_Non_Society_User",
+    "value": "maintenance"
+  },
+  {
+    "field_name": "purpose",
+    "label": "Cab / Taxi",
+    "table_name": "SSP_Non_Society_User",
+    "value": "cab"
+  },
+  {
+    "field_name": "purpose",
+    "label": "Other",
+    "table_name": "SSP_Non_Society_User",
+    "value": "other"
+  },
+  {
+    "field_name": "purpose",
+    "label": "Vendor",
+    "table_name": "SSP_Non_Society_User",
+    "value": "vendor"
+  },
+  {
+    "field_name": "purpose",
+    "label": "Meeting",
+    "table_name": "SSP_Non_Society_User",
+    "value": "meeting"
+  },
+  {
+    "field_name": "role",
+    "label": "Vendor",
+    "table_name": "SSP_Non_Society_User",
+    "value": "vendor"
+  },
+  {
+    "field_name": "role",
+    "label": "Visitor",
+    "table_name": "SSP_Non_Society_User",
+    "value": "visitor"
+  },
+  {
+    "field_name": "service_type",
+    "label": "Electrical",
+    "table_name": "SSP_Non_Society_User",
+    "value": "electrical"
+  },
+  {
+    "field_name": "service_type",
+    "label": "Plumbing",
+    "table_name": "SSP_Non_Society_User",
+    "value": "plumbing"
+  },
+  {
+    "field_name": "service_type",
+    "label": "Housekeeping",
+    "table_name": "SSP_Non_Society_User",
+    "value": "housekeeping"
+  },
+  {
+    "field_name": "service_type",
+    "label": "Security",
+    "table_name": "SSP_Non_Society_User",
+    "value": "security"
+  },
+  {
+    "field_name": "service_type",
+    "label": "Carpenter",
+    "table_name": "SSP_Non_Society_User",
+    "value": "carpenter"
+  },
+  {
+    "field_name": "service_type",
+    "label": "Parking",
+    "table_name": "SSP_Non_Society_User",
+    "value": "parking"
+  },
+  {
+    "field_name": "service_type",
+    "label": "Other",
+    "table_name": "SSP_Non_Society_User",
+    "value": "other"
+  },
+  {
+    "field_name": "vehicle_type",
+    "label": "Two Wheeler",
+    "table_name": "SSP_Non_Society_User",
+    "value": "two_wheeler"
+  },
+  {
+    "field_name": "vehicle_type",
+    "label": "Four Wheeler",
+    "table_name": "SSP_Non_Society_User",
+    "value": "four_wheeler"
+  },
+  {
+    "field_name": "vehicle_type",
+    "label": "Truck",
+    "table_name": "SSP_Non_Society_User",
+    "value": "truck"
+  },
+  {
+    "field_name": "vehicle_type",
+    "label": "Bicycle",
+    "table_name": "SSP_Non_Society_User",
+    "value": "bicycle"
+  },
+  {
+    "field_name": "visitor_approval_status",
+    "label": "Pending",
+    "table_name": "SSP_Non_Society_User",
+    "value": "pending"
+  },
+  {
+    "field_name": "visitor_approval_status",
+    "label": "Approved",
+    "table_name": "SSP_Non_Society_User",
+    "value": "approved"
+  },
+  {
+    "field_name": "visitor_approval_status",
+    "label": "Rejected",
+    "table_name": "SSP_Non_Society_User",
+    "value": "rejected"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Expected",
+    "table_name": "SSP_Non_Society_User",
+    "value": "expected"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Pending",
+    "table_name": "SSP_Non_Society_User",
+    "value": "pending"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Approved",
+    "table_name": "SSP_Non_Society_User",
+    "value": "approved"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Inside",
+    "table_name": "SSP_Non_Society_User",
+    "value": "inside"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Outside",
+    "table_name": "SSP_Non_Society_User",
+    "value": "outside"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Rejected",
+    "table_name": "SSP_Non_Society_User",
+    "value": "rejected"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Checked In",
+    "table_name": "SSP_Non_Society_User",
+    "value": "checked_in"
+  },
+  {
+    "field_name": "visitor_status",
+    "label": "Checked Out",
+    "table_name": "SSP_Non_Society_User",
+    "value": "checked_out"
+  },
+  {
+    "field_name": "month_period",
+    "label": "January",
+    "table_name": "SSP_Payment",
+    "value": "january"
+  },
+  {
+    "field_name": "month_period",
+    "label": "February",
+    "table_name": "SSP_Payment",
+    "value": "february"
+  },
+  {
+    "field_name": "month_period",
+    "label": "March",
+    "table_name": "SSP_Payment",
+    "value": "march"
+  },
+  {
+    "field_name": "month_period",
+    "label": "April",
+    "table_name": "SSP_Payment",
+    "value": "april"
+  },
+  {
+    "field_name": "month_period",
+    "label": "May",
+    "table_name": "SSP_Payment",
+    "value": "may"
+  },
+  {
+    "field_name": "month_period",
+    "label": "June",
+    "table_name": "SSP_Payment",
+    "value": "june"
+  },
+  {
+    "field_name": "month_period",
+    "label": "July",
+    "table_name": "SSP_Payment",
+    "value": "july"
+  },
+  {
+    "field_name": "month_period",
+    "label": "August",
+    "table_name": "SSP_Payment",
+    "value": "august"
+  },
+  {
+    "field_name": "month_period",
+    "label": "September",
+    "table_name": "SSP_Payment",
+    "value": "september"
+  },
+  {
+    "field_name": "month_period",
+    "label": "October",
+    "table_name": "SSP_Payment",
+    "value": "october"
+  },
+  {
+    "field_name": "month_period",
+    "label": "November",
+    "table_name": "SSP_Payment",
+    "value": "november"
+  },
+  {
+    "field_name": "month_period",
+    "label": "December",
+    "table_name": "SSP_Payment",
+    "value": "december"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "QR Code Scan",
+    "table_name": "SSP_Payment",
+    "value": "qr"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "Cash",
+    "table_name": "SSP_Payment",
+    "value": "cash"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "Net Banking",
+    "table_name": "SSP_Payment",
+    "value": "net_banking"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "UPI Gateway",
+    "table_name": "SSP_Payment",
+    "value": "upi"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "Credit Card",
+    "table_name": "SSP_Payment",
+    "value": "credit_card"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "Debit Card",
+    "table_name": "SSP_Payment",
+    "value": "debit_card"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "Bank Transfer",
+    "table_name": "SSP_Payment",
+    "value": "bank_transfer"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "Wallet",
+    "table_name": "SSP_Payment",
+    "value": "wallet"
+  },
+  {
+    "field_name": "payment_method",
+    "label": "Razorpay",
+    "table_name": "SSP_Payment",
+    "value": "razorpay"
+  },
+  {
+    "field_name": "payment_status",
+    "label": "Payment Successful",
+    "table_name": "SSP_Payment",
+    "value": "paid"
+  },
+  {
+    "field_name": "payment_status",
+    "label": "Payment Rejected",
+    "table_name": "SSP_Payment",
+    "value": "rejected"
+  },
+  {
+    "field_name": "payment_status",
+    "label": "Unpaid Dues",
+    "table_name": "SSP_Payment",
+    "value": "unpaid"
+  },
+  {
+    "field_name": "payment_status",
+    "label": "Pending Review",
+    "table_name": "SSP_Payment",
+    "value": "pending"
+  },
+  {
+    "field_name": "payment_type",
+    "label": "Facility Charges",
+    "table_name": "SSP_Payment",
+    "value": "facility"
+  },
+  {
+    "field_name": "payment_type",
+    "label": "Booking Advance",
+    "table_name": "SSP_Payment",
+    "value": "facility_booking"
+  },
+  {
+    "field_name": "payment_type",
+    "label": "Monthly Maintenance",
+    "table_name": "SSP_Payment",
+    "value": "maintenance"
+  },
+  {
+    "field_name": "payment_type",
+    "label": "Parking Charges",
+    "table_name": "SSP_Payment",
+    "value": "parking_charges"
+  },
+  {
+    "field_name": "payment_type",
+    "label": "Subscription",
+    "table_name": "SSP_Payment",
+    "value": "subscription"
+  },
+  {
+    "field_name": "payment_type",
+    "label": "Sinking Fund",
+    "table_name": "SSP_Payment",
+    "value": "sinking_fund"
+  },
+  {
+    "field_name": "payment_type",
+    "label": "Water Charges",
+    "table_name": "SSP_Payment",
+    "value": "water_charges"
+  },
+  {
+    "field_name": "refund_policy",
+    "label": "Full Refund",
+    "table_name": "SSP_Refund",
+    "value": "full_refund"
+  },
+  {
+    "field_name": "refund_policy",
+    "label": "Prorated",
+    "table_name": "SSP_Refund",
+    "value": "prorated"
+  },
+  {
+    "field_name": "status",
+    "label": "Requested",
+    "table_name": "SSP_Refund",
+    "value": "requested"
+  },
+  {
+    "field_name": "status",
+    "label": "Processing",
+    "table_name": "SSP_Refund",
+    "value": "processing"
+  },
+  {
+    "field_name": "status",
+    "label": "Processed",
+    "table_name": "SSP_Refund",
+    "value": "processed"
+  },
+  {
+    "field_name": "status",
+    "label": "Failed",
+    "table_name": "SSP_Refund",
+    "value": "failed"
+  },
+  {
+    "field_name": "status",
+    "label": "Rejected",
+    "table_name": "SSP_Refund",
+    "value": "rejected"
+  },
+  {
+    "field_name": "gender",
+    "label": "Female",
+    "table_name": "SSP_Servant",
+    "value": "female"
+  },
+  {
+    "field_name": "gender",
+    "label": "Male",
+    "table_name": "SSP_Servant",
+    "value": "male"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Aadhaar Card",
+    "table_name": "SSP_Servant",
+    "value": "aadhaar"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "PAN Card",
+    "table_name": "SSP_Servant",
+    "value": "pan"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Driving License",
+    "table_name": "SSP_Servant",
+    "value": "driving_license"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Voter ID",
+    "table_name": "SSP_Servant",
+    "value": "voter_id"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Passport",
+    "table_name": "SSP_Servant",
+    "value": "passport"
+  },
+  {
+    "field_name": "role",
+    "label": "Maid",
+    "table_name": "SSP_Servant",
+    "value": "maid"
+  },
+  {
+    "field_name": "role",
+    "label": "Cook",
+    "table_name": "SSP_Servant",
+    "value": "cook"
+  },
+  {
+    "field_name": "role",
+    "label": "Driver",
+    "table_name": "SSP_Servant",
+    "value": "driver"
+  },
+  {
+    "field_name": "role",
+    "label": "Cleaner",
+    "table_name": "SSP_Servant",
+    "value": "cleaner"
+  },
+  {
+    "field_name": "role",
+    "label": "Gardener",
+    "table_name": "SSP_Servant",
+    "value": "gardener"
+  },
+  {
+    "field_name": "role",
+    "label": "Housekeeper",
+    "table_name": "SSP_Servant",
+    "value": "housekeeper"
+  },
+  {
+    "field_name": "role",
+    "label": "Laundry",
+    "table_name": "SSP_Servant",
+    "value": "laundry"
+  },
+  {
+    "field_name": "role",
+    "label": "Other",
+    "table_name": "SSP_Servant",
+    "value": "other"
+  },
+  {
+    "field_name": "role",
+    "label": "Caretaker",
+    "table_name": "SSP_Servant",
+    "value": "caretaker"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Morning",
+    "table_name": "SSP_Servant",
+    "value": "morning"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Afternoon",
+    "table_name": "SSP_Servant",
+    "value": "afternoon"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Evening",
+    "table_name": "SSP_Servant",
+    "value": "evening"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Night",
+    "table_name": "SSP_Servant",
+    "value": "night"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Full Day",
+    "table_name": "SSP_Servant",
+    "value": "full_day"
+  },
+  {
+    "field_name": "status",
+    "label": "Active",
+    "table_name": "SSP_Servant",
+    "value": "active"
+  },
+  {
+    "field_name": "status",
+    "label": "Inactive",
+    "table_name": "SSP_Servant",
+    "value": "inactive"
+  },
+  {
+    "field_name": "subscription_plan",
+    "label": "Growth Plan",
+    "table_name": "SSP_Society",
+    "value": "growth"
+  },
+  {
+    "field_name": "subscription_plan",
+    "label": "Premium Plan",
+    "table_name": "SSP_Society",
+    "value": "premium"
+  },
+  {
+    "field_name": "subscription_plan",
+    "label": "Starter Plan",
+    "table_name": "SSP_Society",
+    "value": "starter"
+  },
+  {
+    "field_name": "availability_status",
+    "label": "Available",
+    "table_name": "SSP_Society_Staff",
+    "value": "available"
+  },
+  {
+    "field_name": "availability_status",
+    "label": "On Leave",
+    "table_name": "SSP_Society_Staff",
+    "value": "on_leave"
+  },
+  {
+    "field_name": "availability_status",
+    "label": "Unavailable",
+    "table_name": "SSP_Society_Staff",
+    "value": "unavailable"
+  },
+  {
+    "field_name": "availability_status",
+    "label": "Inactive",
+    "table_name": "SSP_Society_Staff",
+    "value": "inactive"
+  },
+  {
+    "field_name": "emergency_category",
+    "label": "Stuck in Lift",
+    "table_name": "SSP_Society_Staff",
+    "value": "stuck_in_lift"
+  },
+  {
+    "field_name": "emergency_category",
+    "label": "Medical Emergency",
+    "table_name": "SSP_Society_Staff",
+    "value": "medical_emergency"
+  },
+  {
+    "field_name": "emergency_category",
+    "label": "Gas / Fire",
+    "table_name": "SSP_Society_Staff",
+    "value": "gas_fire"
+  },
+  {
+    "field_name": "emergency_category",
+    "label": "Theft / Other",
+    "table_name": "SSP_Society_Staff",
+    "value": "theft_other"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Aadhaar Card",
+    "table_name": "SSP_Society_Staff",
+    "value": "aadhaar"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "PAN Card",
+    "table_name": "SSP_Society_Staff",
+    "value": "pan"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Driving License",
+    "table_name": "SSP_Society_Staff",
+    "value": "driving_license"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Voter ID",
+    "table_name": "SSP_Society_Staff",
+    "value": "voter_id"
+  },
+  {
+    "field_name": "id_proof_type",
+    "label": "Passport",
+    "table_name": "SSP_Society_Staff",
+    "value": "passport"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Morning",
+    "table_name": "SSP_Society_Staff",
+    "value": "morning"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Afternoon",
+    "table_name": "SSP_Society_Staff",
+    "value": "afternoon"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Evening",
+    "table_name": "SSP_Society_Staff",
+    "value": "evening"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Night",
+    "table_name": "SSP_Society_Staff",
+    "value": "night"
+  },
+  {
+    "field_name": "shift_timing",
+    "label": "Full Day",
+    "table_name": "SSP_Society_Staff",
+    "value": "full_day"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Facility Manager",
+    "table_name": "SSP_Society_Staff",
+    "value": "facility_manager"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Security",
+    "table_name": "SSP_Society_Staff",
+    "value": "security"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Cleaner",
+    "table_name": "SSP_Society_Staff",
+    "value": "cleaner"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Fire Safety Officer",
+    "table_name": "SSP_Society_Staff",
+    "value": "fire_safety_officer"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Gardener",
+    "table_name": "SSP_Society_Staff",
+    "value": "gardener"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Lift Technician",
+    "table_name": "SSP_Society_Staff",
+    "value": "lift_technician"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Main Gate Security Guard",
+    "table_name": "SSP_Society_Staff",
+    "value": "main_gate_guard"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Plumber",
+    "table_name": "SSP_Society_Staff",
+    "value": "plumber"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Electrician",
+    "table_name": "SSP_Society_Staff",
+    "value": "electrician"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Security Supervisor",
+    "table_name": "SSP_Society_Staff",
+    "value": "security_supervisor"
+  },
+  {
+    "field_name": "staff_role",
+    "label": "Manager",
+    "table_name": "SSP_Society_Staff",
+    "value": "manager"
+  },
+  {
+    "field_name": "agent_availability_status",
+    "label": "Available",
+    "table_name": "SSP_Society_User",
+    "value": "available"
+  },
+  {
+    "field_name": "agent_availability_status",
+    "label": "Busy",
+    "table_name": "SSP_Society_User",
+    "value": "busy"
+  },
+  {
+    "field_name": "relationship",
+    "label": "Spouse",
+    "table_name": "SSP_Society_User",
+    "value": "spouse"
+  },
+  {
+    "field_name": "relationship",
+    "label": "Father",
+    "table_name": "SSP_Society_User",
+    "value": "father"
+  },
+  {
+    "field_name": "relationship",
+    "label": "Mother",
+    "table_name": "SSP_Society_User",
+    "value": "mother"
+  },
+  {
+    "field_name": "relationship",
+    "label": "Son",
+    "table_name": "SSP_Society_User",
+    "value": "son"
+  },
+  {
+    "field_name": "relationship",
+    "label": "Daughter",
+    "table_name": "SSP_Society_User",
+    "value": "daughter"
+  },
+  {
+    "field_name": "relationship",
+    "label": "Friend",
+    "table_name": "SSP_Society_User",
+    "value": "friend"
+  },
+  {
+    "field_name": "relationship",
+    "label": "Other",
+    "table_name": "SSP_Society_User",
+    "value": "other"
+  },
+  {
+    "field_name": "role",
+    "label": "Administrator",
+    "table_name": "SSP_Society_User",
+    "value": "admin"
+  },
+  {
+    "field_name": "role",
+    "label": "Resident",
+    "table_name": "SSP_Society_User",
+    "value": "resident"
+  },
+  {
+    "field_name": "role",
+    "label": "Security",
+    "table_name": "SSP_Society_User",
+    "value": "security"
+  },
+  {
+    "field_name": "role",
+    "label": "Service Agent",
+    "table_name": "SSP_Society_User",
+    "value": "service_agent"
+  },
+  {
+    "field_name": "security_guard_status",
+    "label": "On Duty",
+    "table_name": "SSP_Society_User",
+    "value": "on_duty"
+  },
+  {
+    "field_name": "security_guard_status",
+    "label": "On Leave",
+    "table_name": "SSP_Society_User",
+    "value": "on_leave"
+  },
+  {
+    "field_name": "security_zone",
+    "label": "Main Entrance Alpha",
+    "table_name": "SSP_Society_User",
+    "value": "main_entrance_alpha"
+  },
+  {
+    "field_name": "security_zone",
+    "label": "Main exit gate",
+    "table_name": "SSP_Society_User",
+    "value": "main_exit_gate"
+  },
+  {
+    "field_name": "security_zone",
+    "label": "Block",
+    "table_name": "SSP_Society_User",
+    "value": "block"
+  },
+  {
+    "field_name": "security_zone",
+    "label": "Tower",
+    "table_name": "SSP_Society_User",
+    "value": "tower"
+  },
+  {
+    "field_name": "security_zone",
+    "label": "Basement",
+    "table_name": "SSP_Society_User",
+    "value": "basement"
+  },
+  {
+    "field_name": "security_zone",
+    "label": "Parking",
+    "table_name": "SSP_Society_User",
+    "value": "parking"
+  },
+  {
+    "field_name": "shift",
+    "label": "Day Shift",
+    "table_name": "SSP_Society_User",
+    "value": "day_shift"
+  },
+  {
+    "field_name": "shift",
+    "label": "Emergency Callout",
+    "table_name": "SSP_Society_User",
+    "value": "emergency_callout"
+  },
+  {
+    "field_name": "shift",
+    "label": "Night Shift",
+    "table_name": "SSP_Society_User",
+    "value": "night_shift"
+  },
+  {
+    "field_name": "status",
+    "label": "Active",
+    "table_name": "SSP_Society_User",
+    "value": "active"
+  },
+  {
+    "field_name": "status",
+    "label": "In Active",
+    "table_name": "SSP_Society_User",
+    "value": "inactive"
+  },
+  {
+    "field_name": "user_ownership_type",
+    "label": "Primary",
+    "table_name": "SSP_Society_User",
+    "value": "primary"
+  },
+  {
+    "field_name": "user_ownership_type",
+    "label": "Secondary",
+    "table_name": "SSP_Society_User",
+    "value": "secondary"
+  },
+  {
+    "field_name": "user_type",
+    "label": "Owner",
+    "table_name": "SSP_Society_User",
+    "value": "owner"
+  },
+  {
+    "field_name": "user_type",
+    "label": "Tenant",
+    "table_name": "SSP_Society_User",
+    "value": "tenant"
+  },
+  {
+    "field_name": "status",
+    "label": "Trial",
+    "table_name": "SSP_Subscription",
+    "value": "trial"
+  },
+  {
+    "field_name": "status",
+    "label": "Active",
+    "table_name": "SSP_Subscription",
+    "value": "active"
+  },
+  {
+    "field_name": "status",
+    "label": "Expired",
+    "table_name": "SSP_Subscription",
+    "value": "expired"
+  },
+  {
+    "field_name": "status",
+    "label": "Cancelled",
+    "table_name": "SSP_Subscription",
+    "value": "cancelled"
+  },
+  {
+    "field_name": "status",
+    "label": "Refunded",
+    "table_name": "SSP_Subscription",
+    "value": "refunded"
+  },
+  {
+    "field_name": "status",
+    "label": "Transferred",
+    "table_name": "SSP_Subscription",
+    "value": "transferred"
+  },
+  {
+    "field_name": "payment_purpose",
+    "label": "New Subscription",
+    "table_name": "SSP_Subscription_Payment",
+    "value": "new"
+  },
+  {
+    "field_name": "payment_purpose",
+    "label": "Renewal",
+    "table_name": "SSP_Subscription_Payment",
+    "value": "renewal"
+  },
+  {
+    "field_name": "payment_purpose",
+    "label": "Upgrade",
+    "table_name": "SSP_Subscription_Payment",
+    "value": "upgrade"
+  },
+  {
+    "field_name": "billing_period",
+    "label": "Monthly",
+    "table_name": "SSP_Subscription_Plan_Price",
+    "value": "monthly"
+  },
+  {
+    "field_name": "billing_period",
+    "label": "Quarterly",
+    "table_name": "SSP_Subscription_Plan_Price",
+    "value": "quarterly"
+  },
+  {
+    "field_name": "billing_period",
+    "label": "Half Yearly",
+    "table_name": "SSP_Subscription_Plan_Price",
+    "value": "half_yearly"
+  },
+  {
+    "field_name": "billing_period",
+    "label": "Yearly",
+    "table_name": "SSP_Subscription_Plan_Price",
+    "value": "yearly"
+  },
+  {
+    "field_name": "billing_period",
+    "label": "Three Year",
+    "table_name": "SSP_Subscription_Plan_Price",
+    "value": "three_year"
+  },
+  {
+    "field_name": "status",
+    "label": "Pending",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "pending"
+  },
+  {
+    "field_name": "status",
+    "label": "Completed",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "completed"
+  },
+  {
+    "field_name": "status",
+    "label": "Cancelled",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "cancelled"
+  },
+  {
+    "field_name": "status",
+    "label": "Rejected",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "rejected"
+  },
+  {
+    "field_name": "status",
+    "label": "Expired",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "expired"
+  },
+  {
+    "field_name": "transfer_type",
+    "label": "Society Transfer",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "society"
+  },
+  {
+    "field_name": "transfer_type",
+    "label": "Member Transfer",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "member"
+  },
+  {
+    "field_name": "transfer_type",
+    "label": "Gift",
+    "table_name": "SSP_Subscription_Transfer",
+    "value": "gift"
+  }
+]

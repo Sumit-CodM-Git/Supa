@@ -1,0 +1,271 @@
+{
+  "result": "passed",
+  "checks": [
+    {
+      "case": "admin baseline",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"d4bbe8670e3bb43b\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "resident baseline",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"d4bbe8670e3bb43b\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "security baseline",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"d4bbe8670e3bb43b\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "scope SSP_Contact",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"6f69c1850b30d24f\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "scope SSP_Society_User",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"c1c6a59e5feb68cd\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "scope SSP_Tower",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"f2563385d0d50c70\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "scope SSP_Block",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"db41369eb01d8882\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "scope SSP_Flat_Type",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"5404f72c3062eeb7\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "admin settings consistency",
+      "endpoint": "get-society-settings",
+      "http_status": 200
+    },
+    {
+      "case": "unchanged ETag",
+      "endpoint": "get-picklists",
+      "http_status": 304
+    },
+    {
+      "case": "create temporary tower",
+      "endpoint": "crud-tower",
+      "http_status": 201
+    },
+    {
+      "case": "create temporary block",
+      "endpoint": "crud-block",
+      "http_status": 201
+    },
+    {
+      "case": "admin sees additions",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 7,
+        "blocks": 5,
+        "flatTypes": 6
+      },
+      "configurationVersion": "1a49bc69f2927c2f",
+      "etag": "W/\"85eacea375dbdc88\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "resident sees additions",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 7,
+        "blocks": 5,
+        "flatTypes": 6
+      },
+      "configurationVersion": "1a49bc69f2927c2f",
+      "etag": "W/\"85eacea375dbdc88\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "security sees additions",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 7,
+        "blocks": 5,
+        "flatTypes": 6
+      },
+      "configurationVersion": "1a49bc69f2927c2f",
+      "etag": "W/\"85eacea375dbdc88\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "rename temporary tower",
+      "endpoint": "crud-tower",
+      "http_status": 200
+    },
+    {
+      "case": "rename temporary block",
+      "endpoint": "crud-block",
+      "http_status": 200
+    },
+    {
+      "case": "resident sees renames",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 7,
+        "blocks": 5,
+        "flatTypes": 6
+      },
+      "configurationVersion": "3f6958d02ad756f4",
+      "etag": "W/\"f52c70728f3b00eb\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "security sees renames",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 7,
+        "blocks": 5,
+        "flatTypes": 6
+      },
+      "configurationVersion": "3f6958d02ad756f4",
+      "etag": "W/\"f52c70728f3b00eb\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "deactivate temporary block",
+      "endpoint": "crud-block",
+      "http_status": 200
+    },
+    {
+      "case": "deactivate temporary tower",
+      "endpoint": "crud-tower",
+      "http_status": 200
+    },
+    {
+      "case": "admin excludes inactive rows",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"d4bbe8670e3bb43b\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "resident excludes inactive rows",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"d4bbe8670e3bb43b\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "security excludes inactive rows",
+      "endpoint": "get-picklists",
+      "http_status": 200,
+      "counts": {
+        "towers": 6,
+        "blocks": 4,
+        "flatTypes": 6
+      },
+      "configurationVersion": "374c19a098696756",
+      "etag": "W/\"d4bbe8670e3bb43b\"",
+      "cache_control": "private, no-cache, must-revalidate"
+    },
+    {
+      "case": "cross-society requester rejected",
+      "endpoint": "get-picklists",
+      "http_status": 403
+    },
+    {
+      "case": "remove temporary blockId",
+      "endpoint": "crud-block",
+      "http_status": 200
+    },
+    {
+      "case": "remove temporary towerId",
+      "endpoint": "crud-tower",
+      "http_status": 200
+    }
+  ],
+  "cleanup": {
+    "configuration_records_removed": 2
+  }
+}

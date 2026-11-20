@@ -1,3 +1,9 @@
+import { resolveResidentFlatType, residentFlatTypeFields, ResidentFlatTypeError } from "../_shared/resident-flat-type.ts";
+import {
+  CONTACT_PHONE_DUPLICATE_MESSAGE,
+  contactPhoneAlreadyExists,
+  normalizeParkingSlot,
+} from "../_shared/contact.ts";
 /* import { requireAuth } from "../_shared/auth.ts";
 import {
   corsHeaders,
@@ -224,6 +230,7 @@ Deno.serve(
         .from("SSP_Society_User")
         .select("user_id, contact, society")
         .eq("user_id", targetId)
+        .is("deleted_at", null)
         .maybeSingle();
 
       if (fetchErr) {
@@ -460,7 +467,19 @@ const PGRST_MULTIPLE_ROWS = "PGRST116";
 interface UpdateMemberRequest {
   memberId: string;
   updatedData: {
+    flatTypeId?: string | null;
+    flatType?: string | null;
+    vendorName?: string;
+    vendorServiceType?: string;
+    vendorRating?: number | string;
+    vendorId?: string;
+    name?: string;
+    phoneNumber?: string;
+    serviceType?: string;
+    vehicleNumber?: string;
     fullName?: string;
+    parkingSlot?: string | null;
+    parking_slot?: string | null;
     phone?: string;
     email?: string;
     gender?: string;
@@ -823,6 +842,80 @@ Deno.serve(
         );
       }
 
+      const { data: memberRecord, error: fetchErr } = await supabaseAdmin
+        .from("SSP_Society_User")
+        .select("user_id, contact, society, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type)")
+        .eq("user_id", targetId)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+
+      // Vendors use non_society_user_id as memberId and have a separate schema.
+      // Resolve the record before applying society-member-only validation.
+      if (!memberRecord) {
+        const { data: vendor, error: vendorErr } = await supabaseAdmin
+          .from("SSP_Non_Society_User")
+          .select("non_society_user_id, society")
+          .eq("non_society_user_id", targetId)
+          .ilike("role", "vendor")
+          .maybeSingle();
+        if (vendorErr) throw vendorErr;
+        if (!vendor) {
+          return buildUpdateErrorResponse("NOT_FOUND", "Member record not found.", 404, startTime);
+        }
+        if (!vendor.society) {
+          return buildUpdateErrorResponse("INVALID_STATE", "Vendor record is missing society context — cannot update.", 400, startTime);
+        }
+
+        if (updatedData.role !== undefined) {
+          const roles = Array.isArray(updatedData.role) ? updatedData.role : [updatedData.role];
+          if (roles.length !== 1 || String(roles[0]).trim().toLowerCase() !== "vendor") {
+            throw new ValidationError("Vendor role must remain vendor.", "role");
+          }
+        }
+
+        const vendorPayload: Record<string, unknown> = {};
+        const vendorFields: [string, string][] = [
+          ["fullName", "name"], ["name", "name"], ["vendorName", "name"],
+          ["phone", "phone_number"], ["phoneNumber", "phone_number"],
+          ["email", "email"], ["gender", "gender"],
+          ["idProofType", "id_proof_type"], ["idProofNumber", "id_proof_number"],
+          ["vehicleType", "vehicle_type"],
+          ["vehicleRegistrationNumber", "vehicle_number"], ["vehicleNumber", "vehicle_number"],
+          ["serviceType", "service_type"], ["vendorServiceType", "service_type"],
+          ["vendorId", "vendor_id"],
+        ];
+        for (const [field, column] of vendorFields) {
+          const value = (updatedData as Record<string, unknown>)[field];
+          if (value !== undefined) vendorPayload[column] = coerceOptional(value);
+        }
+        if (updatedData.vendorRating !== undefined) {
+          const value = coerceOptional(updatedData.vendorRating);
+          const rating = value === null ? null : Number(value);
+          if (rating !== null && (!Number.isFinite(rating) || rating < 0 || rating > 5)) {
+            throw new ValidationError("vendorRating must be between 0 and 5.", "vendorRating");
+          }
+          vendorPayload.vendor_rating = rating;
+        }
+        if (Object.keys(vendorPayload).length === 0) {
+          throw new ValidationError("No supported vendor fields provided.", "updatedData");
+        }
+        const { data: savedVendor, error: updateErr } = await supabaseAdmin
+          .from("SSP_Non_Society_User")
+          .update(vendorPayload)
+          .eq("non_society_user_id", targetId)
+          .eq("society", vendor.society)
+          .ilike("role", "vendor")
+          .select("non_society_user_id")
+          .maybeSingle();
+        if (updateErr) throw updateErr;
+        if (!savedVendor) {
+          return buildUpdateErrorResponse("NOT_FOUND", "Vendor record not found.", 404, startTime);
+        }
+        return successResponse({
+          updatedMember: { memberId: targetId, updatedData, status: "Successfully Updated" },
+        });
+      }
+
       // ── 2. Auto-correct swapped userType / userOwnershipType ──
       const swapResult = autoFixSwappedTypes(
         updatedData.userType,
@@ -833,8 +926,21 @@ Deno.serve(
         updatedData.userOwnershipType = String(swapResult.ownershipType);
       }
 
+      let requestedParkingSlot: string | null | undefined;
+      let savedParkingSlot: string | null | undefined;
+
       // ── 3. Early validation of enum-like fields (fail fast, no DB hit) ──
       try {
+        try {
+          requestedParkingSlot = normalizeParkingSlot(
+            updatedData.parkingSlot !== undefined ? updatedData.parkingSlot : updatedData.parking_slot,
+          );
+        } catch {
+          throw new ValidationError("parkingSlot must be text or null.", "parkingSlot");
+        }
+        if (requestedParkingSlot !== undefined && !memberRecord.contact) {
+          throw new ValidationError("Member has no linked contact to save parkingSlot.", "parkingSlot");
+        }
         if (updatedData.userType !== undefined) {
           normalizeEnum(updatedData.userType, ALLOWED_USER_TYPES, "userType");
         }
@@ -882,36 +988,6 @@ Deno.serve(
         throw err;
       }
 
-      // ── 4. Fetch existing member ──
-      const { data: memberRecord, error: fetchErr } = await supabaseAdmin
-        .from("SSP_Society_User")
-        .select("user_id, contact, society")
-        .eq("user_id", targetId)
-        .maybeSingle();
-
-      if (fetchErr) {
-        const mapped = mapPgError(fetchErr);
-        if (mapped) {
-          return buildUpdateErrorResponse(
-            mapped.code,
-            mapped.message,
-            mapped.status,
-            startTime,
-            mapped.field,
-          );
-        }
-        throw fetchErr;
-      }
-
-      if (!memberRecord) {
-        return buildUpdateErrorResponse(
-          "NOT_FOUND",
-          "Member record not found.",
-          404,
-          startTime,
-        );
-      }
-
       if (!memberRecord.society) {
         return buildUpdateErrorResponse(
           "INVALID_STATE",
@@ -922,6 +998,27 @@ Deno.serve(
       }
 
       const societyId = memberRecord.society as string;
+
+      const requestedPhone = updatedData.phone == null
+        ? ""
+        : String(updatedData.phone).trim();
+      if (
+        requestedPhone &&
+        memberRecord.contact &&
+        await contactPhoneAlreadyExists(
+          supabaseAdmin,
+          societyId,
+          requestedPhone,
+          memberRecord.contact,
+        )
+      ) {
+        return buildUpdateErrorResponse(
+          "DUPLICATE_CONTACT_PHONE",
+          CONTACT_PHONE_DUPLICATE_MESSAGE,
+          400,
+          startTime,
+        );
+      }
 
       // ── 5. Build society user update payload ──
       const societyUserUpdatePayload: Record<string, unknown> = {};
@@ -969,6 +1066,9 @@ Deno.serve(
           throw err;
         }
       }
+
+      const resolvedFlatType = await resolveResidentFlatType(supabaseAdmin, societyId, updatedData);
+      if (resolvedFlatType) societyUserUpdatePayload.flat_type_id = resolvedFlatType.flatTypeId;
 
       // String fields — coerceOptional preserves 0/false, turns "" → null
       const stringFieldMappings: [keyof UpdateMemberRequest["updatedData"], string][] = [
@@ -1063,6 +1163,7 @@ Deno.serve(
       let finalName = "";
       if (memberRecord.contact) {
         const contactUpdatePayload: Record<string, unknown> = {};
+        if (requestedParkingSlot !== undefined) contactUpdatePayload.parking_slot = requestedParkingSlot;
 
         const contactFieldMappings: [keyof UpdateMemberRequest["updatedData"], string][] = [
           ["fullName", "name"],
@@ -1089,7 +1190,7 @@ Deno.serve(
             .from("SSP_Contact")
             .update(contactUpdatePayload)
             .eq("contact_id", memberRecord.contact)
-            .select("name, email, phone")
+            .select("name, email, phone, parking_slot")
             .single();
 
           if (contactUpdateErr) {
@@ -1106,6 +1207,10 @@ Deno.serve(
             throw contactUpdateErr;
           }
           
+          if (!updatedContact) throw new Error("Contact update returned no saved record.");
+          if (requestedParkingSlot !== undefined) {
+            savedParkingSlot = updatedContact.parking_slot ?? null;
+          }
           if (updatedContact) {
             finalEmail = updatedContact.email || `${updatedContact.phone}@temp.user`;
             finalName = updatedContact.name || "User";
@@ -1151,11 +1256,18 @@ Deno.serve(
       return successResponse({
         updatedMember: {
           memberId: targetId,
-          updatedData,
+          updatedData: {
+            ...updatedData,
+            ...(resolvedFlatType ?? residentFlatTypeFields(memberRecord)),
+            ...(savedParkingSlot !== undefined ? { parkingSlot: savedParkingSlot } : {}),
+            ...(updatedData.parking_slot !== undefined && savedParkingSlot !== undefined
+              ? { parking_slot: savedParkingSlot } : {}),
+          },
           status: "Successfully Updated",
         },
       });
     } catch (error: any) {
+      if (error instanceof ResidentFlatTypeError) return errorResponse(error.message, 400);
       // Structured Postgres errors → 4xx
       const mapped = mapPgError(error);
       if (mapped) {

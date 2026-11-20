@@ -1,0 +1,139 @@
+{
+  "reviewDate": "2026-11-11",
+  "sourceFunctionsReviewed": 94,
+  "deployedFunctions": 94,
+  "documentedCurrentFunctions": 94,
+  "sheetRowsUpdated": [
+    25,
+    58,
+    29
+  ],
+  "legacyRoutesReplaced": [
+    {
+      "sheet": 2,
+      "row": 11,
+      "old": "create-notice",
+      "current": "crud-notice",
+      "action": "CREATE"
+    },
+    {
+      "sheet": 2,
+      "row": 12,
+      "old": "get-notices",
+      "current": "crud-notice",
+      "action": "VIEW"
+    },
+    {
+      "sheet": 2,
+      "row": 13,
+      "old": "update-notice",
+      "current": "crud-notice",
+      "action": "UPDATE"
+    },
+    {
+      "sheet": 2,
+      "row": 14,
+      "old": "delete-notice",
+      "current": "crud-notice",
+      "action": "DELETE"
+    },
+    {
+      "sheet": 2,
+      "row": 22,
+      "old": "get-servants",
+      "current": "crud-servant",
+      "action": "VIEW"
+    },
+    {
+      "sheet": 2,
+      "row": 23,
+      "old": "add-servant",
+      "current": "crud-servant",
+      "action": "CREATE"
+    },
+    {
+      "sheet": 2,
+      "row": 24,
+      "old": "update-servant",
+      "current": "crud-servant",
+      "action": "UPDATE"
+    },
+    {
+      "sheet": 2,
+      "row": 25,
+      "old": "delete-servant",
+      "current": "crud-servant",
+      "action": "DELETE"
+    },
+    {
+      "sheet": 2,
+      "row": 31,
+      "old": "create-pre-approved-visitor",
+      "current": "crud-pre-approved-visitor",
+      "action": "CREATE"
+    },
+    {
+      "sheet": 2,
+      "row": 32,
+      "old": "delete-pre-approved-visitor",
+      "current": "crud-pre-approved-visitor",
+      "action": "DELETE"
+    },
+    {
+      "sheet": 2,
+      "row": 33,
+      "old": "get-pre-approved-visitors",
+      "current": "crud-pre-approved-visitor",
+      "action": "VIEW"
+    },
+    {
+      "sheet": 2,
+      "row": 35,
+      "old": "update-pre-approved-visitor",
+      "current": "crud-pre-approved-visitor",
+      "action": "UPDATE"
+    },
+    {
+      "sheet": 2,
+      "row": 52,
+      "old": "family-manager",
+      "current": "crud-family",
+      "action": null
+    },
+    {
+      "sheet": 2,
+      "row": 53,
+      "old": "family-view",
+      "current": "crud-family",
+      "action": "VIEW"
+    },
+    {
+      "sheet": 3,
+      "row": 27,
+      "old": "download-receipt",
+      "current": "generate-payment-receipt",
+      "action": null
+    }
+  ],
+  "newFunctionsAdded": [
+    "renew-subscription",
+    "search-contacts",
+    "send-notification",
+    "upgrade-subscription",
+    "verify-payment"
+  ],
+  "modifiedPackageParts": [
+    "xl/worksheets/sheet1.xml",
+    "xl/worksheets/sheet2.xml",
+    "xl/worksheets/sheet3.xml"
+  ],
+  "untouchedPartsVerified": 26,
+  "otherSheetsUnchanged": true,
+  "output": "Society Sync Pro 2.0 - APIs - Updated.xlsx",
+  "originalPreserved": true,
+  "notes": [
+    "Contracts derived from current local sources and deployed inventory; audit does not assert live request/response execution.",
+    "API IDs and recorded developer ownership retained; missing ownership marked Not recorded.",
+    "Runtime source expressions in response templates are explicitly labeled; placeholders are not real secrets or live samples."
+  ]
+}

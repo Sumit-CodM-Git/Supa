@@ -1,0 +1,884 @@
+[
+  {
+    "endpoint": "crud-tower",
+    "case": "default",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {}
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "towers": [
+          {
+            "towerId": "6e0afa61-6e67-48c5-856e-b0f9b5a6cf94",
+            "name": "Manglams",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 26,
+            "flatsPerFloor": 9,
+            "totalFlats": 234,
+            "createdAt": "2026-06-11T05:35:35.811559+00:00"
+          },
+          {
+            "towerId": "66047a4f-134e-48de-a410-bc67f960a03c",
+            "name": "Shubham",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 5,
+            "flatsPerFloor": 9,
+            "totalFlats": 45,
+            "createdAt": "2026-06-11T05:20:43.323395+00:00"
+          },
+          {
+            "towerId": "ff8cf2f2-7920-40c3-96af-08b2ac4afbbd",
+            "name": "Saubhagaya",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 23,
+            "flatsPerFloor": 4,
+            "totalFlats": 92,
+            "createdAt": "2026-06-11T05:19:54.113745+00:00"
+          },
+          {
+            "towerId": "af11cc32-3dfc-4122-a821-5a8b28af7d67",
+            "name": "Vaibhavs",
+            "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "active": true,
+            "floors": 15,
+            "flatsPerFloor": 8,
+            "totalFlats": 120,
+            "createdAt": "2026-06-11T05:08:38.097821+00:00"
+          },
+          {
+            "towerId": "8c1889b7-d311-4535-b7c2-73ad8dceb3c1",
+            "name": "Ashwairyam",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 22,
+            "flatsPerFloor": 6,
+            "totalFlats": 132,
+            "createdAt": "2026-05-04T09:55:56+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 5,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "block": null,
+          "active": null
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-tower",
+    "case": "all",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": "all"
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "towers": [
+          {
+            "towerId": "6e0afa61-6e67-48c5-856e-b0f9b5a6cf94",
+            "name": "Manglams",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 26,
+            "flatsPerFloor": 9,
+            "totalFlats": 234,
+            "createdAt": "2026-06-11T05:35:35.811559+00:00"
+          },
+          {
+            "towerId": "66047a4f-134e-48de-a410-bc67f960a03c",
+            "name": "Shubham",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 5,
+            "flatsPerFloor": 9,
+            "totalFlats": 45,
+            "createdAt": "2026-06-11T05:20:43.323395+00:00"
+          },
+          {
+            "towerId": "ff8cf2f2-7920-40c3-96af-08b2ac4afbbd",
+            "name": "Saubhagaya",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 23,
+            "flatsPerFloor": 4,
+            "totalFlats": 92,
+            "createdAt": "2026-06-11T05:19:54.113745+00:00"
+          },
+          {
+            "towerId": "af11cc32-3dfc-4122-a821-5a8b28af7d67",
+            "name": "Vaibhavs",
+            "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "active": true,
+            "floors": 15,
+            "flatsPerFloor": 8,
+            "totalFlats": 120,
+            "createdAt": "2026-06-11T05:08:38.097821+00:00"
+          },
+          {
+            "towerId": "8c1889b7-d311-4535-b7c2-73ad8dceb3c1",
+            "name": "Ashwairyam",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 22,
+            "flatsPerFloor": 6,
+            "totalFlats": 132,
+            "createdAt": "2026-05-04T09:55:56+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 5,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "block": null,
+          "active": null
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-tower",
+    "case": "boolean true",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": true
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "towers": [
+          {
+            "towerId": "6e0afa61-6e67-48c5-856e-b0f9b5a6cf94",
+            "name": "Manglams",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 26,
+            "flatsPerFloor": 9,
+            "totalFlats": 234,
+            "createdAt": "2026-06-11T05:35:35.811559+00:00"
+          },
+          {
+            "towerId": "66047a4f-134e-48de-a410-bc67f960a03c",
+            "name": "Shubham",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 5,
+            "flatsPerFloor": 9,
+            "totalFlats": 45,
+            "createdAt": "2026-06-11T05:20:43.323395+00:00"
+          },
+          {
+            "towerId": "ff8cf2f2-7920-40c3-96af-08b2ac4afbbd",
+            "name": "Saubhagaya",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 23,
+            "flatsPerFloor": 4,
+            "totalFlats": 92,
+            "createdAt": "2026-06-11T05:19:54.113745+00:00"
+          },
+          {
+            "towerId": "af11cc32-3dfc-4122-a821-5a8b28af7d67",
+            "name": "Vaibhavs",
+            "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "active": true,
+            "floors": 15,
+            "flatsPerFloor": 8,
+            "totalFlats": 120,
+            "createdAt": "2026-06-11T05:08:38.097821+00:00"
+          },
+          {
+            "towerId": "8c1889b7-d311-4535-b7c2-73ad8dceb3c1",
+            "name": "Ashwairyam",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 22,
+            "flatsPerFloor": 6,
+            "totalFlats": 132,
+            "createdAt": "2026-05-04T09:55:56+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 5,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "block": null,
+          "active": true
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-tower",
+    "case": "boolean false",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": false
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "towers": [],
+        "pagination": {
+          "total": 0,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "block": null,
+          "active": false
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-tower",
+    "case": "string active",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": "active"
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "towers": [
+          {
+            "towerId": "6e0afa61-6e67-48c5-856e-b0f9b5a6cf94",
+            "name": "Manglams",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 26,
+            "flatsPerFloor": 9,
+            "totalFlats": 234,
+            "createdAt": "2026-06-11T05:35:35.811559+00:00"
+          },
+          {
+            "towerId": "66047a4f-134e-48de-a410-bc67f960a03c",
+            "name": "Shubham",
+            "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "active": true,
+            "floors": 5,
+            "flatsPerFloor": 9,
+            "totalFlats": 45,
+            "createdAt": "2026-06-11T05:20:43.323395+00:00"
+          },
+          {
+            "towerId": "ff8cf2f2-7920-40c3-96af-08b2ac4afbbd",
+            "name": "Saubhagaya",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 23,
+            "flatsPerFloor": 4,
+            "totalFlats": 92,
+            "createdAt": "2026-06-11T05:19:54.113745+00:00"
+          },
+          {
+            "towerId": "af11cc32-3dfc-4122-a821-5a8b28af7d67",
+            "name": "Vaibhavs",
+            "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "active": true,
+            "floors": 15,
+            "flatsPerFloor": 8,
+            "totalFlats": 120,
+            "createdAt": "2026-06-11T05:08:38.097821+00:00"
+          },
+          {
+            "towerId": "8c1889b7-d311-4535-b7c2-73ad8dceb3c1",
+            "name": "Ashwairyam",
+            "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "active": true,
+            "floors": 22,
+            "flatsPerFloor": 6,
+            "totalFlats": 132,
+            "createdAt": "2026-05-04T09:55:56+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 5,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "block": null,
+          "active": true
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-tower",
+    "case": "string inactive",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": "inactive"
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "towers": [],
+        "pagination": {
+          "total": 0,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 0,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "block": null,
+          "active": false
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-block",
+    "case": "default",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {}
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "blocks": [
+          {
+            "blockId": "dd774d34-a673-4328-9ed8-72c73eee6757",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:04:07.932724+00:00"
+          },
+          {
+            "blockId": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:01:23.656977+00:00"
+          },
+          {
+            "blockId": "0ea7bc70-4b8b-41c8-be85-ecda4bed9e88",
+            "blockName": "block a",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T08:49:44.136026+00:00"
+          },
+          {
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockName": "Zeta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-07-20T05:29:25.880806+00:00"
+          },
+          {
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockName": "Delta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-06-10T15:43:34+00:00"
+          },
+          {
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockName": "Gaama",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-05-04T12:25:19+00:00"
+          },
+          {
+            "blockId": "63dcfde8-8c75-4ab4-9ec9-571f3d575a87",
+            "blockName": "Beeta",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-05-04T12:24:51+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 7,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "tower": null,
+          "active": null
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-block",
+    "case": "all",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": "all"
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "blocks": [
+          {
+            "blockId": "dd774d34-a673-4328-9ed8-72c73eee6757",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:04:07.932724+00:00"
+          },
+          {
+            "blockId": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:01:23.656977+00:00"
+          },
+          {
+            "blockId": "0ea7bc70-4b8b-41c8-be85-ecda4bed9e88",
+            "blockName": "block a",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T08:49:44.136026+00:00"
+          },
+          {
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockName": "Zeta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-07-20T05:29:25.880806+00:00"
+          },
+          {
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockName": "Delta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-06-10T15:43:34+00:00"
+          },
+          {
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockName": "Gaama",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-05-04T12:25:19+00:00"
+          },
+          {
+            "blockId": "63dcfde8-8c75-4ab4-9ec9-571f3d575a87",
+            "blockName": "Beeta",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-05-04T12:24:51+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 7,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "tower": null,
+          "active": null
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-block",
+    "case": "boolean true",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": true
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "blocks": [
+          {
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockName": "Zeta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-07-20T05:29:25.880806+00:00"
+          },
+          {
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockName": "Delta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-06-10T15:43:34+00:00"
+          },
+          {
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockName": "Gaama",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-05-04T12:25:19+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 3,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "tower": null,
+          "active": true
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-block",
+    "case": "boolean false",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": false
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "blocks": [
+          {
+            "blockId": "dd774d34-a673-4328-9ed8-72c73eee6757",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:04:07.932724+00:00"
+          },
+          {
+            "blockId": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:01:23.656977+00:00"
+          },
+          {
+            "blockId": "0ea7bc70-4b8b-41c8-be85-ecda4bed9e88",
+            "blockName": "block a",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T08:49:44.136026+00:00"
+          },
+          {
+            "blockId": "63dcfde8-8c75-4ab4-9ec9-571f3d575a87",
+            "blockName": "Beeta",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-05-04T12:24:51+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 4,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "tower": null,
+          "active": false
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-block",
+    "case": "string active",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": "active"
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "blocks": [
+          {
+            "blockId": "42591087-70c8-41a6-81da-0dbdfec725a5",
+            "blockName": "Zeta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-07-20T05:29:25.880806+00:00"
+          },
+          {
+            "blockId": "41719c49-9450-414f-90bb-ea53effd21dc",
+            "blockName": "Delta",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-06-10T15:43:34+00:00"
+          },
+          {
+            "blockId": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+            "blockName": "Gaama",
+            "tower": null,
+            "towerId": null,
+            "active": true,
+            "createdAt": "2026-05-04T12:25:19+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 3,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "tower": null,
+          "active": true
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "crud-block",
+    "case": "string inactive",
+    "request": {
+      "action": "VIEW",
+      "societyRegistrationNumber": "GZB-1234-ab",
+      "adminId": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "limit": 100,
+      "filters": {
+        "active": "inactive"
+      }
+    },
+    "response": {
+      "status": "SUCCESS",
+      "data": {
+        "blocks": [
+          {
+            "blockId": "dd774d34-a673-4328-9ed8-72c73eee6757",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:04:07.932724+00:00"
+          },
+          {
+            "blockId": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+            "blockName": "Alpha",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T11:01:23.656977+00:00"
+          },
+          {
+            "blockId": "0ea7bc70-4b8b-41c8-be85-ecda4bed9e88",
+            "blockName": "block a",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-11-10T08:49:44.136026+00:00"
+          },
+          {
+            "blockId": "63dcfde8-8c75-4ab4-9ec9-571f3d575a87",
+            "blockName": "Beeta",
+            "tower": null,
+            "towerId": null,
+            "active": false,
+            "createdAt": "2026-05-04T12:24:51+00:00"
+          }
+        ],
+        "pagination": {
+          "total": 4,
+          "page": 1,
+          "limit": 100,
+          "totalPages": 1,
+          "hasNextPage": false,
+          "hasPrevPage": false
+        },
+        "filters": {
+          "tower": null,
+          "active": false
+        },
+        "search": null,
+        "sort": {
+          "field": "created_at",
+          "order": "desc"
+        }
+      }
+    }
+  }
+]

@@ -1,3 +1,5 @@
+import { residentFlatTypeFields } from "../_shared/resident-flat-type.ts";
+import { contactParkingSlot } from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -189,6 +191,8 @@ interface TowerRecord {
 }
 
 interface ResidentProfileRecord {
+  flat_type_id?: string | null;
+  flatTypeRecord?: {flat_type?: string | null} | {flat_type?: string | null}[] | null;
   user_id?: string | null;
   role?: string[] | string | null;
   user_type?: string | null;
@@ -226,6 +230,7 @@ function buildProfile(record: ResidentProfileRecord, society: SocietyContext) {
   return {
     userId: record.user_id ?? "NA",
     personalInformation: {
+      parkingSlot: contactParkingSlot(rawContact),
       Name: String(rawContact?.name ?? "NA"),
       gender: String(rawContact?.gender ?? "NA"),
       occupation: String(rawContact?.occupation ?? "NA"),
@@ -235,6 +240,7 @@ function buildProfile(record: ResidentProfileRecord, society: SocietyContext) {
       vehicleRegistrationNumber: String(rawContact?.vehicle_registration_number ?? "NA"),
     },
     contactInformation: {
+      parkingSlot: contactParkingSlot(rawContact),
       contactID: String(rawContact?.contact_id ?? "NA"),
       email: String(rawContact?.email ?? "NA"),
       phone: String(rawContact?.phone ?? "NA"),
@@ -243,6 +249,7 @@ function buildProfile(record: ResidentProfileRecord, society: SocietyContext) {
     },
     residentialInformation: {
       society: derivedSocietyName,
+      ...residentFlatTypeFields(record),
       flatNumber: record.unit_flat_number ?? "NA",
       block: String(rawBlock?.block_name ?? "NA"),
       tower: String(rawTower?.name ?? "NA"),
@@ -346,8 +353,8 @@ Deno.serve(async (req: Request) => {
     let userQuery = supabase
       .from("SSP_Society_User")
       .select(`
-        user_id, unit_flat_number, status, move_in_date, move_out_date, user_ownership_type, user_type, role,
-        contact:SSP_Contact!inner(
+        user_id, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), status, move_in_date, move_out_date, user_ownership_type, user_type, role,
+        contact:SSP_Contact!inner(parking_slot,
           contact_id, name, phone, email, whatsapp_phone, gender, emergency_phone,
           occupation, vehicle_type, vehicle_registration_number, id_proof_type, id_proof_number
         ),

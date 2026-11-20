@@ -1,3 +1,5 @@
+import { parkingCounts } from "../_shared/parking-counts.ts";
+import { contactParkingSlot } from "../_shared/contact.ts";
 // import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // const corsHeaders = {
@@ -21,7 +23,6 @@
 //   society_id: string;
 //   society_name: string | null;
 //   registration_number: string | null;
-//   subscription_plan: string | null;
 //   address_line1: string | null;
 //   city: string | null;
 //   total_unit: number | null;
@@ -237,7 +238,7 @@
 //           user_id, role, user_type, user_ownership_type, status, move_in_date, unit_flat_number, created_at,
 //           agent_availability_status, service_agent_services,
 //           contact:contact ( contact_id, name, phone, vehicle_type ),
-//           society:society ( society_id, society_name, registration_number, subscription_plan, address_line1, city, total_unit, parking_slot ),
+//           society:society ( society_id, society_name, registration_number, address_line1, city, total_unit, parking_slot ),
 //           tower:tower (*), block:block (*)
 //         `)
 //         .eq("society", societyId)
@@ -381,7 +382,6 @@
 //       societyDetail = {
 //         name: societyRecord.society_name || "Unnamed Society",
 //         address: [societyRecord.address_line1, societyRecord.city].filter(Boolean).join(", "),
-//         subscriptionPlan: societyRecord.subscription_plan || null,
 //         totalFlats: totalUnits,
 //         occupiedFlats,
 //         vacantFlats: Math.max(0, totalUnits - occupiedFlats),
@@ -395,7 +395,6 @@
 //       societyDetail = {
 //         name: societyRecord.society_name || "Unnamed Society",
 //         address: [societyRecord.address_line1, societyRecord.city].filter(Boolean).join(", "),
-//         subscriptionPlan: societyRecord.subscription_plan || null,
 //         totalFlats: null, occupiedFlats: null, vacantFlats: null, owners: null, tenants: null, twoWheelers: null, fourWheelers: null, vacantParkingSlots: null,
 //       };
 //     }
@@ -479,11 +478,11 @@ interface SocietyInfo {
   society_id: string;
   society_name: string | null;
   registration_number: string | null;
-  subscription_plan: string | null;
   address_line1: string | null;
   city: string | null;
   total_unit: number | null;
   parking_slot: string | number | null;
+  covered_parking: number | null;
 }
 
 interface SocietyUserRecord {
@@ -625,6 +624,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       return buildErrorResponse("UNAUTHORIZED", "Authentication token is invalid or expired.", 401);
     }
 
+    // Auth identity and society-user identity are separate records.
+    // getUser verifies the token; only then trust its server-managed metadata.
+    const callerUserId = String(authUser.user_metadata?.user_id ?? authUser.id).trim();
+
     // =========================================================
     // 2. INPUT VALIDATION
     // =========================================================
@@ -669,11 +672,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .maybeSingle(),
       supabase
         .from("SSP_Society_User")
-        .select(`user_id, contact:contact(phone)`)
-        .eq("user_id", authUser.id)
+        .select(`user_id, contact:contact(parking_slot, phone)`)
+        .eq("user_id", callerUserId)
+        .is("deleted_at", null)
         .maybeSingle(),
     ]);
 
+    if (callerRes.error) throw new Error("Failed to load the authenticated member profile.");
     const societyRecord = societyRes.data;
     if (societyRes.error || !societyRecord) {
       return buildErrorResponse("NOT_FOUND", "Society not found.", 404);
@@ -690,14 +695,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // 4. AUTHORIZATION
     // =========================================================
     if (callerPhone !== inputPhone) {
-      const { data: vendorRows } = await supabase
+      const { data: vendorRow, error: vendorError } = await supabase
         .from("SSP_Non_Society_User")
         .select("non_society_user_id, phone_number")
-        .eq("society", societyId);
-      const vendorRow = (vendorRows ?? []).find(
-        (v: any) => phoneDigits(v.phone_number) === inputPhone
-      );
-      if (!vendorRow) {
+        .eq("non_society_user_id", callerUserId)
+        .eq("society", societyId)
+        .maybeSingle();
+      if (vendorError) throw new Error("Failed to load the authenticated vendor profile.");
+      if (!vendorRow || phoneDigits(vendorRow.phone_number) !== inputPhone) {
         return buildErrorResponse(
           "FORBIDDEN",
           "You can only access your own profile.",
@@ -719,7 +724,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           user_id, role, user_type, user_ownership_type, status,
           move_in_date, unit_flat_number, created_at,
           agent_availability_status, service_agent_services,
-          contact:contact (
+          contact:contact (parking_slot,
             contact_id, name, phone, gender,
             id_proof_type, id_proof_number,
             email, occupation, whatsapp_phone, emergency_phone,
@@ -727,12 +732,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
           ),
           society:society (
             society_id, society_name, registration_number,
-            subscription_plan, address_line1, city, total_unit, parking_slot
+            address_line1, city, total_unit, parking_slot, covered_parking
           ),
           tower:tower (*), block:block (*)
         `
         )
-        .eq("society", societyId),
+        .eq("society", societyId)
+        .is("deleted_at", null),
       supabase
         .from("SSP_Non_Society_User")
         .select(
@@ -744,6 +750,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .eq("society", societyId),
     ]);
 
+    if (userRes.error || nsRes.error) throw new Error("Failed to load the available role profiles.");
     const userRecords = userRes.data;
     const nonSocietyRecords = nsRes.data;
 
@@ -859,6 +866,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       ]);
 
       userDetail = {
+        parkingSlot: contactParkingSlot(matchedSocietyUser.contact),
         societyUserID: matchedSocietyUser.user_id,
         nonSocietyUserID: linkedNonSocietyUserId,
         vendorID: null,
@@ -972,7 +980,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (isAdmin) {
       const { data: allSocietyUsers } = await supabase
         .from("SSP_Society_User")
-        .select("user_type, contact:contact(vehicle_type)")
+        .select("user_type, contact:contact(parking_slot, vehicle_type)")
         .eq("society", societyId);
 
       let ownersCount = 0,
@@ -991,7 +999,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       });
 
       const totalUnits = Number(societyRecord.total_unit) || 0;
-      const totalParking = Number(societyRecord.parking_slot) || 0;
+      const parking = parkingCounts(societyRecord);
       const occupiedFlats = ownersCount + tenantsCount;
 
       societyDetail = {
@@ -999,7 +1007,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
         address: [societyRecord.address_line1, societyRecord.city]
           .filter(Boolean)
           .join(", "),
-        subscriptionPlan: societyRecord.subscription_plan || null,
         totalFlats: totalUnits,
         occupiedFlats,
         vacantFlats: Math.max(0, totalUnits - occupiedFlats),
@@ -1007,10 +1014,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         tenants: tenantsCount,
         twoWheelers,
         fourWheelers,
-        vacantParkingSlots: Math.max(
-          0,
-          totalParking - (twoWheelers + fourWheelers)
-        ),
+        vacantParkingSlots: parking.vacantParking,
       };
     } else {
       societyDetail = {
@@ -1018,7 +1022,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
         address: [societyRecord.address_line1, societyRecord.city]
           .filter(Boolean)
           .join(", "),
-        subscriptionPlan: societyRecord.subscription_plan || null,
         totalFlats: null,
         occupiedFlats: null,
         vacantFlats: null,
@@ -1056,6 +1059,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
       if (agentRecord?.contact) {
         serviceAgent = {
+          parkingSlot: contactParkingSlot(agentRecord.contact),
           agentId: agentRecord.user_id,
           name: agentRecord.contact.name,
           contactId: agentRecord.contact.contact_id,

@@ -1,3 +1,6 @@
+import { resolveComplaintAssignee } from "../_shared/staff.ts";
+import { runComplaintOtpCycle } from "../_shared/complaint-otp-cycle.ts";
+import { contactParkingSlot } from "../_shared/contact.ts";
 // deno-lint-ignore-file no-import-prefix no-explicit-any
 // ============================================
 // staff-complaint-workflow
@@ -24,6 +27,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 // ============================================
 
 type ActionType =
+    | "FETCH_OTP"
     | "UPLOAD_IMAGE"
     | "FETCH_IMAGE"
     | "DELETE_IMAGE"
@@ -51,9 +55,11 @@ interface StaffComplaintWorkflowRequest {
     isUploaded?: boolean | string;
     documentId?: string;
     otp?: string;
+    stage?: "START" | "END";
 }
 
 interface StaffContext {
+  parkingSlot?: string | null;
     authUserId: string;
     staffId: string;
     staffType: StaffType;
@@ -95,6 +101,7 @@ const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_TTL_MINUTES = 10;
 
 const VALID_ACTIONS: ActionType[] = [
+    "FETCH_OTP",
     "UPLOAD_IMAGE",
     "FETCH_IMAGE",
     "DELETE_IMAGE",
@@ -147,19 +154,11 @@ function getISTISOString(): string {
     }:${map.get("minute")}:${map.get("second")}+05:30`;
 }
 
-/**
- * Generate a 6-digit date-based OTP (DDMMYY in IST).
- * Example: 2026-09-29 → "290926"
- */
-function generateDateOtp(): string {
-    const now = new Date();
-    const ist = new Date(
-        now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
-    );
-    const dd = String(ist.getDate()).padStart(2, "0");
-    const mm = String(ist.getMonth() + 1).padStart(2, "0");
-    const yy = String(ist.getFullYear()).slice(-2);
-    return `${dd}${mm}${yy}`;
+/** Temporary OTP convention: current date as DDMMYY in India time. */
+function generateOtp(): string {
+    const parts = IST_ISO_FORMATTER.formatToParts(new Date());
+    const date = new Map(parts.map((part) => [part.type, part.value]));
+    return `${date.get("day")}${date.get("month")}${date.get("year")!.slice(-2)}`;
 }
 
 function extractStorageKey(fullUrl: string | null): string | null {
@@ -227,15 +226,16 @@ function buildError(
 // AUTH — resolve staff context
 // ============================================
 
-async function getStaffContext(
+async function getDirectStaffContext(
     authUserId: string,
+    preferredType?: StaffType,
 ): Promise<ContextSuccess | ContextFailure> {
     // ─── Try as service_agent ───
     const { data: agentRow, error: agentErr } = await supabaseAdmin
         .from("SSP_Society_User")
         .select(`
             user_id, society, role, deleted_at,
-            contact:SSP_Contact!contact ( name, phone ),
+            contact:SSP_Contact!contact (parking_slot, name, phone ),
             society_data:SSP_Society!society ( registration_number )
         `)
         .eq("user_id", authUserId)
@@ -250,10 +250,10 @@ async function getStaffContext(
         };
     }
 
-    if (agentRow && !agentRow.deleted_at) {
+    if (agentRow && !agentRow.deleted_at && preferredType !== "VENDOR") {
         const roles = Array.isArray(agentRow.role)
             ? (agentRow.role as string[])
-            : [];
+            : (agentRow.role ? [String(agentRow.role)] : []);
         const normalized = roles.map((r) =>
             r.toLowerCase().replace(/[\s-]+/g, "_")
         );
@@ -274,6 +274,7 @@ async function getStaffContext(
             return {
                 ok: true,
                 ctx: {
+                    parkingSlot: contactParkingSlot(contact),
                     authUserId,
                     staffId: String(agentRow.user_id),
                     staffType: "SERVICE_AGENT",
@@ -291,7 +292,7 @@ async function getStaffContext(
     const { data: vendorRow, error: vendorErr } = await supabaseAdmin
         .from("SSP_Non_Society_User")
         .select(`
-            non_society_user_id, society, role, name, phone_number,
+            non_society_user_id, society, role, name, phone_number, deleted_at,
             society_data:SSP_Society!society ( registration_number )
         `)
         .eq("non_society_user_id", authUserId)
@@ -306,7 +307,7 @@ async function getStaffContext(
         };
     }
 
-    if (vendorRow && (vendorRow.role ?? "").toLowerCase() === "vendor") {
+    if (vendorRow && !vendorRow.deleted_at && (vendorRow.role ?? "").trim().toLowerCase() === "vendor") {
         const societyRel = Array.isArray(vendorRow.society_data)
             ? vendorRow.society_data[0]
             : vendorRow.society_data;
@@ -332,6 +333,27 @@ async function getStaffContext(
         message: "Only Service Agents or Vendors can access this API.",
         status: 403,
     };
+}
+
+// All complaint operations resolve the same assigned identity as complaint-otp.
+async function getStaffContext(
+    authUserId: string,
+    complaintId?: string,
+    authId?: string,
+): Promise<ContextSuccess | ContextFailure> {
+    if (!complaintId) return getDirectStaffContext(authUserId);
+    const assigned = await resolveComplaintAssignee({
+        complaintId, callerAuthId: authUserId, callerAuthUserId: authId,
+    });
+    if (!assigned.ok) return {
+        ok: false, status: assigned.code,
+        code: assigned.code === 403 ? "FORBIDDEN" : assigned.code === 404 ? "NOT_FOUND" : "SERVER_ERROR",
+        message: assigned.message,
+    };
+    const staffId = assigned.role === "SERVICE_AGENT"
+        ? assigned.complaint.assigned_agent : assigned.complaint.non_society_user;
+    const direct = await getDirectStaffContext(String(staffId), assigned.role);
+    return direct.ok ? {ok:true, ctx:{...direct.ctx, authUserId}} : direct;
 }
 
 // ============================================
@@ -564,7 +586,8 @@ async function handleUploadImage(
             s3_path: urlInfo.publicUrl,
             society: ctx.societyId,
             complaint: complaintId,
-            uploaded_by: ctx.staffId,
+            // uploaded_by references SSP_Society_User, not vendor records.
+            uploaded_by: ctx.staffType === "VENDOR" ? null : ctx.staffId,
             uploaded_on: getCurrentTimestamp(),
             created_at: getCurrentTimestamp(),
         };
@@ -780,379 +803,75 @@ function isValidOtpFormat(otp: string): boolean {
 // HANDLER — START_OTP
 // ============================================
 
-async function handleStartOtp(
-    req: Request,
-    ctx: StaffContext,
-    body: StaffComplaintWorkflowRequest,
-): Promise<Response> {
+async function handleStartOtp(req: Request, ctx: StaffContext, body: StaffComplaintWorkflowRequest): Promise<Response> {
     const complaintId = cleanText(body.complaintId, 50);
-    if (!complaintId) {
-        return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
-    }
+    if (!complaintId) return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
 
     const auth = await fetchAssignedComplaint(complaintId, ctx);
-    if (!auth.ok) {
-        return buildError(req, auth.code, auth.message, auth.status);
-    }
-
-    const c = auth.complaint;
-
-    // ✅ FIX: Removed strict "status === 'assigned'" check. 
-    // Only block if the complaint is already closed/resolved.
-    const currentStatus = String(c.status).toLowerCase();
-    if (["resolved", "cancelled", "rejected", "completed"].includes(currentStatus)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            `Cannot start work on a complaint with status '${c.status}'.`,
-            400,
-        );
-    }
-
-    if (c.start_otp_verified_at) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "START OTP has already been verified.",
-            400,
-        );
-    }
-
-    if (
-        c.start_otp && c.start_otp_generated_at &&
-        !isOtpExpired(c.start_otp_generated_at)
-    ) {
-        return buildError(
-            req,
-            "CONFLICT",
-            "START OTP already generated. Wait for it to expire (10 minutes) or use the existing OTP.",
-            409,
-        );
-    }
-
-    const otp = generateDateOtp();
-    const now = new Date().toISOString();
-
-    const { error: upErr } = await supabaseAdmin
-        .from("SSP_Complaint")
-        .update({
-            start_otp: otp,
-            start_otp_generated_at: now,
-        })
-        .eq("complaint_id", complaintId);
-
-    if (upErr) {
-        return buildError(req, "SERVER_ERROR", "Failed to store OTP.", 500);
-    }
-
-    return buildSuccess(req, {
-        complaintId,
-        stage: "START",
-        message:
-            `START OTP has been generated and sent to the resident. It is valid for ${OTP_TTL_MINUTES} minutes. Ask the resident to share it with you, then verify it.`,
-        otpVerified: false,
-        nextStep: "VERIFY_START",
-    });
+    if (!auth.ok) return buildError(req, auth.code, auth.message, auth.status);
+    const result = await runComplaintOtpCycle(supabaseAdmin, auth.complaint, "START", undefined, generateOtp());
+    return result.data ? buildSuccess(req, result.data) : buildError(req, result.status === 409 ? "CONFLICT" : "OTP_ERROR", result.message!, result.status);
 }
 
-// ============================================
-// HANDLER — VERIFY_START
-// ============================================
+async function handleVerifyStart(req: Request, ctx: StaffContext, body: StaffComplaintWorkflowRequest): Promise<Response> {
+    const complaintId = cleanText(body.complaintId, 50);
+    if (!complaintId) return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
+    const otp = cleanText(body.otp, 10); if (!otp) return buildError(req, "BAD_REQUEST", "otp is mandatory.", 400);
+    const auth = await fetchAssignedComplaint(complaintId, ctx);
+    if (!auth.ok) return buildError(req, auth.code, auth.message, auth.status);
+    const result = await runComplaintOtpCycle(supabaseAdmin, auth.complaint, "START", otp, generateOtp());
+    return result.data ? buildSuccess(req, result.data) : buildError(req, result.status === 409 ? "CONFLICT" : "OTP_ERROR", result.message!, result.status);
+}
 
-async function handleVerifyStart(
+async function handleEndOtp(req: Request, ctx: StaffContext, body: StaffComplaintWorkflowRequest): Promise<Response> {
+    const complaintId = cleanText(body.complaintId, 50);
+    if (!complaintId) return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
+
+    const auth = await fetchAssignedComplaint(complaintId, ctx);
+    if (!auth.ok) return buildError(req, auth.code, auth.message, auth.status);
+    const result = await runComplaintOtpCycle(supabaseAdmin, auth.complaint, "END", undefined, generateOtp());
+    return result.data ? buildSuccess(req, result.data) : buildError(req, result.status === 409 ? "CONFLICT" : "OTP_ERROR", result.message!, result.status);
+}
+
+async function handleVerifyEnd(req: Request, ctx: StaffContext, body: StaffComplaintWorkflowRequest): Promise<Response> {
+    const complaintId = cleanText(body.complaintId, 50);
+    if (!complaintId) return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
+    const otp = cleanText(body.otp, 10); if (!otp) return buildError(req, "BAD_REQUEST", "otp is mandatory.", 400);
+    const auth = await fetchAssignedComplaint(complaintId, ctx);
+    if (!auth.ok) return buildError(req, auth.code, auth.message, auth.status);
+    const result = await runComplaintOtpCycle(supabaseAdmin, auth.complaint, "END", otp, generateOtp());
+    return result.data ? buildSuccess(req, result.data) : buildError(req, result.status === 409 ? "CONFLICT" : "OTP_ERROR", result.message!, result.status);
+}
+
+async function handleFetchOtp(
     req: Request,
-    ctx: StaffContext,
+    residentId: string,
     body: StaffComplaintWorkflowRequest,
 ): Promise<Response> {
     const complaintId = cleanText(body.complaintId, 50);
-    const otp = cleanText(body.otp, 10);
-
-    if (!complaintId) {
-        return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
+    const stage = String(body.stage ?? "").toUpperCase();
+    if (!complaintId || !["START", "END"].includes(stage)) {
+        return buildError(req, "BAD_REQUEST", "complaintId and stage (START or END) are required.", 400);
     }
-    if (!otp) {
-        return buildError(req, "BAD_REQUEST", "otp is mandatory.", 400);
-    }
-    if (!isValidOtpFormat(otp)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "OTP must be a 6-digit number.",
-            400,
-        );
-    }
-
-    const auth = await fetchAssignedComplaint(complaintId, ctx);
-    if (!auth.ok) {
-        return buildError(req, auth.code, auth.message, auth.status);
-    }
-
-    const c = auth.complaint;
-
-    // ✅ FIX: Removed strict "status === 'assigned'" check.
-    const currentStatus = String(c.status).toLowerCase();
-    if (["resolved", "cancelled", "rejected", "completed"].includes(currentStatus)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            `Cannot verify START OTP for a complaint with status '${c.status}'.`,
-            400,
-        );
-    }
-
-    if (!c.start_otp) {
-        return buildError(req, "BAD_REQUEST", "Request START OTP first.", 400);
-    }
-    if (c.start_otp_verified_at) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "START OTP already verified.",
-            400,
-        );
-    }
-    if (isOtpExpired(c.start_otp_generated_at)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "START OTP has expired. Request a new one.",
-            400,
-        );
-    }
-    if (String(c.start_otp).trim() !== otp.trim()) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "Invalid OTP. Please try again.",
-            400,
-        );
-    }
-
-    const now = getCurrentTimestamp();
-
-    // ✅ FIX: Removed .eq("status", "assigned") from the update query
-    const { data: updated, error: upErr } = await supabaseAdmin
+    const { data: complaint, error } = await supabaseAdmin
         .from("SSP_Complaint")
-        .update({
-            status: "in_progress",
-            start_otp_verified_at: now,
-        })
+        .select("complaint_id, status, start_otp, start_otp_generated_at, start_otp_verified_at, end_otp, end_otp_generated_at, end_otp_verified_at")
         .eq("complaint_id", complaintId)
-        .is("start_otp_verified_at", null)
-        .select("complaint_id, status")
+        .eq("society_user", residentId)
+        .is("deleted_at", null)
         .maybeSingle();
-
-    if (upErr) {
-        return buildError(
-            req,
-            "SERVER_ERROR",
-            "Failed to update complaint.",
-            500,
-        );
+    if (error) return buildError(req, "SERVER_ERROR", "Failed to fetch OTP.", 500);
+    if (!complaint) return buildError(req, "NOT_FOUND", "Complaint not found for this resident.", 404);
+    const prefix = stage === "START" ? "start" : "end";
+    if (["resolved", "cancelled", "rejected", "completed"].includes(String(complaint.status).toLowerCase()) || complaint[`${prefix}_otp_verified_at`]) {
+        return buildError(req, "BAD_REQUEST", "OTP is no longer available.", 400);
     }
-    if (!updated) {
-        return buildError(
-            req,
-            "CONFLICT",
-            "OTP already verified or state changed. Please refresh.",
-            409,
-        );
-    }
-
+    if (!complaint[`${prefix}_otp`]) return buildError(req, "NOT_FOUND", "OTP has not been generated yet.", 404);
+    const generatedAt = complaint[`${prefix}_otp_generated_at`];
+    if (isOtpExpired(generatedAt)) return buildError(req, "BAD_REQUEST", "OTP has expired. Ask staff to request a new one.", 400);
     return buildSuccess(req, {
-        complaintId,
-        stage: "START",
-        message: "Work started successfully.",
-        otpVerified: true,
-        status: "in_progress",
-        nextStep: "REQUEST_END_OTP",
-    });
-}
-
-// ============================================
-// HANDLER — END_OTP
-// ============================================
-
-async function handleEndOtp(
-    req: Request,
-    ctx: StaffContext,
-    body: StaffComplaintWorkflowRequest,
-): Promise<Response> {
-    const complaintId = cleanText(body.complaintId, 50);
-    if (!complaintId) {
-        return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
-    }
-
-    const auth = await fetchAssignedComplaint(complaintId, ctx);
-    if (!auth.ok) {
-        return buildError(req, auth.code, auth.message, auth.status);
-    }
-
-    const c = auth.complaint;
-
-    // ✅ FIX: Removed strict "status === 'in_progress'" check.
-    const currentStatus = String(c.status).toLowerCase();
-    if (["resolved", "cancelled", "rejected", "completed"].includes(currentStatus)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            `Cannot generate END OTP for a complaint with status '${c.status}'.`,
-            400,
-        );
-    }
-
-    if (c.end_otp_verified_at) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "END OTP already verified.",
-            400,
-        );
-    }
-    if (
-        c.end_otp && c.end_otp_generated_at &&
-        !isOtpExpired(c.end_otp_generated_at)
-    ) {
-        return buildError(
-            req,
-            "CONFLICT",
-            "END OTP already generated. Wait for it to expire (10 minutes) or use the existing OTP.",
-            409,
-        );
-    }
-
-    const otp = generateDateOtp();
-    const now = new Date().toISOString();
-
-    const { error: upErr } = await supabaseAdmin
-        .from("SSP_Complaint")
-        .update({
-            end_otp: otp,
-            end_otp_generated_at: now,
-        })
-        .eq("complaint_id", complaintId);
-
-    if (upErr) {
-        return buildError(req, "SERVER_ERROR", "Failed to store OTP.", 500);
-    }
-
-    return buildSuccess(req, {
-        complaintId,
-        stage: "END",
-        message:
-            `END OTP has been generated and sent to the resident. It is valid for ${OTP_TTL_MINUTES} minutes. Ask the resident to share it with you, then verify it.`,
-        otpVerified: false,
-        nextStep: "VERIFY_END",
-    });
-}
-
-// ============================================
-// HANDLER — VERIFY_END
-// ============================================
-
-async function handleVerifyEnd(
-    req: Request,
-    ctx: StaffContext,
-    body: StaffComplaintWorkflowRequest,
-): Promise<Response> {
-    const complaintId = cleanText(body.complaintId, 50);
-    const otp = cleanText(body.otp, 10);
-
-    if (!complaintId) {
-        return buildError(req, "BAD_REQUEST", "complaintId is mandatory.", 400);
-    }
-    if (!otp) {
-        return buildError(req, "BAD_REQUEST", "otp is mandatory.", 400);
-    }
-    if (!isValidOtpFormat(otp)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "OTP must be a 6-digit number.",
-            400,
-        );
-    }
-
-    const auth = await fetchAssignedComplaint(complaintId, ctx);
-    if (!auth.ok) {
-        return buildError(req, auth.code, auth.message, auth.status);
-    }
-
-    const c = auth.complaint;
-
-    // ✅ FIX: Removed strict "status === 'in_progress'" check.
-    const currentStatus = String(c.status).toLowerCase();
-    if (["resolved", "cancelled", "rejected", "completed"].includes(currentStatus)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            `Cannot verify END OTP for a complaint with status '${c.status}'.`,
-            400,
-        );
-    }
-
-    if (!c.end_otp) {
-        return buildError(req, "BAD_REQUEST", "Request END OTP first.", 400);
-    }
-    if (c.end_otp_verified_at) {
-        return buildError(req, "BAD_REQUEST", "END OTP already verified.", 400);
-    }
-    if (isOtpExpired(c.end_otp_generated_at)) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "END OTP has expired. Request a new one.",
-            400,
-        );
-    }
-    if (String(c.end_otp).trim() !== otp.trim()) {
-        return buildError(
-            req,
-            "BAD_REQUEST",
-            "Invalid OTP. Please try again.",
-            400,
-        );
-    }
-
-    const now = getCurrentTimestamp();
-
-    // ✅ FIX: Removed .eq("status", "in_progress") from the update query
-    const { data: updated, error: upErr } = await supabaseAdmin
-        .from("SSP_Complaint")
-        .update({
-            status: "resolved",
-            end_otp_verified_at: now,
-            completion_date_time: now,
-        })
-        .eq("complaint_id", complaintId)
-        .is("end_otp_verified_at", null)
-        .select("complaint_id, status")
-        .maybeSingle();
-
-    if (upErr) {
-        return buildError(
-            req,
-            "SERVER_ERROR",
-            "Failed to update complaint.",
-            500,
-        );
-    }
-    if (!updated) {
-        return buildError(
-            req,
-            "CONFLICT",
-            "OTP already verified or state changed. Please refresh.",
-            409,
-        );
-    }
-
-    return buildSuccess(req, {
-        complaintId,
-        stage: "END",
-        message: "Work completed successfully.",
-        otpVerified: true,
-        status: "resolved",
-        nextStep: "COMPLETED",
+        complaintId, stage, otp: String(complaint[`${prefix}_otp`]),
+        expiresAt: new Date(new Date(generatedAt).getTime() + OTP_TTL_MS).toISOString(),
     });
 }
 
@@ -1161,7 +880,7 @@ async function handleVerifyEnd(
 // ============================================
 
 Deno.serve(
-    requireAuth(async (req: Request, authCtx: { user: { id: string } }) => {
+    requireAuth(async (req: Request, authCtx: { user: { id: string; authId?: string } }) => {
         if (req.method === "OPTIONS") {
             return new Response("ok", { headers: corsHeaders });
         }
@@ -1185,8 +904,8 @@ Deno.serve(
                 );
             }
 
-            const rawAction = String(body.action ?? "")
-                .toUpperCase() as ActionType;
+            const requestedAction = String(body.action ?? "").trim().toUpperCase();
+            const rawAction = (requestedAction === "REQUEST_END_OTP" ? "END_OTP" : requestedAction) as ActionType;
             if (!VALID_ACTIONS.includes(rawAction)) {
                 return buildError(
                     req,
@@ -1197,8 +916,12 @@ Deno.serve(
             }
             action = rawAction;
 
+            if (action === "FETCH_OTP") {
+                return await handleFetchOtp(req, authCtx.user.id, body);
+            }
+
             // Resolve staff context
-            const ctxResult = await getStaffContext(authCtx.user.id);
+            const ctxResult = await getStaffContext(authCtx.user.id, cleanText(body.complaintId, 50), authCtx.user.authId);
             if (!ctxResult.ok) {
                 return buildError(
                     req,

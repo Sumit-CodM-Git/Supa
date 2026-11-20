@@ -196,7 +196,7 @@ async function getContext(
         .select(`
             user_id,
             role,
-            SSP_Contact:SSP_Contact!contact ( name )
+            SSP_Contact:SSP_Contact!contact (parking_slot, name )
         `)
         .eq("user_id", userId)
         .eq("society", society.society_id)

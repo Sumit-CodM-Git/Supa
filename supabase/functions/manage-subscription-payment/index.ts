@@ -213,7 +213,7 @@ serve(requireAuth(
                 .from("SSP_Subscription_Plan_Price")
                 .select("plan_price_id, amount, currency, validity_months")
                 .eq("plan_id", targetPlanId)
-                .eq("billing_period", billingPeriod)
+                .eq("billing_period", billingPeriod.toLowerCase())
                 .eq("is_active", true)
                 .maybeSingle();
 

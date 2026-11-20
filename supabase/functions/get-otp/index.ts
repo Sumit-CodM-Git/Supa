@@ -202,8 +202,9 @@ Deno.serve(
           user_id,
           role,
           society:SSP_Society (registration_number),
-          contact:SSP_Contact (phone)
-        `);
+          contact:SSP_Contact (parking_slot, phone)
+        `)
+        .is("deleted_at", null);
 
       if (sError) {
         return createOTPErrorResponse("QUERY_ERROR", sError.message, 400);
@@ -261,7 +262,7 @@ Deno.serve(
           role,
           society:SSP_Society (registration_number)
         `)
-        .eq("role", "Vendor"); // ✅ Only fetch vendors
+        .ilike("role", "vendor"); // Accept existing vendor role casing
 
       if (vError) {
         return createOTPErrorResponse("QUERY_ERROR", vError.message, 400);

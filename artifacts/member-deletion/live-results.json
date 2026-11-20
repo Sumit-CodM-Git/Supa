@@ -1,0 +1,80 @@
+[
+  {
+    "endpoint": "get-members",
+    "httpStatus": 200,
+    "response": {
+      "passed": true
+    }
+  },
+  {
+    "endpoint": "get-otp",
+    "httpStatus": 200,
+    "response": {
+      "passed": true
+    }
+  },
+  {
+    "endpoint": "delete-members",
+    "httpStatus": 200,
+    "response": {
+      "success": true,
+      "data": {
+        "deletedMember": {
+          "memberId": "2d8f0a03-aa68-4dbe-982e-640cbd145c3c",
+          "memberType": "resident",
+          "status": "Successfully Deleted",
+          "table": "SSP_Society_User"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "get-members",
+    "httpStatus": 200,
+    "response": {
+      "passed": true
+    }
+  },
+  {
+    "endpoint": "delete-members",
+    "httpStatus": 200,
+    "response": {
+      "success": true,
+      "data": {
+        "deletedMember": {
+          "memberId": "2d8f0a03-aa68-4dbe-982e-640cbd145c3c",
+          "memberType": "resident",
+          "status": "Successfully Deleted",
+          "table": "SSP_Society_User"
+        }
+      }
+    }
+  },
+  {
+    "endpoint": "get-otp",
+    "httpStatus": 404,
+    "response": {
+      "passed": true
+    }
+  },
+  {
+    "endpoint": "verify-otp",
+    "httpStatus": 404,
+    "response": {
+      "passed": true
+    }
+  },
+  {
+    "database": [
+      {
+        "approver": "2d8f0a03-aa68-4dbe-982e-640cbd145c3c",
+        "deleted_at": "2026-11-10 13:41:20.268+00",
+        "hosted_by": "2d8f0a03-aa68-4dbe-982e-640cbd145c3c",
+        "name": "Codex member delete 2d8f0a03-aa68-4dbe-982e-640cbd145c3c",
+        "otp_cleared": true,
+        "status": false
+      }
+    ],
+    "historyPreserved": true
+  }
+]

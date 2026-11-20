@@ -278,6 +278,7 @@ Deno.serve(
         .from("SSP_Facility_Booking_Request")
         .select(`
           request_id,
+          created_at,
           requested_by,
           facility,
           payment,
@@ -306,6 +307,8 @@ Deno.serve(
           .from("SSP_Facility_Booking")
           .insert({
             requested_by: bookingRequest.requested_by,
+            // Preserve when the resident created the booking request.
+            created_at: bookingRequest.created_at ?? undefined,
             facility: bookingRequest.facility,
             payment: bookingRequest.payment,
             booking_start_date: bookingRequest.booking_start_date,

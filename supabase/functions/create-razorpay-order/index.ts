@@ -1,7 +1,7 @@
 // supabase/functions/create-razorpay-order/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireAuth } from "../_shared/auth.ts";
-import { camelResponse, errorResponse } from "../_shared/response.ts";
+import { successResponse, errorResponse } from "../_shared/response.ts";
 import {
     ApiError,
     badRequest,
@@ -134,7 +134,7 @@ serve(requireAuth(async (req, ctx) => {
         });
 
         // ⭐ camelCase response keys
-        return camelResponse({
+        return successResponse({
             orderId: order.id,
             amount: amountPaise,
             currency: (priceRec.currency ?? "INR").toUpperCase(),

@@ -1,0 +1,1 @@
+{"success":false,"errorResponse":{"errorCode":"INVALID_STATUS","message":"Receipt is only available for paid payments. Current status: unpaid.","timestamp":"2026-11-10T11:04:28.321Z"}}

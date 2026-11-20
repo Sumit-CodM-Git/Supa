@@ -1,0 +1,134 @@
+[
+  {
+    "endpoint": "staff-complaints",
+    "action": null,
+    "httpStatus": 200,
+    "complaintId": null
+  },
+  {
+    "endpoint": "staff-complaints",
+    "action": null,
+    "httpStatus": 200,
+    "complaintId": null
+  },
+  {
+    "endpoint": "staff-complaints",
+    "action": null,
+    "httpStatus": 200,
+    "complaintId": "07c2b93f-56fd-40cd-b4dd-4e926f614578"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "START_OTP",
+    "httpStatus": 200,
+    "complaintId": "07c2b93f-56fd-40cd-b4dd-4e926f614578"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "VERIFY_START",
+    "httpStatus": 200,
+    "complaintId": "07c2b93f-56fd-40cd-b4dd-4e926f614578"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "END_OTP",
+    "httpStatus": 200,
+    "complaintId": "07c2b93f-56fd-40cd-b4dd-4e926f614578"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "VERIFY_END",
+    "httpStatus": 200,
+    "complaintId": "07c2b93f-56fd-40cd-b4dd-4e926f614578"
+  },
+  {
+    "endpoint": "staff-complaints",
+    "action": null,
+    "httpStatus": 200,
+    "complaintId": "06a50a28-6346-4351-adab-3661278bf329"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "START",
+    "httpStatus": 200,
+    "complaintId": "06a50a28-6346-4351-adab-3661278bf329"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "START",
+    "httpStatus": 200,
+    "complaintId": "06a50a28-6346-4351-adab-3661278bf329"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "END",
+    "httpStatus": 200,
+    "complaintId": "06a50a28-6346-4351-adab-3661278bf329"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "END",
+    "httpStatus": 200,
+    "complaintId": "06a50a28-6346-4351-adab-3661278bf329"
+  },
+  {
+    "endpoint": "staff-complaints",
+    "action": null,
+    "httpStatus": 200,
+    "complaintId": "e73166d7-c6ab-4dd3-a9a6-b685104a6e3c"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "START_OTP",
+    "httpStatus": 200,
+    "complaintId": "e73166d7-c6ab-4dd3-a9a6-b685104a6e3c"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "VERIFY_START",
+    "httpStatus": 200,
+    "complaintId": "e73166d7-c6ab-4dd3-a9a6-b685104a6e3c"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "END_OTP",
+    "httpStatus": 200,
+    "complaintId": "e73166d7-c6ab-4dd3-a9a6-b685104a6e3c"
+  },
+  {
+    "endpoint": "staff-complaint-workflow",
+    "action": "VERIFY_END",
+    "httpStatus": 200,
+    "complaintId": "e73166d7-c6ab-4dd3-a9a6-b685104a6e3c"
+  },
+  {
+    "endpoint": "staff-complaints",
+    "action": null,
+    "httpStatus": 200,
+    "complaintId": "39ea787a-a3b2-4397-b777-821867fd89dc"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "START",
+    "httpStatus": 200,
+    "complaintId": "39ea787a-a3b2-4397-b777-821867fd89dc"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "START",
+    "httpStatus": 200,
+    "complaintId": "39ea787a-a3b2-4397-b777-821867fd89dc"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "END",
+    "httpStatus": 200,
+    "complaintId": "39ea787a-a3b2-4397-b777-821867fd89dc"
+  },
+  {
+    "endpoint": "complaint-otp",
+    "action": "END",
+    "httpStatus": 200,
+    "complaintId": "39ea787a-a3b2-4397-b777-821867fd89dc"
+  }
+]

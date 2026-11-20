@@ -1,3 +1,6 @@
+import { visitorTimeISTISO } from "../_shared/visitor-time.ts";
+import { hasVisitorName, readVisitorName, VisitorDraftError, findVisitorDraft, isVisitorOtpDraft, canCompleteVisitorDetails } from "../_shared/visitor-drafts.ts";
+import { contactParkingSlot } from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -488,7 +491,7 @@ async function attachSignedURLsToVisitors(
         purpose: v.purpose ?? 'N/A',
         vehicle: v.vehicle_number ?? 'N/A',
         status: v.visitor_status ?? '',
-        checkIn: v.check_in ?? null,
+        checkIn: visitorTimeISTISO(v.check_in),
 
         flat: v.hosted_by?.unit_flat_number ?? 'N/A',
         block:
@@ -741,7 +744,7 @@ Deno.serve(
             hosted_by:SSP_Society_User!hosted_by(
               user_id,
               unit_flat_number,
-              contact:SSP_Contact(
+              contact:SSP_Contact(parking_slot,
                 name
               )
             )
@@ -811,6 +814,8 @@ Deno.serve(
         const hostedByUuid = societyUserId && String(societyUserId).trim() !== "" ? String(societyUserId).trim() : null;
         const approverUuid = securityGuardId && String(securityGuardId).trim() !== "" ? String(securityGuardId).trim() : null;
 
+        if (!hostedByUuid) return errorResponse("societyUserId is required.", 400);
+
         if (hostedByUuid) {
           const { data: resident } = await supabaseAdmin
             .from("SSP_Society_User")
@@ -837,44 +842,42 @@ Deno.serve(
           }
         }
 
-        const { data: newVisitor, error: insertErr } = await supabaseAdmin
-          .from("SSP_Non_Society_User")
-          .insert({
-            name: visitorName,
-            phone_number: phone,
-            delivery_origin: platform,
-            vehicle_number: vehicleNumber,
-            purpose: purpose,
-            role: role,
-            gender: gender,
-            email: email,
-            id_proof_type: idProofType,
-            id_proof_number: idProofNumber,
-            gate_no: gateNumber,
-            vehicle_type: vehicleType,
-            visitor_status: "Pending", // Default initial request status
-            check_in: null,
-            check_out: null,
-            hosted_by: hostedByUuid,
-            approver: approverUuid,
-            society: societyId,
-          })
-          .select("non_society_user_id")
-          .single();
-
+        const input = requestObj as SecurityGatePayload & { name?: string; phoneNumber?: string };
+        const cleanPhone = String(phone ?? input.phoneNumber ?? "").trim() || null;
+        const draft = await findVisitorDraft(supabaseAdmin, hostedByUuid, societyId, cleanPhone, visitorId);
+        const savedName = hasVisitorName(draft?.name) ? draft.name : null;
+        const suppliedName = readVisitorName(requestObj as unknown as Record<string, unknown>);
+        if (savedName && suppliedName && savedName !== suppliedName) return errorResponse("Visitor name does not match this visit.", 409);
+        const name = suppliedName ?? savedName;
+        const phoneNumber = cleanPhone ?? draft?.phone_number;
+        if (!name || !phoneNumber) return errorResponse("visitorName and phone/phoneNumber (or an OTP visitorId) are required.", 400);
+        const reusable = draft && (isVisitorOtpDraft(draft) || canCompleteVisitorDetails(draft));
+        const keepDecision = draft && ["approved", "rejected"].includes(String(draft.visitor_approval_status ?? "").toLowerCase());
+        const payload = {
+          name, phone_number: phoneNumber, delivery_origin: platform ?? null,
+          vehicle_number: vehicleNumber ?? null, purpose: purpose ?? null,
+          role: role || "visitor", gender: gender ?? null, email: email ?? null,
+          id_proof_type: idProofType ?? null, id_proof_number: idProofNumber ?? null,
+          gate_no: gateNumber ?? null, vehicle_type: vehicleType ?? null,
+          visitor_status: keepDecision ? draft.visitor_status : "Pending",
+          visitor_approval_status: keepDecision ? draft.visitor_approval_status : "pending",
+          pre_approved: keepDecision ? draft.pre_approved : false,
+          is_otp_verified: draft?.is_otp_verified === true,
+          check_in: null, check_out: null, hosted_by: hostedByUuid,
+          approver: approverUuid, society: societyId,
+        };
+        const table = supabaseAdmin.from("SSP_Non_Society_User");
+        const write = draft && !reusable
+          ? table.select("*").eq("non_society_user_id", draft.non_society_user_id)
+          : reusable
+          ? table.update(payload).eq("non_society_user_id", draft.non_society_user_id)
+              .eq("society", societyId).eq("hosted_by", hostedByUuid).eq("name", draft.name)
+          : table.insert(payload);
+        const { data: newVisitor, error: insertErr } = await write.select("non_society_user_id, name").single();
         if (insertErr) throw insertErr;
-
-        logger.info({
-          action: "request_approval_success",
-          visitorId: newVisitor.non_society_user_id,
-          durationMs: Date.now() - startTime,
-        });
-
-        return successResponse({
-          Visitors: [],
-          visitorId: newVisitor.non_society_user_id,
-          success: true,
-        });
+        if (!newVisitor) return errorResponse("Visitor changed. Please refresh and retry.", 409);
+        return successResponse({Visitors: [], visitorId: newVisitor.non_society_user_id,
+          name: newVisitor.name, visitorName: newVisitor.name, success: true});
       }
 
       // =========================================================================
@@ -887,7 +890,7 @@ Deno.serve(
 
         const { data: checkVisitor } = await supabaseAdmin
           .from("SSP_Non_Society_User")
-          .select("non_society_user_id")
+          .select("non_society_user_id, name")
           .eq("non_society_user_id", visitorId)
           .eq("society", societyId)
           .maybeSingle();
@@ -897,6 +900,13 @@ Deno.serve(
         }
 
         const updatePayload: Record<string, any> = {};
+        const suppliedVisitorName = readVisitorName(requestObj as unknown as Record<string, unknown>);
+        if (suppliedVisitorName) {
+          if (hasVisitorName(checkVisitor.name) && checkVisitor.name !== suppliedVisitorName) {
+            return errorResponse("Visitor name does not match this visit.", 409);
+          }
+          updatePayload.name = suppliedVisitorName;
+        }
         const targetStatus = String(newStatus).trim().toLowerCase();
 
         if (targetStatus === "inside") {
@@ -906,10 +916,14 @@ Deno.serve(
         } else if (targetStatus === "outside") {
           updatePayload.check_out = new Date().toISOString();
           updatePayload.visitor_status = "Outside";
-        } else if (targetStatus === "approved") {
+        } else if (["approved", "approve", "accept", "accepted", "allow"].includes(targetStatus)) {
           updatePayload.visitor_status = "Approved";
-        } else if (targetStatus === "rejected") {
+            updatePayload.visitor_approval_status = "approved";
+          updatePayload.pre_approved = true;
+        } else if (["rejected", "reject", "deny"].includes(targetStatus)) {
           updatePayload.visitor_status = "Rejected";
+            updatePayload.visitor_approval_status = "rejected";
+          updatePayload.pre_approved = false;
         } else {
           return errorResponse("Invalid status provided. Expected 'Approved', 'Rejected', 'Inside', or 'Outside'.", 400);
         }
@@ -961,7 +975,7 @@ Deno.serve(
               tower:SSP_Tower(
                 name
               ),
-              contact:SSP_Contact(
+              contact:SSP_Contact(parking_slot,
                 name
               )
             )
@@ -1045,6 +1059,7 @@ Deno.serve(
 
       return errorResponse("Invalid or unmapped actionType operation.", 400);
     } catch (error: unknown) {
+      if (error instanceof VisitorDraftError) return errorResponse(error.message, error.status);
       const err = error as Error;
       logger.error({
         action: "security_gate_console_error",
@@ -1110,6 +1125,7 @@ async function attachSignedURLsToVisitors(
       }
 
       return {
+        parkingSlot: contactParkingSlot(v.hosted_by?.contact),
         visitorId: v.non_society_user_id,
         name: v.name ?? "",
         phone: v.phone_number ?? "",
@@ -1117,8 +1133,8 @@ async function attachSignedURLsToVisitors(
         purpose: v.purpose ?? "N/A",
         vehicle: v.vehicle_number ?? "N/A",
         status: v.visitor_status ?? "",
-        checkIn: v.check_in ?? null,
-        checkOut: v.check_out ?? null, // Included checkOut in returned response payload
+        checkIn: visitorTimeISTISO(v.check_in),
+        checkOut: visitorTimeISTISO(v.check_out), // Included checkOut in returned response payload
         flat: v.hosted_by?.unit_flat_number ?? "N/A",
         block: v.hosted_by?.block?.block_name ?? "N/A",
         tower: v.hosted_by?.tower?.name ?? "N/A",
