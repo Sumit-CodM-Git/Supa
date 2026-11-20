@@ -1,0 +1,38 @@
+{
+  "endpoint": "get-my-facility-bookings",
+  "http_status": 200,
+  "count": 17,
+  "descending_created_at": true,
+  "first_items": [
+    {
+      "facilityBookingId": "085e3f90-e993-4b7b-be1c-21490264b427",
+      "facilityName": "Test facility",
+      "createdAt": "2026-11-18T12:44:12.40276+00:00",
+      "bookingStatus": "CANCELLED"
+    },
+    {
+      "facilityBookingId": "af50d2c5-921c-45a6-b125-b854ac69f1d0",
+      "facilityName": "Test facility",
+      "createdAt": "2026-11-18T12:30:31.652321+00:00",
+      "bookingStatus": "cancelled"
+    },
+    {
+      "facilityBookingId": "3bd8988a-7061-4566-9d4b-1320b8294983",
+      "facilityName": "Test facility",
+      "createdAt": "2026-11-18T12:27:02.897169+00:00",
+      "bookingStatus": "cancelled"
+    },
+    {
+      "facilityBookingId": "ac3e8a2e-e1ae-4943-84e8-24b0538430d1",
+      "facilityName": "Play store",
+      "createdAt": "2026-11-18T11:30:00.64095+00:00",
+      "bookingStatus": "pending_verification"
+    },
+    {
+      "facilityBookingId": "8b37eab4-96e9-4386-9b5c-b3715aae3a08",
+      "facilityName": "Basketball Court",
+      "createdAt": "2026-11-18T11:18:35.327553+00:00",
+      "bookingStatus": "REJECTED"
+    }
+  ]
+}

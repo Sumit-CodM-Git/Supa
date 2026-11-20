@@ -1,0 +1,6 @@
+SELECT r.request_id,r.created_at,r.purpose_of_visit,r.status,r.requested_by,r.payment,p.payment_id,p.payment_status,p.receipt_url,
+(SELECT jsonb_agg(jsonb_build_object('document_id',d.document_id,'path',d.s3_path,'uploaded',EXISTS(SELECT 1 FROM storage.objects o WHERE o.bucket_id='society-documents' AND o.name=public.payment_receipt_object_key(d.s3_path) AND coalesce((o.metadata->>'size')::numeric,0)>0))) FROM public."SSP_Document" d WHERE d.payment=r.payment) AS documents,
+EXISTS(SELECT 1 FROM storage.objects o WHERE o.bucket_id='society-documents' AND o.name=public.payment_receipt_object_key(p.receipt_url) AND coalesce((o.metadata->>'size')::numeric,0)>0) AS receipt_uploaded,
+(SELECT jsonb_agg(jsonb_build_object('id',b.name,'booking_status',b.booking_status,'payment_status',b.payment_status,'approval_status',b.approval_status)) FROM public."SSP_Facility_Booking" b WHERE b.payment=r.payment) AS confirmed_bookings
+FROM public."SSP_Facility_Booking_Request" r LEFT JOIN public."SSP_Payment" p ON p.pay_rec_id=r.payment WHERE lower(trim(r.purpose_of_visit))=lower('Sumit Test 1') ORDER BY r.created_at DESC;
+SELECT b.name,b.created_at,to_jsonb(b)->>'purpose_of_visit' AS purpose,b.booking_status,b.payment_status,b.payment FROM public."SSP_Facility_Booking" b WHERE lower(trim(coalesce(to_jsonb(b)->>'purpose_of_visit','')))=lower('Sumit Test 1');

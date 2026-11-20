@@ -1,0 +1,18 @@
+{
+  "updated_rows": [
+    [
+      1,
+      "9",
+      "facility-console"
+    ],
+    [
+      3,
+      "9",
+      "resident-facility-booking"
+    ]
+  ],
+  "validated_json_examples": 23,
+  "unrelated_parts_preserved": true,
+  "deployed": false,
+  "live_tested": false
+}

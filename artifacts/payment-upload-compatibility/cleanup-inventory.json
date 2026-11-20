@@ -1,0 +1,16 @@
+{
+  "societies": [
+    {
+      "objects": null,
+      "registration": "COMPAT-CHECK-C40DB432A91C",
+      "residents": [
+        {
+          "auth_id": "120fce3c-3299-40e3-b9ea-e8f6067a5c85",
+          "contact_id": "58730a9c-5f8e-40d0-9811-8307bf265421",
+          "user_id": "078a8081-80ab-4be3-b76d-6f95f4d93d53"
+        }
+      ],
+      "society_id": "151d1f69-f00d-4771-807e-1781b9d98e62"
+    }
+  ]
+}

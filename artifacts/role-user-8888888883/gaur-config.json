@@ -1,0 +1,89 @@
+{
+  "flat_types": [
+    {
+      "active": true,
+      "created_at": "2026-06-11T07:20:06.41139+00:00",
+      "flat_type": "1_bhk",
+      "flat_type_id": "44b8c4d9-eb84-4000-8551-eb9bab2bca98",
+      "maintenance_charges": 1650,
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9"
+    },
+    {
+      "active": true,
+      "created_at": "2026-10-28T12:19:24.958964+00:00",
+      "flat_type": "3_bhk",
+      "flat_type_id": "def230ea-98cb-4471-a7b1-64fe695555fd",
+      "maintenance_charges": 7417,
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9"
+    },
+    {
+      "active": true,
+      "created_at": "2026-06-11T07:20:06.41139+00:00",
+      "flat_type": "2_bhk",
+      "flat_type_id": "656586be-0f92-4e27-af5f-b86f2ec85704",
+      "maintenance_charges": 2800,
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9"
+    },
+    {
+      "active": true,
+      "created_at": "2026-06-11T07:20:06.41139+00:00",
+      "flat_type": "4_bhk",
+      "flat_type_id": "0c2bafc2-df03-49b7-95aa-df5f367c9b97",
+      "maintenance_charges": 5000,
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9"
+    }
+  ],
+  "towers": [
+    {
+      "active": true,
+      "block": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+      "created_at": "2026-05-04T09:55:56+00:00",
+      "flats_per_floor": 6,
+      "floors": 22,
+      "name": "Ashwairyam",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower_id": "8c1889b7-d311-4535-b7c2-73ad8dceb3c1"
+    },
+    {
+      "active": true,
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "created_at": "2026-06-11T05:20:43.323395+00:00",
+      "flats_per_floor": 5,
+      "floors": 5,
+      "name": "Shubham",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower_id": "66047a4f-134e-48de-a410-bc67f960a03c"
+    },
+    {
+      "active": true,
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "created_at": "2026-06-11T05:35:35.811559+00:00",
+      "flats_per_floor": 6,
+      "floors": 26,
+      "name": "Manglams",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower_id": "6e0afa61-6e67-48c5-856e-b0f9b5a6cf94"
+    },
+    {
+      "active": true,
+      "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+      "created_at": "2026-06-11T05:08:38.097821+00:00",
+      "flats_per_floor": 5,
+      "floors": 15,
+      "name": "Vaibhavs",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower_id": "af11cc32-3dfc-4122-a821-5a8b28af7d67"
+    },
+    {
+      "active": true,
+      "block": "42591087-70c8-41a6-81da-0dbdfec725a5",
+      "created_at": "2026-06-11T05:19:54.113745+00:00",
+      "flats_per_floor": 4,
+      "floors": 23,
+      "name": "Saubhagaya",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower_id": "ff8cf2f2-7920-40c3-96af-08b2ac4afbbd"
+    }
+  ],
+  "trigger": "CREATE OR REPLACE FUNCTION public.prevent_duplicate_primary()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    v_existing_user_id UUID;\nBEGIN\n    -- Only check if this row is being set to primary\n    IF NEW.user_ownership_type = 'primary'\n       AND NEW.unit_flat_number IS NOT NULL THEN\n\n        -- Look for another primary on the same flat\n        SELECT user_id INTO v_existing_user_id\n        FROM \"SSP_Society_User\"\n        WHERE society = NEW.society\n          AND COALESCE(tower::text, '\u2205') = COALESCE(NEW.tower::text, '\u2205')\n          AND COALESCE(block::text, '\u2205') = COALESCE(NEW.block::text, '\u2205')\n          AND upper(trim(unit_flat_number)) = upper(trim(NEW.unit_flat_number))\n          AND user_ownership_type = 'primary'\n          AND user_id != COALESCE(NEW.user_id, '00000000-0000-0000-0000-000000000000'::uuid)\n        LIMIT 1;\n\n        IF v_existing_user_id IS NOT NULL THEN\n            RAISE EXCEPTION\n                'Flat % already has a primary owner (user_id: %). Demote them first.',\n                NEW.unit_flat_number, v_existing_user_id\n                USING ERRCODE = '23505';\n        END IF;\n    END IF;\n\n    RETURN NEW;\nEND;\n$function$\n"
+}

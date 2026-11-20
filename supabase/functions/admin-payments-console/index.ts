@@ -1,3 +1,4 @@
+import { facilityPaymentApprovals } from "../_shared/facility-payment-status.ts";
 import { contactParkingSlot } from "../_shared/contact.ts";
 import { isPaymentStaffRole } from "../_shared/payment-access.ts";
 import { createReceiptSignedUrl } from "../_shared/receipt-storage.ts";
@@ -391,6 +392,8 @@ Deno.serve(
           }),
         );
 
+        const approvals = await facilityPaymentApprovals(supabaseAdmin, rawRows.map(p => p.pay_rec_id));
+
         const formattedRecords = rawRows.map((p, idx) => {
           const societyUser = firstOrNull(p.society_user);
           const contact = firstOrNull(societyUser?.contact);
@@ -406,6 +409,7 @@ Deno.serve(
             paymentID: p.payment_id ?? "N/A",
             paymentMethod: p.payment_method ?? "N/A",
             paymentStatus: p.payment_status ?? "N/A",
+            approvalStatus: approvals.get(p.pay_rec_id) ?? null,
             paymentType: p.payment_type ?? "N/A",
             receiptInfo: p.receipt_information ?? "N/A",
             transactionID: p.transaction_id ?? "N/A",
@@ -584,9 +588,11 @@ Deno.serve(
           }
         }
 
+        const finalApprovals = await facilityPaymentApprovals(supabaseAdmin, [targetPayment.pay_rec_id]);
         return successResponse(
           asPayload({
             success: true,
+            approvalStatus: finalApprovals.get(targetPayment.pay_rec_id) ?? null,
             paymentStatus: updateData.payment_status,
             message:
               targetAction === "VERIFY"

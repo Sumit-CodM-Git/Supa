@@ -55,24 +55,25 @@ assert.equal(contacts[0].parking_slot,'P-101');
 assert.equal(contacts.length,1);
 const memberCount=savedMembers.length;
 response=await run({fullName:'Second Test',phone:member.phone});
-assert.equal(response.status,400);
-assert.equal(response.body.message,'Contact record already present, use a different phone.');
+assert.equal(response.status,200);
+assert.equal(response.body.data.memberCreated[0].isNewContact,false);
 assert.equal(contacts.length,1);
-assert.equal(savedMembers.length,memberCount);
+assert.equal(savedMembers.length,memberCount+1);
 response=await runMany([
   {...member,fullName:'Batch One',phone:'9000000010'},
   {...member,fullName:'Batch Two',phone:'9000000010'},
 ]);
-assert.equal(response.status,400);
-assert.equal(response.body.message,'Contact record already present, use a different phone.');
-assert.equal(contacts.length,1);
-assert.equal(savedMembers.length,memberCount);
+assert.equal(response.status,200);
+assert.equal(contacts.length,2);
+assert.equal(savedMembers.length,memberCount+3);
+assert.equal(response.body.data.memberCreated[0].contactId,response.body.data.memberCreated[1].contactId);
+assert.equal(response.body.data.memberCreated[1].isNewContact,false);
 response=await run({parking_slot:'P-102'});
 assert.equal(response.body.data.memberCreated[0].parkingSlot,'P-102');
-assert.equal(contacts[1].parking_slot,'P-102');
+assert.equal(contacts[2].parking_slot,'P-102');
 response=await run({parkingSlot:'P-103',parking_slot:'IGNORED'});
 assert.equal(response.body.data.memberCreated[0].parkingSlot,'P-103');
-assert.equal(contacts[2].parking_slot,'P-103');
+assert.equal(contacts[3].parking_slot,'P-103');
 for (const value of [null,'  ']) {
  response=await run({parkingSlot:value});
  assert.equal(response.status,200);
@@ -86,7 +87,7 @@ assert.equal(contacts.length,count);
 response=await run({fullName:'Second Test',parking_slot:'P-104'});
 assert.equal(response.body.data.memberCreated[0].parkingSlot,'P-104');
 assert.equal(contacts.at(-1).parking_slot,'P-104');
-console.log('Create-member tests passed: duplicate-phone rejection, batch validation and parking behavior.');
+console.log('Create-member tests passed: existing contact reuse, batch sharing and parking behavior.');
 
 response=await run({flatTypeId:flatId});assert.equal(response.status,200);assert.equal(savedMembers.at(-1).flat_type_id,flatId);assert.equal(response.body.data.memberCreated[0].flatType,'2 BHK');
 response=await run({flatTypeId:null});assert.equal(response.status,200);assert.equal(savedMembers.at(-1).flat_type_id,null);assert.equal(response.body.data.memberCreated[0].flatType,null);

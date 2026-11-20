@@ -1,0 +1,4 @@
+{
+  "status": "Deployed 2026-11-18 to isrqhkshygauaehwfycw; ACTIVE v32; existing verify_jwt=false preserved, with handler authentication retained.",
+  "live_http_test": "16 assertions passed using disposable society/resident/facility/payment data: legacy top-level upload fields equal merged data fields; raw PUT succeeds; confirmation supports both shapes; payment UNDER REVIEW and booking pending_verification; admin proof retrieval and approval; Paid/Approved booking and PDF download. Cleanup completed after retrying a database cleanup timeout. No real money transferred. Production Flutter UI/parser not verified."
+}

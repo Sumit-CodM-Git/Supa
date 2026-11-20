@@ -1,0 +1,14 @@
+{
+  "project_ref": "isrqhkshygauaehwfycw",
+  "migration_version": "20261118100000",
+  "deployed_at": "2026-11-18T11:06:10.374540+05:30",
+  "migration_recorded": true,
+  "trigger_enabled": true,
+  "existing_payments_repaired": 0,
+  "live_database_trigger_checks": "passed",
+  "test_fixture_writes": "rolled back",
+  "storage_http_upload_tested": true,
+  "app_ui_tested": false,
+  "status": "Deployed 2026-11-18 to isrqhkshygauaehwfycw. Migration recorded and storage trigger enabled. Live database trigger regression passed with all fixture writes rolled back. Existing payments repaired: 0. Live HTTP regression passed using a disposable resident: SUBMIT_PAYMENT, raw-byte PUT to uploadUrl (HTTP 200), automatic UNDER REVIEW without confirmation, FETCH_OWN signed proof URL, and byte-identical image download. All disposable storage, payment, auth, resident, and contact fixtures removed. App UI not tested; reported booking proof file remains absent from Storage.",
+  "live_http_upload_report": "artifacts/payment-proof-upload-fix/live-result.json"
+}

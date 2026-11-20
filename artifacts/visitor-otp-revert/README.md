@@ -1,0 +1,3 @@
+Visitor OTP rollback, 2026-11-16
+
+Restores pre-plan-change visitor functions from c5e09ae (visitor logic unchanged from Nov 13). Preserves resident response subscriptionPlan, separate local profile image work and committed away behavior. Replaces live database functions using artifacts/visitor-plan-rules/deployment/before.json. Migration 20261116110000 remains historical; 20261116140000 compensates it. Unapplied Premium-only migration removed. Prior visitor-plan-rules and premium-only-visitors artifacts describe superseded work, not current behavior. Dashboard deployed from HEAD without pending profile changes. No visitor rows created or deleted by rollback.

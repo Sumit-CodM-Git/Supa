@@ -1,0 +1,10 @@
+BEGIN;
+DELETE FROM public."SSP_Facility_Booking" WHERE requested_by='078a8081-80ab-4be3-b76d-6f95f4d93d53';
+DELETE FROM public."SSP_Facility_Booking_Request" WHERE requested_by='078a8081-80ab-4be3-b76d-6f95f4d93d53';
+DELETE FROM public."SSP_Document" WHERE society='151d1f69-f00d-4771-807e-1781b9d98e62' OR payment IN (SELECT pay_rec_id FROM public."SSP_Payment" WHERE society_user='078a8081-80ab-4be3-b76d-6f95f4d93d53');
+DELETE FROM public."SSP_Payment" WHERE society_user='078a8081-80ab-4be3-b76d-6f95f4d93d53';
+DELETE FROM public."SSP_Facility" WHERE society='151d1f69-f00d-4771-807e-1781b9d98e62';
+DELETE FROM public."SSP_Society_User" WHERE user_id='078a8081-80ab-4be3-b76d-6f95f4d93d53' AND society='151d1f69-f00d-4771-807e-1781b9d98e62';
+DELETE FROM public."SSP_Contact" WHERE contact_id='58730a9c-5f8e-40d0-9811-8307bf265421' AND society='151d1f69-f00d-4771-807e-1781b9d98e62';
+DELETE FROM public."SSP_Society" WHERE society_id='151d1f69-f00d-4771-807e-1781b9d98e62';
+COMMIT;

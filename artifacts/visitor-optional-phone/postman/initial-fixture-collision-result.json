@@ -1,0 +1,11 @@
+{
+  "tool": "Newman (Postman collection runner)",
+  "postman_cli_signin_required": true,
+  "date": "2026-11-17",
+  "result": "failed",
+  "newman_exit_code": 1,
+  "cleanup": {
+    "removed_visitors": 9,
+    "remaining_visitors": 0
+  }
+}

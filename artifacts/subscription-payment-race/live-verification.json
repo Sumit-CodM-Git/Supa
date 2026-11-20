@@ -1,0 +1,12 @@
+{
+  "date": "2026-11-17",
+  "database_rpc_checks": [
+    {
+      "result": "passed",
+      "verification": "Both existing captured payments replayed twice without extra payment rows or subscription/date changes. Service-only permissions checked."
+    }
+  ],
+  "rolled_back": true,
+  "new_checkout_or_payment_created": false,
+  "live_authenticated_http_replay_performed": false
+}

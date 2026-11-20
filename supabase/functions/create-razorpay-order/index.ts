@@ -53,7 +53,7 @@ serve(requireAuth(async (req, ctx) => {
         const flat = await getFlatForUser(supabase, ctx.user.id);
         if (!flat) throw badRequest("Your flat is not configured");
 
-        const { data: eligibility } = await supabase.rpc("can_subscribe", {
+        const { data: eligibility, error: eligibilityError } = await supabase.rpc("can_subscribe", {
             p_user_id: ctx.user.id,
             p_society: flat.society,
             p_tower: flat.tower,
@@ -61,8 +61,29 @@ serve(requireAuth(async (req, ctx) => {
             p_flat: flat.flatNumber,
         });
 
+        if (eligibilityError) throw serverError(eligibilityError.message);
+
+        // Existing FREE plans use the established payment upgrade lifecycle.
+        // Membership/primary-owner denials from can_subscribe remain enforced.
+        let upgradingSubscriptionId: string | null = null;
         if (!eligibility?.allowed) {
-            return errorResponse(eligibility?.reason ?? "Not eligible", 403);
+            if (eligibility?.subscription_id) {
+                const { data: existing, error: existingError } = await supabase
+                    .from("SSP_Subscription")
+                    .select("subscription_id, owner_society_user, plan:SSP_Subscription_Plan!inner(plan_code)")
+                    .eq("subscription_id", eligibility.subscription_id)
+                    .eq("society", flat.society)
+                    .in("status", ["active", "trial"])
+                    .maybeSingle();
+                if (existingError) throw serverError(existingError.message);
+                if (existing?.plan?.plan_code === "FREE" &&
+                    existing.owner_society_user === ctx.user.id) {
+                    upgradingSubscriptionId = existing.subscription_id;
+                }
+            }
+            if (!upgradingSubscriptionId) {
+                return errorResponse(eligibility?.reason ?? "Not eligible", 403);
+            }
         }
 
         const { data: planRec } = await supabase
@@ -113,7 +134,10 @@ serve(requireAuth(async (req, ctx) => {
                 plan_price_id: priceRec.plan_price_id,
                 billing_period: billingPeriod,
                 validity_months: String(priceRec.validity_months),
-                payment_purpose: "new", // ⭐ add this
+                payment_purpose: upgradingSubscriptionId ? "upgrade" : "new",
+                ...(upgradingSubscriptionId
+                    ? { renewing_subscription_id: upgradingSubscriptionId }
+                    : {}),
             },
         });
 

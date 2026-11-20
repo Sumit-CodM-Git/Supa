@@ -1,6 +1,4 @@
 import {
-  CONTACT_PHONE_DUPLICATE_MESSAGE,
-  contactPhoneAlreadyExists,
   normalizeParkingSlot,
 } from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -517,27 +515,25 @@ const parseResult = Papa.parse(fileText, {
             const parkingSlot = normalizeParkingSlot(row.parking_slot !== undefined ? row.parking_slot : row.parkingSlot);
             if (parkingSlot !== undefined) contactPayload.parking_slot = parkingSlot;
 
-            const contactId = row.contact_id
+            let reuseContact = false;
+            let contactId = row.contact_id
               ? sanitizeString(row.contact_id)
               : undefined;
-            if (
-              await contactPhoneAlreadyExists(
-                supabaseAdmin,
-                targetSocietyId,
-                phoneClean,
-                contactId,
-              )
-            ) {
-              throw new Error(CONTACT_PHONE_DUPLICATE_MESSAGE);
+            if (!contactId) {
+              const { data: matches, error: lookupError } = await supabaseAdmin
+                .from("SSP_Contact").select("contact_id")
+                .eq("society", targetSocietyId).eq("phone", phoneClean).limit(1);
+              if (lookupError) throw new Error(`Contact lookup failed: ${lookupError.message}`);
+              contactId = matches?.[0]?.contact_id;
+              reuseContact = !!contactId;
             }
 
-            if (contactId) {
-              contactPayload.contact_id = contactId;
-            }
 
-            const { data: contactData, error: contactErr } = await supabaseAdmin
-              .from("SSP_Contact")
-              .upsert(contactPayload, { onConflict: "contact_id" })
+            const { data: contactData, error: contactErr } = reuseContact
+              ? { data: { contact_id: contactId }, error: null }
+              : await (contactId
+                ? supabaseAdmin.from("SSP_Contact").update(contactPayload).eq("contact_id", contactId).eq("society", targetSocietyId)
+                : supabaseAdmin.from("SSP_Contact").insert(contactPayload))
               .select("contact_id")
               .single();
 

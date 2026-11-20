@@ -95,3 +95,21 @@ export async function findPendingVisitorForOtp(client: any, residentId: string, 
   if (visitors.length > 1) throw new VisitorDraftError("Multiple pending visits exist. Provide the visitorId for this visit.", 409);
   return visitors[0] ?? null;
 }
+
+/** Only walk-in visitors for a known non-Premium resident may omit their phone. */
+export async function canOmitVisitorPhone(client: any, residentId: string, societyId: string): Promise<boolean> {
+  const { data: resident, error } = await client.from("SSP_Society_User")
+    .select("user_id,society,tower,block,unit_flat_number,deleted_at")
+    .eq("user_id", residentId).eq("society", societyId).maybeSingle();
+  if (error || !resident || resident.deleted_at) {
+    throw new VisitorDraftError("Unable to check resident's subscription plan.", 500);
+  }
+  const { data: plan, error: planError } = await client.rpc("get_current_plan_code", {
+    p_society: resident.society, p_tower: resident.tower ?? null,
+    p_block: resident.block ?? null, p_flat: resident.unit_flat_number ?? null,
+  });
+  if (planError || (plan != null && typeof plan !== "string")) {
+    throw new VisitorDraftError("Unable to check resident's subscription plan.", 500);
+  }
+  return String(plan ?? "FREE").trim().toUpperCase() !== "PREMIUM";
+}

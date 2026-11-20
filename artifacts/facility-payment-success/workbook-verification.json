@@ -1,0 +1,53 @@
+{
+  "updated_rows": [
+    [
+      1,
+      "9",
+      "facility-console"
+    ],
+    [
+      1,
+      "17",
+      "admin-payments-console"
+    ],
+    [
+      1,
+      "18",
+      "resident-payments-console"
+    ],
+    [
+      3,
+      "5",
+      "get-facility-bookings"
+    ],
+    [
+      3,
+      "8",
+      "get-my-facility-bookings"
+    ],
+    [
+      3,
+      "9",
+      "resident-facility-booking"
+    ],
+    [
+      3,
+      "16",
+      "view-resident-payments"
+    ],
+    [
+      3,
+      "19",
+      "get-payments-list"
+    ],
+    [
+      3,
+      "23",
+      "make-resident-payment"
+    ]
+  ],
+  "complete_jsonc_examples_validated": 49,
+  "unrelated_package_parts_preserved": true,
+  "deployment_status": "deployed and ACTIVE",
+  "live_test": "not run yet"
+}

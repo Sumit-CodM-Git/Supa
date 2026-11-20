@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "check": "Disposable test authentication created without sending messages",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Disposable resident app session issued",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Reproduce incorrect creation from action cancel",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Canonical cancellation removes accidental test booking",
+      "passed": true,
+      "http_status": 200
+    }
+  ],
+  "cleanup": {
+    "storage_objects_removed": true,
+    "test_payments_removed": true,
+    "disposable_auth_removed": true,
+    "disposable_society_facility_resident_removed": true
+  },
+  "unexpected_action_response": {
+    "http_status": 200,
+    "action": "book",
+    "created_booking": true
+  },
+  "result": "passed",
+  "passed": true
+}

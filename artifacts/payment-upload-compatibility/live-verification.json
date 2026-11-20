@@ -1,0 +1,9 @@
+{
+  "live_assertions_passed": 16,
+  "test_execution": "All functional checks in check-live.py passed; the first database cleanup timed out and this scoped cleanup completed it.",
+  "cleanup_completed": true,
+  "fixture_objects_remaining_at_cleanup": 0,
+  "disposable_societies_removed": 1,
+  "disposable_auth_accounts_removed": 1,
+  "real_money_transferred": false
+}

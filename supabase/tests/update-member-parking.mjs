@@ -53,8 +53,8 @@ response=await run({fullName:'Renamed'});assert.equal(response.status,200);asser
 response=await run({phone:'9000000000'});assert.equal(response.status,200);assert.equal(contact.phone,'9000000000');
 const beforeDuplicatePhone=writes;
 response=await run({phone:'9000000001',status:true});
-assert.equal(response.status,400);assert.equal(response.body.message,CONTACT_PHONE_DUPLICATE_MESSAGE);
-assert.equal(writes,beforeDuplicatePhone);assert.equal(member.status,undefined);
+assert.equal(response.status,200);assert.equal(contact.phone,'9000000001');
+assert.ok(writes>beforeDuplicatePhone);assert.equal(member.status,true);
 response=await run({phone:'9000000002'});assert.equal(response.status,200);
 for(const value of [null,' ']){response=await run({parkingSlot:value});assert.equal(response.status,200);assert.equal(contact.parking_slot,null);assert.equal(response.body.data.updatedMember.updatedData.parkingSlot,null)}
 const before=writes;response=await run({parkingSlot:123,status:true});assert.equal(response.status,400);assert.equal(writes,before);

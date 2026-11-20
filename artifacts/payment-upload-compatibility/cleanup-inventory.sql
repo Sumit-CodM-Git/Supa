@@ -1,0 +1,3 @@
+SELECT jsonb_build_object(
+ 'societies',(SELECT jsonb_agg(jsonb_build_object('society_id',s.society_id,'registration',s.registration_number,'residents',(SELECT jsonb_agg(jsonb_build_object('user_id',u.user_id,'contact_id',u.contact,'auth_id',(SELECT a.id FROM auth.users a WHERE a.raw_user_meta_data->>'user_id'=u.user_id::text LIMIT 1))) FROM public."SSP_Society_User" u WHERE u.society=s.society_id),'objects',(SELECT jsonb_agg(name) FROM storage.objects o WHERE o.bucket_id='society-documents' AND split_part(o.name,'/',1)=s.registration_number))) FROM public."SSP_Society" s WHERE s.registration_number LIKE 'COMPAT-CHECK-%')
+) AS fixtures;

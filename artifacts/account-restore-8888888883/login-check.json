@@ -1,0 +1,7 @@
+{
+  "endpoint": "get-otp",
+  "http_status": 200,
+  "otp_returned": true,
+  "userType": "society_user",
+  "errorCode": null
+}

@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-17",
+  "project": "isrqhkshygauaehwfycw",
+  "function": {
+    "slug": "send-notification",
+    "status": "ACTIVE",
+    "version": 36,
+    "verify_jwt": false,
+    "updated_at": 1794895268954
+  },
+  "database_migration_applied": true,
+  "live_database_checks": {
+    "passed": true,
+    "plans": [
+      "FREE",
+      "PREMIUM"
+    ],
+    "checks": [
+      "non-Premium bypass without setting is_otp_verified",
+      "Premium gated until verification",
+      "resident notification created",
+      "deduplication",
+      "phone change resets verification"
+    ],
+    "fixtures_rolled_back": true
+  },
+  "live_http_checks": [
+    {
+      "endpoint": "send-notification",
+      "status": 200,
+      "response": {
+        "success": true,
+        "skipped": true,
+        "reason": "already processed"
+      }
+    }
+  ],
+  "push_sent": false,
+  "limitations": [
+    "STARTER and GROWTH tested locally; no live residents on these plans",
+    "No real device push delivery test"
+  ]
+}

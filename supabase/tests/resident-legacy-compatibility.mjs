@@ -14,7 +14,7 @@ for(const name of ['get-residents-profile','resident-profile-console']){
  const old=build(original(name)),updated=build(current(name));
  for(const contact of [null,{name:'Resident',phone:'9000000000',parking_slot:'P1'},[{name:'Resident',phone:'9000000000'}]]){
   const row={user_id:'resident',unit_flat_number:'101',role:['resident'],status:true,contact,SSP_Block:{block_name:'A'},SSP_Tower:{name:'T'},flat_type_id:'type',flatTypeRecord:{flat_type:'2 BHK'}};
-  assert.deepEqual(withoutNewFields(updated(row,{})),old(row,{}));
+  assert.deepEqual(updated(row,{}),old(row,{}));
  }
 }
 const society={society_id:'society',registration_number:'TEST',society_name:'Test'};
@@ -31,6 +31,6 @@ function load(source){let handler;const js=stripTypeScriptTypes(source.replace(/
 const old=load(original('get-members')),updated=load(current('get-members'));
 for(const extras of [{},{flat:'101'},{search:'Beta'},{status:'active'},{page:2,limit:1},{role:'vendor'},{role:'resident',block:'A',tower:'T'}]){
  const payload={registrationNumber:'TEST',role:'resident',...extras};const before=await old(payload),after=await updated(payload);
- assert.equal(before.status,200,JSON.stringify(before));assert.equal(after.status,200,JSON.stringify(after));assert.deepEqual(withoutNewFields(after.body),before.body);
+ assert.equal(before.status,200,JSON.stringify(before));assert.equal(after.status,200,JSON.stringify(after));assert.deepEqual(after.body,before.body);
 }
 console.log('Legacy compatibility passed: pre-change profile payloads and member list/search/filter/pagination/vendor responses preserved, with only additive flat-type fields.');

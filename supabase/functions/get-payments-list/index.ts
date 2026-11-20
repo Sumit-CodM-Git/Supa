@@ -1,3 +1,4 @@
+import { facilityPaymentApprovals } from "../_shared/facility-payment-status.ts";
 import { contactParkingSlot } from "../_shared/contact.ts";
 import { isPaymentStaffRole } from "../_shared/payment-access.ts";
 import { createReceiptSignedUrl } from "../_shared/receipt-storage.ts";
@@ -184,6 +185,7 @@ interface GetPaymentsPayload {
 }
 
 interface PaymentRecord {
+  pay_rec_id: string;
   payment_id: string;
   amount: number | string | null;
   due_date: string | null;
@@ -410,6 +412,8 @@ if (searchText && searchText.trim() !== "") {
     const { data: paymentRecords, count: totalCount, error: paymentError } = await query;
     if (paymentError) throw new ApiError("SERVER_ERROR", `SSP_Payment processing lookup failed: ${paymentError.message}`, 500);
 
+    const approvals = await facilityPaymentApprovals(supabase, (paymentRecords ?? []).map((p: any) => p.pay_rec_id));
+
     // 7. FORMAT OUTPUT PAYLOAD
     const formattedRecords = await Promise.all(((paymentRecords ?? []) as unknown as PaymentRecord[]).map(async (p) => {
       const userContext = p.society_user;
@@ -437,6 +441,7 @@ if (searchText && searchText.trim() !== "") {
         paymentID: p.payment_id ?? "N/A",
         paymentMethod: p.payment_method ?? "N/A",
         paymentStatus: p.payment_status ?? "N/A",
+        approvalStatus: approvals.get(p.pay_rec_id) ?? null,
         paymentType: p.payment_type ?? "N/A",
         receiptInfo: p.receipt_information ?? "N/A",
         transactionID: p.transaction_id ?? "N/A",

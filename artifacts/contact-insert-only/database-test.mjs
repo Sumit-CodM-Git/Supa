@@ -1,0 +1,16 @@
+import {PGlite} from '/private/tmp/ssp-availability-sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const db=new PGlite();
+await db.exec('CREATE TABLE public."SSP_Contact"(contact_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),society uuid,phone text,name text);');
+await db.exec(readFileSync('supabase/migrations/20261117190000_contact_phone_insert_only.sql','utf8'));
+const a='00000000-0000-4000-8000-000000000001',b='00000000-0000-4000-8000-000000000002';
+await db.query('INSERT INTO "SSP_Contact"(society,phone) VALUES ($1,$2)',[a,'9000000000']);
+for(const phone of ['9000000000',' 9000000000 ']) await assert.rejects(()=>db.query('INSERT INTO "SSP_Contact"(society,phone) VALUES ($1,$2)',[a,phone]),err=>err.code==='23505' && err.message==='Contact record already present, use a different phone.');
+await db.query('INSERT INTO "SSP_Contact"(society,phone) VALUES ($1,$2)',[b,'9000000000']);
+await db.query('INSERT INTO "SSP_Contact"(society,phone) VALUES ($1,$2)',[a,'9000000001']);
+await db.query('UPDATE "SSP_Contact" SET phone=$1 WHERE phone=$2',['9000000000','9000000001']);
+await db.query('INSERT INTO "SSP_Contact"(society,phone) VALUES ($1,NULL),($1,NULL),($1,\'\'),($1,\'\')',[a]);
+assert.equal((await db.query('SELECT count(*)::int AS n FROM "SSP_Contact"')).rows[0].n,7);
+console.log('Insert-only database tests passed: duplicate and trimmed duplicate blocked, cross-society allowed, existing-contact update allowed, blank/null preserved.');
+await db.close();

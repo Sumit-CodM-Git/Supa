@@ -1,0 +1,6 @@
+{
+  "endpoint": "resident-facility-booking",
+  "version": 42,
+  "status": "ACTIVE",
+  "verify_jwt_preserved": true
+}

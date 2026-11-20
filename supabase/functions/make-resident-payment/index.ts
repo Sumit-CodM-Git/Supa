@@ -1,3 +1,4 @@
+import { confirmResidentPaymentProof, facilityPaymentApprovals } from "../_shared/facility-payment-status.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -150,7 +151,6 @@ function buildErrorResponse(code: string, message: string, statusCode: number) {
 }*/
 
 import { createClient } from "npm:@supabase/supabase-js@^2.48.0";
-import { receiptExists } from "../_shared/receipt-storage.ts";
 import { Validator } from "../_shared/validation.ts";
 import { sanitizePagination } from "../_shared/sanitizer.ts";
 import { corsHeaders } from "../_shared/response.ts";
@@ -300,50 +300,18 @@ Deno.serve(async (req: Request) => {
       : "";
     const paymentRecordUuid = currentPayment.pay_rec_id;
 
-    const needsUnderReview =
-      statusVal === "UNPAID" || statusVal === "REJECTED" || statusVal === "";
 
     if (actionType === "CONFIRM_RECEIPT_UPLOAD") {
-      const { data: documents, error: documentError } = await supabase
-        .from("SSP_Document")
-        .select("s3_path")
-        .eq("payment", paymentRecordUuid)
-        .eq("society", societyId);
-      if (documentError) {
-        throw new ApiError("SERVER_ERROR", `Receipt lookup failed: ${documentError.message}`, 500);
-      }
-
-      const paths = [
-        currentPayment.receipt_url,
-        ...(documents ?? []).map((document: { s3_path: string | null }) => document.s3_path),
-      ].filter((path): path is string => typeof path === "string" && !!path.trim());
-      const uploaded = await Promise.all(paths.map((path) => receiptExists(supabase, path)));
-      if (!uploaded.some(Boolean)) {
-        throw new ApiError("CONFLICT", "Receipt upload is incomplete. Upload the image before confirming payment.", 409);
-      }
-
-      if (needsUnderReview) {
-        let updateQuery = supabase
-          .from("SSP_Payment")
-          .update({ payment_status: "UNDER REVIEW" })
-          .eq("pay_rec_id", paymentRecordUuid)
-          .eq("society_user", cleanResidentId);
-        updateQuery = currentPayment.payment_status === null
-          ? updateQuery.is("payment_status", null)
-          : updateQuery.eq("payment_status", currentPayment.payment_status);
-        const { error: updateErr } = await updateQuery;
-
-        if (updateErr) {
-          throw new ApiError("SERVER_ERROR", `Payment status update failed: ${updateErr.message}`, 500);
-        }
-      }
+      const confirmed = await confirmResidentPaymentProof(supabase, paymentRecordUuid, cleanResidentId);
+      if (confirmed.http_status) throw new ApiError(confirmed.http_status === 404 ? "NOT_FOUND" : "CONFLICT", confirmed.message ?? "Unable to confirm receipt.", confirmed.http_status);
 
       const responsePayload = {
         paymentSubmission: {
           submitted: true,
           receiptUploadStatus: "uploaded",
           paymentRecordId: paymentRecordUuid,
-          status: needsUnderReview ? "UNDER REVIEW" : statusVal,
+          status: confirmed.payment_status,
+          approvalStatus: confirmed.approval_status,
         },
         errorResponse: null,
       };
@@ -417,7 +385,8 @@ Deno.serve(async (req: Request) => {
       paymentSubmission: {
         submitted: true,
         paymentRecordId: paymentRecordUuid,
-        status: statusVal,
+        status: statusVal === "SUCCESSFUL" ? "Successful" : statusVal,
+        approvalStatus: (await facilityPaymentApprovals(supabase, [paymentRecordUuid])).get(paymentRecordUuid) ?? null,
         receiptUploadStatus: uploadPresignedUrl ? "pending_upload" : "not_provided",
       },
       uploadUrl: uploadPresignedUrl,

@@ -1,0 +1,9 @@
+{
+  "project": "isrqhkshygauaehwfycw",
+  "functions": [
+    "verify-razorpay-payment",
+    "razorpay-webhook"
+  ],
+  "migration_applied": true,
+  "date": "2026-11-17"
+}

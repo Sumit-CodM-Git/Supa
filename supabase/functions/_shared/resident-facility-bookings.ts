@@ -5,6 +5,7 @@ export interface ResidentFacilityBooking {
   created_at: string | null;
   status: string | null;
   booking_status: string | null;
+  approval_status?: string | null;
   booking_start_date: string | null;
   booking_end_date: string | null;
   payment_status: string | null;
@@ -80,9 +81,16 @@ export async function loadResidentFacilityBookings(
 
 /** Preserve the legacy resident list item fields and use each booking's payment. */
 export function formatResidentFacilityBooking(row: ResidentFacilityBooking) {
+  const paymentStatus = String(row.payment_status ?? "").trim().toLowerCase();
+  const requestStatus = String(row.status ?? "").trim().toLowerCase();
+  const awaitingAdminDecision = row.recordType === "request" &&
+    ["successful", "paid"].includes(paymentStatus) &&
+    ["pending_verification", "requested"].includes(requestStatus);
+  const requestedStatus = awaitingAdminDecision ? "requested" : null;
   return {
     facilityName: row.SSP_Facility?.name ?? null,
-    bookingStatus: row.booking_status ?? null,
+    bookingStatus: requestedStatus ?? row.booking_status ?? null,
+    approvalStatus: requestedStatus ?? (row.recordType === "request" ? row.status ?? row.booking_status : row.approval_status ?? row.status),
     startDateTime: row.booking_start_date ?? null,
     endDateTime: row.booking_end_date ?? null,
     paymentStatus: row.payment_status ?? null,

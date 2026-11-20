@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "engine": "local PostgreSQL/PGlite",
+  "productionChanged": false,
+  "matrix": [
+    {
+      "plan_code": "FREE",
+      "feature_code": "VISITOR_APPROVAL",
+      "enabled": true
+    },
+    {
+      "plan_code": "GROWTH",
+      "feature_code": "VISITOR_APPROVAL",
+      "enabled": true
+    },
+    {
+      "plan_code": "PREMIUM",
+      "feature_code": "VISITOR_APPROVAL",
+      "enabled": true
+    },
+    {
+      "plan_code": "PREMIUM",
+      "feature_code": "VISITOR_OTP",
+      "enabled": true
+    },
+    {
+      "plan_code": "STARTER",
+      "feature_code": "VISITOR_APPROVAL",
+      "enabled": true
+    }
+  ]
+}

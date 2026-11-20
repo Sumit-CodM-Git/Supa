@@ -1,6 +1,6 @@
+import { confirmResidentPaymentProof, facilityPaymentApprovals } from "../_shared/facility-payment-status.ts";
 import {
   createReceiptSignedUrl,
-  receiptExists,
 } from "../_shared/receipt-storage.ts";
 import { requireAuth, type AuthContext } from "../_shared/auth.ts";
 import {
@@ -99,6 +99,22 @@ function firstOrNull<T>(arr: T | T[] | null | undefined): T | null {
   if (!arr) return null;
   if (Array.isArray(arr)) return arr.length > 0 ? arr[0] : null;
   return arr;
+}
+
+// The merged endpoint keeps its success/data contract and exposes the former
+// make-resident-payment upload fields for clients still using that parser.
+function paymentUploadResponse(payload: Record<string, unknown>): Response {
+  return new Response(JSON.stringify({
+    success: true,
+    data: payload,
+    paymentSubmission: payload.paymentSubmission,
+    ...("uploadUrl" in payload ? { uploadUrl: payload.uploadUrl } : {}),
+    ...("documentId" in payload ? { documentId: payload.documentId } : {}),
+    errorResponse: null,
+  }), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
 // ============================================
@@ -238,37 +254,17 @@ Deno.serve(
           .eq("society_user", targetResidentId).maybeSingle();
         if (paymentError) throw paymentError;
         if (!payment) return errorResponse("Target payment record profile instance not found.", 404);
-        const { data: documents, error: documentError } = await supabaseAdmin
-          .from("SSP_Document").select("s3_path")
-          .eq("payment", payment.pay_rec_id).eq("society", society.society_id);
-        if (documentError) throw documentError;
-        const paths = [...new Set<string>([
-          payment.receipt_url,
-          ...(documents ?? []).map((doc: { s3_path: string | null }) => doc.s3_path),
-        ].filter((path): path is string => typeof path === "string" && !!path.trim()))];
-        const checks = await Promise.all(paths.map(path => receiptExists(supabaseAdmin, path)));
-        if (!checks.some(Boolean)) return errorResponse("Receipt upload is incomplete. Upload the image before confirming payment.", 409);
-        const previousStatus = String(payment.payment_status ?? "").trim().toUpperCase();
-        const needsReview = ["UNPAID", "REJECTED", ""].includes(previousStatus);
-        if (needsReview) {
-          let updateQuery = supabaseAdmin.from("SSP_Payment")
-            .update({ payment_status: "UNDER REVIEW" })
-            .eq("pay_rec_id", payment.pay_rec_id)
-            .eq("society_user", targetResidentId);
-          updateQuery = payment.payment_status === null
-            ? updateQuery.is("payment_status", null)
-            : updateQuery.eq("payment_status", payment.payment_status);
-          const { error: updateError } = await updateQuery;
-          if (updateError) throw updateError;
-        }
-        return successResponse(asPayload({
+        const confirmed = await confirmResidentPaymentProof(supabaseAdmin, payment.pay_rec_id, targetResidentId);
+        if (confirmed.http_status) return errorResponse(confirmed.message ?? "Unable to confirm receipt.", confirmed.http_status);
+        return paymentUploadResponse({
           paymentSubmission: {
             submitted: true,
             receiptUploadStatus: "uploaded",
             paymentRecordId: payment.pay_rec_id,
-            status: needsReview ? "UNDER REVIEW" : previousStatus,
+            status: confirmed.payment_status,
+            approvalStatus: confirmed.approval_status,
           },
-        }));
+        });
       }
 
       // =====================================================================
@@ -420,24 +416,23 @@ Deno.serve(
           durationMs: Date.now() - startTime,
         });
 
-        return successResponse(
-          asPayload({
-            paymentSubmission: {
-              submitted: true,
-              paymentRecordId: paymentRecordUuid,
-              status: statusVal,
-              receiptUploadStatus: uploadPresignedUrl ? "pending_upload" : "not_provided",
-            },
-            uploadUrl: uploadPresignedUrl,
-            documentId: documentUuid,
-            pagination: {
-              page: pageNum,
-              limit: limitNum,
-              retrievedRecords: paymentRecords.length,
-              totalRecords: totalRecords ?? paymentRecords.length,
-            },
-          }),
-        );
+        return paymentUploadResponse({
+          paymentSubmission: {
+            submitted: true,
+            paymentRecordId: paymentRecordUuid,
+            status: statusVal === "SUCCESSFUL" ? "Successful" : statusVal,
+            approvalStatus: (await facilityPaymentApprovals(supabaseAdmin, [paymentRecordUuid])).get(paymentRecordUuid) ?? null,
+            receiptUploadStatus: uploadPresignedUrl ? "pending_upload" : "not_provided",
+          },
+          uploadUrl: uploadPresignedUrl,
+          documentId: documentUuid,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            retrievedRecords: paymentRecords.length,
+            totalRecords: totalRecords ?? paymentRecords.length,
+          },
+        });
       }
 
       // =====================================================================
@@ -482,7 +477,7 @@ Deno.serve(
 
         const totalPaidAmount = rawLedger.reduce((acc, p) => {
           const st = (p.payment_status ?? "").trim().toLowerCase();
-          if (["paid", "completed", "success"].includes(st)) {
+          if (["paid", "completed", "success", "successful"].includes(st)) {
             return acc + Number(p.amount ?? 0);
           }
           return acc;
@@ -557,6 +552,8 @@ Deno.serve(
 
         const rawPayments = (pendingList ?? []) as unknown as RawPaymentRow[];
 
+        const approvals = await facilityPaymentApprovals(supabaseAdmin, rawPayments.map(p => p.pay_rec_id));
+
         // ---- Sign receipt URLs ----
         const signedReceipts = await Promise.all(
           rawPayments.map((p) =>
@@ -585,6 +582,7 @@ Deno.serve(
             dueDate: p.due_date ?? "",
             monthPeriod: (p.month_period ?? "").trim(),
             status: (p.payment_status ?? "").trim(),
+            approvalStatus: approvals.get(p.pay_rec_id) ?? null,
             type: (p.payment_type ?? "").trim(), 
             description: descriptionText,        
             receiptUrl: signedReceipts[idx] || null,

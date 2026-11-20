@@ -1,0 +1,43 @@
+{
+  "phone": "8888888883",
+  "society": "GZB-1234-ab",
+  "name": "yoBro",
+  "society_user_id": "120138e3-20d8-4e65-9196-c9e7062c8faa",
+  "login_http_status": 200,
+  "login_roles": [
+    "admin",
+    "resident",
+    "service_agent",
+    "security",
+    "vendor"
+  ],
+  "role_checks": [
+    {
+      "role": "admin",
+      "http_status": 200,
+      "matched": true
+    },
+    {
+      "role": "resident",
+      "http_status": 200,
+      "matched": true
+    },
+    {
+      "role": "service_agent",
+      "http_status": 200,
+      "matched": true
+    },
+    {
+      "role": "security",
+      "http_status": 200,
+      "matched": true
+    },
+    {
+      "role": "vendor",
+      "http_status": 200,
+      "matched": true
+    }
+  ],
+  "vendor_user_id": "9d748c14-27b9-4bd3-9615-862facb21beb",
+  "old_user_removed": true
+}

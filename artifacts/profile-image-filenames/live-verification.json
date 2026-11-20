@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-17",
+  "result": "passed",
+  "checks": [
+    {
+      "step": "contact-linked profile uses actual contactId_profileImage.png; no image uploaded or profile changed",
+      "http_status": 200
+    },
+    {
+      "step": "unauthenticated request",
+      "http_status": 401
+    },
+    {
+      "step": "PREPARE_UPLOAD",
+      "http_status": 200
+    },
+    {
+      "step": "confirm before bytes uploaded",
+      "http_status": 409
+    },
+    {
+      "step": "PUT image bytes",
+      "http_status": 200
+    },
+    {
+      "step": "CONFIRM_UPLOAD",
+      "http_status": 200
+    },
+    {
+      "step": "FETCH",
+      "http_status": 200
+    },
+    {
+      "step": "signed image download, exact byte match",
+      "http_status": 200
+    },
+    {
+      "step": "replace confirmed image",
+      "http_status": 200
+    },
+    {
+      "step": "one new database reference, old storage object deleted, new object readable, no pending cleanup",
+      "result": "passed"
+    }
+  ],
+  "metadata_verified": true,
+  "storage_test_object_removed": true,
+  "temporary_owner_and_metadata_removed": true
+}

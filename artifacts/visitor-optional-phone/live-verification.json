@@ -1,0 +1,56 @@
+{
+  "date": "2026-11-17",
+  "functions": [
+    {
+      "slug": "security-gate-console",
+      "version": 37,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "slug": "send-notification",
+      "version": 37,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "slug": "visitor-pass-operations",
+      "version": 42,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    }
+  ],
+  "migration": "20261117160000_optional_phone_nonpremium_walkins.sql",
+  "live_database_checks": {
+    "passed": true,
+    "nonpremium_phone_null_otp_false": true,
+    "premium_requires_otp": true,
+    "preapproved_otp_rule_restored": true,
+    "deduplication": true,
+    "phone_reset": true,
+    "fixtures_rolled_back": true
+  },
+  "http_smoke": {
+    "endpoint": "send-notification",
+    "status": 200,
+    "response": {
+      "success": true,
+      "skipped": true,
+      "reason": "already processed"
+    }
+  },
+  "local_guard_api_checks": "Both endpoints: FREE/STARTER/GROWTH omitted/blank phone accepted; PREMIUM/vendor missing phone rejected; billing errors fail closed",
+  "limitations": [
+    "No real device push test"
+  ],
+  "postman_live_http_verification": {
+    "runner": "Newman",
+    "requests": 16,
+    "assertions": 37,
+    "failed_assertions": 0,
+    "result": "passed",
+    "phone_less_visitors": 8,
+    "all_test_visitors_removed": true,
+    "evidence": "artifacts/visitor-optional-phone/postman/result.json"
+  }
+}

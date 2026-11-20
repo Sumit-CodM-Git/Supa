@@ -1,0 +1,588 @@
+{
+  "info": {
+    "name": "SSP \u2014 Non-Premium Visitor Optional Phone",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Live guard creation tests. Requires a valid security login token and resident IDs. Successful requests create test visitors; remove test records after running. Select a non-Premium resident without active devices to avoid pushes."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://isrqhkshygauaehwfycw.supabase.co/functions/v1"
+    },
+    {
+      "key": "testPrefix",
+      "value": "POSTMAN_OPTIONAL_PHONE_TEST"
+    }
+  ],
+  "item": [
+    {
+      "name": "visitor-pass-operations / non-Premium / phone omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_visitor-pass-operations_omitted\",\n  \"role\": \"visitor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });",
+              "pm.test(\"Visitor phone reflects optional input\", () => pm.expect(body.data.visitor.phone).to.eql(\"\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "visitor-pass-operations / non-Premium / phone null",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_visitor-pass-operations_null\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });",
+              "pm.test(\"Visitor phone reflects optional input\", () => pm.expect(body.data.visitor.phone).to.eql(\"\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "visitor-pass-operations / non-Premium / phone empty",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_visitor-pass-operations_empty\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });",
+              "pm.test(\"Visitor phone reflects optional input\", () => pm.expect(body.data.visitor.phone).to.eql(\"\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "visitor-pass-operations / non-Premium / phone blank",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_visitor-pass-operations_blank\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": \"  \"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });",
+              "pm.test(\"Visitor phone reflects optional input\", () => pm.expect(body.data.visitor.phone).to.eql(\"\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "visitor-pass-operations / non-Premium / phone supplied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_visitor-pass-operations_supplied\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": \"{{testPhone}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });",
+              "pm.test(\"Visitor phone reflects optional input\", () => pm.expect(body.data.visitor.phone).to.eql(pm.environment.get(\"testPhone\")));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "visitor-pass-operations / reject / Premium phone omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{premiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_visitor-pass-operations_Premium_phone_omitted\",\n  \"role\": \"visitor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400 validation preserved\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error response returned\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "visitor-pass-operations / reject / vendor phone omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_visitor-pass-operations_vendor_phone_omitted\",\n  \"role\": \"vendor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400 validation preserved\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error response returned\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "visitor-pass-operations / reject / visitor name omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"role\": \"visitor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/visitor-pass-operations"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400 validation preserved\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error response returned\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / non-Premium / phone omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_security-gate-console_omitted\",\n  \"role\": \"visitor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / non-Premium / phone null",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_security-gate-console_null\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / non-Premium / phone empty",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_security-gate-console_empty\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / non-Premium / phone blank",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_security-gate-console_blank\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": \"  \"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / non-Premium / phone supplied",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_security-gate-console_supplied\",\n  \"role\": \"visitor\",\n  \"phoneNumber\": \"{{legacyTestPhone}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200: non-Premium visitor created without OTP\", () => pm.response.to.have.status(200));",
+              "const body = pm.response.json();",
+              "pm.test(\"Created visitor ID returned\", () => { pm.expect(body.success).to.eql(true); pm.expect(body.data.visitorId).to.be.a(\"string\"); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / reject / Premium phone omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{premiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_security-gate-console_Premium_phone_omitted\",\n  \"role\": \"visitor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400 validation preserved\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error response returned\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / reject / vendor phone omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"visitorName\": \"{{testPrefix}}_security-gate-console_vendor_phone_omitted\",\n  \"role\": \"vendor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400 validation preserved\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error response returned\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "security-gate-console / reject / visitor name omitted",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"actionType\": \"REQUEST_APPROVAL\",\n  \"societyRegistrationNumber\": \"{{registration}}\",\n  \"societyUserId\": \"{{nonPremiumResidentId}}\",\n  \"securityGuardId\": \"{{guardId}}\",\n  \"role\": \"visitor\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/security-gate-console"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400 validation preserved\", () => pm.response.to.have.status(400));",
+              "pm.test(\"Error response returned\", () => pm.expect(pm.response.json().success).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

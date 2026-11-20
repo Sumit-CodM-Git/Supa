@@ -1,0 +1,97 @@
+{
+  "checks": [
+    {
+      "check": "Disposable test authentication created without sending messages",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Disposable resident app session issued",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Real booking API creates disposable request",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "Payment API prepares signed upload URL",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Actual image bytes upload to signed URL",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "Upload automatically sets UNDER REVIEW without confirmation",
+      "passed": true,
+      "payment_status": "UNDER REVIEW"
+    },
+    {
+      "check": "Payment list returns stored proof image",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Downloaded proof matches uploaded bytes",
+      "passed": true,
+      "http_status": 200,
+      "bytes": 68
+    },
+    {
+      "check": "My Bookings reports submitted payment UNDER REVIEW",
+      "passed": true,
+      "http_status": 200,
+      "booking_status": "pending_verification"
+    },
+    {
+      "check": "Booking stops waiting for payment after proof upload",
+      "passed": true,
+      "booking_status": "pending_verification"
+    },
+    {
+      "check": "Admin can retrieve payment proof",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Admin approves disposable test payment",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "My Bookings shows Paid and Approved",
+      "passed": true,
+      "http_status": 200,
+      "booking_status": "Approved",
+      "payment_status": "Paid"
+    },
+    {
+      "check": "Paid receipt downloads as a PDF",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    }
+  ],
+  "cleanup": {
+    "storage_object_removed": true,
+    "test_payment_removed": true,
+    "disposable_auth_removed": true,
+    "disposable_society_facility_resident_removed": true
+  },
+  "booking": {
+    "request_id": "b4a0614a-0fd0-4afb-a11e-f31ecd8139c5",
+    "payment_id": "PAY-1794984906388-D510AEB8",
+    "amount": 1,
+    "initial_status": "waiting_payment"
+  },
+  "intermediate_booking_status": "pending_verification",
+  "real_money_transferred": false,
+  "result": "passed"
+}

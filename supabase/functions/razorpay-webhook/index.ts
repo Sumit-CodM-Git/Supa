@@ -378,6 +378,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { fetchOrder, verifyWebhookSignature } from "../_shared/razorpay.ts";
 import { logger } from "../_shared/logger.ts";
+import { finalizeSubscriptionPayment } from "../_shared/subscription-payment.ts";
 import { resolveBlockForOrder } from "../_shared/subscription-utils.ts";
 
 interface RazorpayWebhookEvent {
@@ -561,178 +562,23 @@ async function handlePaymentCaptured(
     flatNumber,
   });
 
-  // ─────────────────────────────────────────────
-  // Look up plan
-  // ─────────────────────────────────────────────
-  const { data: planRec } = await supabase
-    .from("SSP_Subscription_Plan")
-    .select("plan_id")
-    .eq("plan_code", planCode)
-    .maybeSingle();
-
-  if (!planRec) throw new Error(`Plan '${planCode}' not found`);
-
-  // ─────────────────────────────────────────────
-  // Insert SSP_Payment
-  // ─────────────────────────────────────────────
-  let paymentRec = progress.paymentRecordId ? { pay_rec_id: progress.paymentRecordId } : null;
-  if (!paymentRec) {
-  const { data: createdPayment, error: paymentErr } = await supabase
-    .from("SSP_Payment")
-    .insert({
-      amount: (payment.amount as number) / 100,
-      payment_status: "paid",
-      payment_type: "subscription",
-      payment_method: "razorpay",
-      payment_id: paymentId,
-      transaction_id: paymentId,
-      society_user: ownerUserId,
-      payment_date: new Date().toISOString(),
-      receipt_information: JSON.stringify({
-        order_id: orderId,
-        payment_id: paymentId,
-        source: "webhook",
-        payment_purpose: paymentPurpose,
-      }),
-    })
-    .select("pay_rec_id")
-    .single();
-
-  if (paymentErr) {
-    throw new Error(`Failed to create payment: ${paymentErr.message}`);
+  if (payment.status !== "captured" || payment.amount !== order.amount) {
+    throw new Error("payment.captured: payment must be captured and match order amount");
   }
-
-  paymentRec = createdPayment;
-  progress.paymentRecordId = paymentRec.pay_rec_id;
+  const result = await finalizeSubscriptionPayment(supabase, {
+    paymentId, orderId, ownerUserId, society, tower, block, flatNumber,
+    planCode, planPriceId, validityMonths, amountPaise: payment.amount as number,
+    billingPeriod: notes.billing_period, paymentPurpose,
+    targetSubscriptionId: renewingSubId,
+    recoverySubscriptionId: progress.subscriptionId,
+    recoveryEndDate: progress.targetEndDate,
+  });
+  progress.subscriptionId = result.subscriptionId;
+  progress.paymentRecordId = result.paymentRecordId;
   await saveProgress();
-  }
-
-  // ─────────────────────────────────────────────
-  // Branch on purpose (mirrors verify-razorpay-payment)
-  // ─────────────────────────────────────────────
-  let subscriptionId: string;
-
-  if (progress.subscriptionId) {
-    subscriptionId = progress.subscriptionId;
-  } else if (paymentPurpose === "renewal" && renewingSubId) {
-    // Extend existing
-    const { data: existing } = await supabase
-      .from("SSP_Subscription")
-      .select("start_date, end_date")
-      .eq("subscription_id", renewingSubId)
-      .single();
-
-    if (!existing) throw new Error("Renewal target subscription not found");
-
-    const now = new Date();
-    const existingEnd = existing.end_date ? new Date(existing.end_date) : null;
-    const baseDate = existingEnd && existingEnd > now ? existingEnd : now;
-    const newEnd = progress.targetEndDate ? new Date(progress.targetEndDate) : new Date(baseDate);
-    if (!progress.targetEndDate) {
-      newEnd.setMonth(newEnd.getMonth() + validityMonths);
-      progress.targetEndDate = newEnd.toISOString();
-      await saveProgress();
-    }
-
-    const { error: writeError1 } = await supabase
-      .from("SSP_Subscription")
-      .update({
-        status: "active",
-        end_date: newEnd.toISOString(),
-        plan_price_id: planPriceId,
-        updated_at: now.toISOString(),
-      })
-      .eq("subscription_id", renewingSubId);
-    if (writeError1) throw writeError1;
-
-    subscriptionId = renewingSubId;
-  } else if (paymentPurpose === "upgrade" && renewingSubId) {
-    // Replace plan
-    const now = new Date();
-    const newEnd = new Date(now);
-    newEnd.setMonth(newEnd.getMonth() + validityMonths);
-
-    const { error: writeError2 } = await supabase
-      .from("SSP_Subscription")
-      .update({
-        plan_id: planRec.plan_id,
-        plan_price_id: planPriceId,
-        status: "active",
-        start_date: now.toISOString(),
-        end_date: newEnd.toISOString(),
-        auto_renew: false,
-        payment_provider: "razorpay",
-        updated_at: now.toISOString(),
-      })
-      .eq("subscription_id", renewingSubId);
-    if (writeError2) throw writeError2;
-
-    subscriptionId = renewingSubId;
-  } else {
-    // NEW subscription
-    const now = new Date();
-    const newEnd = new Date(now);
-    newEnd.setMonth(newEnd.getMonth() + validityMonths);
-
-    const { data: subRec, error: subErr } = await supabase
-      .from("SSP_Subscription")
-      .insert({
-        society,
-        tower,
-        block,
-        flat_number: flatNumber,
-        owner_society_user: ownerUserId,
-        plan_id: planRec.plan_id,
-        plan_price_id: planPriceId,
-        status: "active",
-        start_date: now.toISOString(),
-        end_date: newEnd.toISOString(),
-        auto_renew: false,
-        payment_provider: "razorpay",
-      })
-      .select("subscription_id")
-      .single();
-
-    if (subErr) {
-      throw new Error(`Failed to create subscription: ${subErr.message}`);
-    }
-
-    subscriptionId = subRec.subscription_id;
-  }
-
-  // ─────────────────────────────────────────────
-  // Link payment ↔ subscription
-  // ─────────────────────────────────────────────
-  progress.subscriptionId = subscriptionId;
-  await saveProgress();
-  const { error: linkErr } = await supabase
-    .from("SSP_Subscription_Payment")
-    .insert({
-      subscription_id: subscriptionId,
-      payment: paymentRec.pay_rec_id,
-      provider: "razorpay",
-      provider_order_id: orderId,
-      provider_payment_id: paymentId,
-      provider_signature_verified: true,
-      payment_purpose: paymentPurpose,
-      captured_at: new Date().toISOString(),
-    });
-
-  if (linkErr) {
-    // 23505 = unique violation → client verify already linked
-    if (linkErr.code === "23505") {
-      logger.info({
-        action: "razorpay-webhook",
-        message: `Link already exists for payment ${paymentId}`,
-      });
-      return;
-    }
-    throw new Error(`Failed to link payment: ${linkErr.message}`);
-  }
-
   logger.info({
     action: "razorpay-webhook",
-    message: `payment.captured: activated subscription ${subscriptionId}`,
+    message: `payment.captured: ${result.alreadyProcessed ? "already finalized" : "activated"} subscription ${result.subscriptionId}`,
   });
 }
 

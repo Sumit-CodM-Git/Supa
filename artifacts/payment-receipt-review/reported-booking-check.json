@@ -1,0 +1,25 @@
+{
+  "endpoint": "get-my-facility-bookings",
+  "http_status": 200,
+  "booking": [
+    {
+      "facilityName": "Play store",
+      "bookingStatus": "waiting_payment",
+      "startDateTime": "2026-11-21T07:30:00",
+      "endDateTime": "2026-11-21T08:30:00",
+      "paymentStatus": "unpaid",
+      "paymentMethod": "qr",
+      "capacity": null,
+      "purpose": "Party Place",
+      "facilityBookingId": "8099a302-c161-4541-ac0b-474be6ec7e93",
+      "payRecId": "058097a3-88c7-498f-9664-5ed96f0360d8",
+      "recordType": "request",
+      "requestId": "8099a302-c161-4541-ac0b-474be6ec7e93",
+      "createdAt": "2026-11-18T05:45:35.669918+00:00"
+    }
+  ],
+  "receipt_reference_saved": true,
+  "matching_storage_object_exists": false,
+  "recent_financial_upload_found": false,
+  "live_data_modified": false
+}

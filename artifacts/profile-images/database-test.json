@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "engine": "local PostgreSQL/PGlite",
+  "checks": [
+    "all four owner foreign keys",
+    "one profile per owner",
+    "tenant validation",
+    "private bucket",
+    "5 MB limit",
+    "MIME restriction",
+    "legacy bucket/policy preservation",
+    "client access denial",
+    "creation timestamp preservation",
+    "owner deletion cascade"
+  ],
+  "productionChanged": false
+}

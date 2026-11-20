@@ -1,3 +1,4 @@
+import { facilityPaymentApprovals } from "../_shared/facility-payment-status.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -256,7 +257,7 @@ Deno.serve(
 
       const totalPaidAmount = rawLedger.reduce((acc: number, p: any) => {
         const st = (p.payment_status ?? "").trim().toLowerCase();
-        if (["paid", "completed", "success"].includes(st)) {
+        if (["paid", "completed", "success", "successful"].includes(st)) {
           return acc + Number(p.amount ?? 0);
         }
         return acc;
@@ -318,6 +319,8 @@ Deno.serve(
 
       const rawPayments = pendingList ?? [];
 
+      const approvals = await facilityPaymentApprovals(supabaseAdmin, rawPayments.map((p: any) => p.pay_rec_id));
+
       // 6. Map DTO Response
       const mappedPayments = rawPayments.map((p: any) => {
         const descriptionText =
@@ -332,6 +335,7 @@ Deno.serve(
           dueDate: p.due_date ?? "",
           monthPeriod: (p.month_period ?? "").trim(),
           status: (p.payment_status ?? "").trim(),
+          approvalStatus: approvals.get(p.pay_rec_id) ?? null,
           type: (p.payment_type ?? "").trim(),
           description: descriptionText,
         };

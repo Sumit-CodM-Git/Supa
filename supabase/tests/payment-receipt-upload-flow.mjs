@@ -77,8 +77,9 @@ const residentSubmit = residentSource.indexOf(
 );
 const residentFetch = residentSource.indexOf('if (cleanAction === "FETCH_OWN")');
 assert.ok(residentConfirm >= 0 && residentSubmit > residentConfirm && residentFetch > residentSubmit);
-assert.match(residentSource.slice(residentConfirm, residentSubmit), /receiptExists/);
-assert.match(residentSource.slice(residentConfirm, residentSubmit), /payment_status: "UNDER REVIEW"/);
+assert.match(residentSource.slice(residentConfirm, residentSubmit), /confirmResidentPaymentProof/);
+assert.match(residentSource.slice(residentConfirm, residentSubmit), /status: confirmed.payment_status/);
+assert.match(residentSource.slice(residentConfirm, residentSubmit), /approvalStatus: confirmed.approval_status/);
 assert.doesNotMatch(
   residentSource.slice(residentSubmit, residentFetch),
   /update\(\{ payment_status: "UNDER REVIEW" \}\)/,
@@ -115,4 +116,41 @@ assert.match(getPaymentsSource, /isPaymentStaffRole\(membership\.role\)/);
 assert.doesNotMatch(getPaymentsSource, /GZB-1234-ab/);
 assert.match(getPaymentsSource, /createReceiptSignedUrl/);
 
-console.log("Payment receipt flow checks passed: confirmation gates review, only existing stored images receive signed URLs, and admin retrieval is scoped.");
+// Exercise both response contracts. Legacy clients read uploadUrl directly;
+// merged clients read data.uploadUrl. Both must receive the same signed URL.
+const uploadResponseStart = residentSource.indexOf("function paymentUploadResponse(");
+assert.ok(uploadResponseStart >= 0);
+const uploadResponseSource = residentSource.slice(
+  uploadResponseStart,
+  residentSource.indexOf("// ============================================", uploadResponseStart),
+);
+const paymentUploadResponse = new Function("corsHeaders", `${stripTypeScriptTypes(uploadResponseSource)}; return paymentUploadResponse;`)(
+  { "Access-Control-Allow-Origin": "*" },
+);
+const submissionPayload = {
+  paymentSubmission: { submitted: true, status: "UNPAID", receiptUploadStatus: "pending_upload" },
+  uploadUrl: "https://project.test/upload?token=test",
+  documentId: "document-id",
+  pagination: { page: 1, limit: 10, retrievedRecords: 1, totalRecords: 1 },
+};
+const submissionResponse = paymentUploadResponse(submissionPayload);
+assert.equal(submissionResponse.status, 200);
+assert.equal(submissionResponse.headers.get("Access-Control-Allow-Origin"), "*");
+const submissionJson = await submissionResponse.json();
+assert.deepEqual(submissionJson.data, submissionPayload);
+assert.equal(submissionJson.uploadUrl, submissionJson.data.uploadUrl);
+assert.equal(submissionJson.documentId, submissionJson.data.documentId);
+assert.deepEqual(submissionJson.paymentSubmission, submissionJson.data.paymentSubmission);
+assert.equal(submissionJson.errorResponse, null);
+const confirmedPayload = { paymentSubmission: { status: "UNDER REVIEW", receiptUploadStatus: "uploaded" } };
+const confirmedJson = await paymentUploadResponse(confirmedPayload).json();
+assert.deepEqual(confirmedJson.data, confirmedPayload);
+assert.deepEqual(confirmedJson.paymentSubmission, confirmedPayload.paymentSubmission);
+assert.equal(confirmedJson.errorResponse, null);
+assert.equal("uploadUrl" in confirmedJson, false);
+const noFile = await paymentUploadResponse({ ...submissionPayload, uploadUrl: null, documentId: null }).json();
+assert.equal(noFile.uploadUrl, null);
+assert.equal(noFile.data.uploadUrl, null);
+stripTypeScriptTypes(residentSource); // Parse the complete updated handler.
+
+console.log("Payment receipt flow checks passed: legacy/merged response compatibility, explicit confirmation, stored-image verification, and scoped admin retrieval.");

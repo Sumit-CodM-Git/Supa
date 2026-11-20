@@ -1,4 +1,5 @@
 import { residentFlatTypeFields } from "../_shared/resident-flat-type.ts";
+import { authorizedProfileImageUrls } from "../_shared/profile-images.ts";
 import { contactParkingSlot } from "../_shared/contact.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -900,12 +901,17 @@ Deno.serve(
       // ============================================
       // STEP 9: Return Response with Pagination
       // ============================================
+      const images = body.includeProfileImage === true
+        ? await authorizedProfileImageUrls(supabaseAdmin,authCtx.user.id,society.society_id,items.map(m=>({
+          ownerType:m.recordId ? "non_society_user" as const : "society_user" as const,
+          ownerId:m.recordId || m.memberId,
+        }))) : new Map<string,string>();
       return successResponse({
         total: total,
         page: pageNum,
         limit: limitNum,
         totalPages: Math.ceil(total / limitNum),
-        members: items,
+        members: body.includeProfileImage === true ? items.map(m=>({...m,profileImageUrl:images.get(`${m.recordId?"non_society_user":"society_user"}:${m.recordId||m.memberId}`)??null})) : items,
         filters: {
           role: filters.role,
           flat: filters.flat || null,

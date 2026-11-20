@@ -1,0 +1,45 @@
+{
+  "http_status": 200,
+  "response": {
+    "contact": {
+      "parkingSlot": null,
+      "contactId": "9c1e7831-4f7a-4fca-8408-093274f75be7",
+      "fullName": "yoBro",
+      "phone": "8888888883",
+      "email": "NA",
+      "whatsAppPhone": "8888888883",
+      "gender": "male",
+      "emergencyPhone": "NA",
+      "occupation": "Facility support specialist (demo)",
+      "vehicleType": "none",
+      "vehicleRegistrationNumber": "NA",
+      "idProofType": "driving_license",
+      "idProofNumber": "DEMO-YOBRO-001",
+      "societyId": "74628c82-7e11-4f5a-952a-d062193b3fb9"
+    },
+    "societyUser": {
+      "role": "Resident",
+      "blockName": "Alpha",
+      "towerName": "Ashwairyam",
+      "flatTypeId": "656586be-0f92-4e27-af5f-b86f2ec85704",
+      "flatType": "2_bhk",
+      "unitFlatNumber": "101",
+      "status": "Active",
+      "moveInDate": "2026-11-01",
+      "moveOutDate": null,
+      "ownershipType": "primary",
+      "userType": "owner"
+    },
+    "SocietyAddress": {
+      "addressLine1": "Sector 98",
+      "addressLine2": "City Center",
+      "country": "India",
+      "city": "Noida",
+      "state": "Uttar Pradesh",
+      "postalCode": "232124"
+    },
+    "serviceAgent": null,
+    "vendor": null,
+    "errorResponse": null
+  }
+}

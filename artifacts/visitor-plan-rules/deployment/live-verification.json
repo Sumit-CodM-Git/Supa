@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "endpoint": "get-dashboard",
+      "http_status": 200,
+      "features": {
+        "visitorTabEnabled": true,
+        "visitorDashboardCardEnabled": true,
+        "visitorOtpEnabled": true
+      }
+    },
+    {
+      "endpoint": "security-gate-console",
+      "http_status": 200
+    },
+    {
+      "endpoint": "visitor-pass-operations",
+      "http_status": 200
+    },
+    {
+      "endpoint": "resident-visitor",
+      "http_status": 200,
+      "expected": 200
+    },
+    {
+      "endpoint": "send-notification",
+      "http_status": 200,
+      "response": {
+        "success": true,
+        "skipped": true,
+        "reason": "already processed"
+      }
+    }
+  ],
+  "visitor_created": false,
+  "notification_sent": false
+}

@@ -1,0 +1,19 @@
+{
+  "updated_rows": [
+    [
+      3,
+      "9"
+    ]
+  ],
+  "jsonc_examples_validated": 19,
+  "unrelated_parts_preserved": true,
+  "deployment": {
+    "migration": "20261118170000",
+    "migration_applied": true,
+    "endpoint": "resident-facility-booking",
+    "version": 41,
+    "status": "ACTIVE",
+    "verify_jwt_preserved": true
+  },
+  "live_verification": true
+}

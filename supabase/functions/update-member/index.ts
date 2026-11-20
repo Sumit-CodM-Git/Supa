@@ -1,7 +1,5 @@
 import { resolveResidentFlatType, residentFlatTypeFields, ResidentFlatTypeError } from "../_shared/resident-flat-type.ts";
 import {
-  CONTACT_PHONE_DUPLICATE_MESSAGE,
-  contactPhoneAlreadyExists,
   normalizeParkingSlot,
 } from "../_shared/contact.ts";
 /* import { requireAuth } from "../_shared/auth.ts";
@@ -998,27 +996,6 @@ Deno.serve(
       }
 
       const societyId = memberRecord.society as string;
-
-      const requestedPhone = updatedData.phone == null
-        ? ""
-        : String(updatedData.phone).trim();
-      if (
-        requestedPhone &&
-        memberRecord.contact &&
-        await contactPhoneAlreadyExists(
-          supabaseAdmin,
-          societyId,
-          requestedPhone,
-          memberRecord.contact,
-        )
-      ) {
-        return buildUpdateErrorResponse(
-          "DUPLICATE_CONTACT_PHONE",
-          CONTACT_PHONE_DUPLICATE_MESSAGE,
-          400,
-          startTime,
-        );
-      }
 
       // ── 5. Build society user update payload ──
       const societyUserUpdatePayload: Record<string, unknown> = {};

@@ -1,3 +1,4 @@
+import { authorizedProfileImageUrls } from "../_shared/profile-images.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -381,8 +382,11 @@ Deno.serve(
 
         if (fetchErr) throw fetchErr;
 
+        const profileImages = requestObj.includeProfileImage === true
+          ? await authorizedProfileImageUrls(supabaseAdmin,authCtx.user.id,society.society_id,(records??[]).map((v:any)=>({ownerType:"non_society_user" as const,ownerId:v.non_society_user_id}))) : new Map<string,string>();
         const mappedVendors = (records ?? []).map((v: any) => ({
           recordId: v.non_society_user_id,
+          ...(requestObj.includeProfileImage === true ? {profileImageUrl:profileImages.get(`non_society_user:${v.non_society_user_id}`)??null} : {}),
           vendorId: v.vendor_id || null,
           name: v.name || "",
           phoneNumber: v.phone_number || "",

@@ -1,0 +1,10 @@
+{
+  "project_ref": "isrqhkshygauaehwfycw",
+  "migration_version": "20261118120000",
+  "requests_repaired": 6,
+  "deployed": true,
+  "local_sql_tests": "passed",
+  "live_http_test": "passed: disposable booking API, real proof PUT, resident/admin proof retrieval, UNDER REVIEW plus pending_verification, admin payment approval, Paid plus Approved in My Bookings, and PDF receipt download; all test fixtures removed. Other listing endpoints were source-reviewed rather than separately live-tested",
+  "real_money_transferred": false,
+  "test_checks_passed": 14
+}

@@ -1,0 +1,13 @@
+{
+  "created_at": 1794897624368,
+  "entrypoint_path": "file:///tmp/user_fn_isrqhkshygauaehwfycw_9244ccbb-4f74-4d13-b3c7-acc0a853d86f_1/source/supabase/functions/profile-images/index.ts",
+  "ezbr_sha256": "411c65adc3a111bb1b734ee35996e4df65b39ebde2b49590bac29d0bd730528e",
+  "id": "9244ccbb-4f74-4d13-b3c7-acc0a853d86f",
+  "import_map": false,
+  "name": "profile-images",
+  "slug": "profile-images",
+  "status": "ACTIVE",
+  "updated_at": 1794897624368,
+  "verify_jwt": false,
+  "version": 1
+}

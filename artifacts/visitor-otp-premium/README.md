@@ -1,0 +1,1 @@
+Historical evidence for the earlier broad 2026-11-17 change. Superseded by artifacts/visitor-optional-phone and migration 20261117160000_optional_phone_nonpremium_walkins.sql. Do not rerun the historical deployment/workbook scripts as the current contract.

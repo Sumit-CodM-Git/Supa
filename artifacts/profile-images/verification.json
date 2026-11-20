@@ -1,0 +1,10 @@
+{
+  "profile_api_and_permissions": "passed",
+  "opt_in_reader_compatibility": "passed",
+  "legacy_profile_and_member_payloads": "passed",
+  "visitor_photo_regression": "passed",
+  "dashboard_parking_regression": "passed",
+  "migration_local_postgresql": "passed",
+  "production_changed": false,
+  "deployed": false
+}

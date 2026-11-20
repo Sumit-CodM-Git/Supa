@@ -1,0 +1,68 @@
+{
+  "checks": [
+    {
+      "check": "Security login OTP",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Security authentication",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Generate Premium visitor OTP",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "OTP saved and initially unverified",
+      "passed": true
+    },
+    {
+      "check": "Incorrect OTP rejected",
+      "passed": true,
+      "http_status": 400,
+      "message": "Invalid OTP provided. Please try again."
+    },
+    {
+      "check": "Correct OTP verified",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Verified flag persisted and OTP cleared",
+      "passed": true
+    },
+    {
+      "check": "Unnamed visitor does not request approval",
+      "passed": true
+    },
+    {
+      "check": "No resident notification generated",
+      "passed": true
+    },
+    {
+      "check": "Non-Premium OTP access rejected",
+      "passed": true,
+      "http_status": 402,
+      "resident_plan": "FREE"
+    }
+  ],
+  "verification_response": {
+    "success": true,
+    "data": {
+      "visitorId": "7516a0ec-f9f5-468b-ac91-e20f8a2ca4e5",
+      "phoneNumber": "7006892912",
+      "name": null,
+      "visitorName": null,
+      "message": "OTP verified successfully.",
+      "otpVerified": true,
+      "isNewVisitor": true,
+      "nextStep": "COMPLETED",
+      "requiresVisitorDetails": true
+    }
+  },
+  "result": "passed",
+  "test_visitor_removed": true
+}

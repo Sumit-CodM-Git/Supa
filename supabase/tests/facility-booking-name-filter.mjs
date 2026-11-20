@@ -85,4 +85,11 @@ assert.equal((await run({facilityName:'Party Hall',searchQuery:'Resident One'}))
 assert.equal((await run({facilityName:'Party Hall',searchQuery:'Swimming Pool'})).body.total,0);
 assert.equal((await run({facilityName:'Pool 100%_ (East), "A"'})).body.total,1);
 assert.ok(calls.some(query=>query.table==='SSP_Facility_Booking_Request'));
+requests.push(row('r4','Party Hall','hall','pending_verification','p6','2026-11-12T10:00:00Z',society,true));
+response=await run({facilityName:'Party Hall',status:'requested'});
+assert.equal(response.body.total,3);
+assert.equal(response.body.pending,3);
+const paymentPendingRequest=response.body.bookings.find(row=>row.bookingId==='r4');
+assert.equal(paymentPendingRequest.approvalStatus,'requested');
+assert.equal(paymentPendingRequest.bookingStatus,'requested');
 console.log('Facility-name filter passed: exact/case/space matching, both record sources, deduplication, society isolation, status, dates, search, pagination, wildcard literals, unknown/empty/all/invalid values and legacy ID compatibility.');

@@ -1,0 +1,27 @@
+{
+  "checks": [
+    {
+      "endpoint": "visitor-pass-operations",
+      "http_status": 200
+    },
+    {
+      "endpoint": "security-gate-console",
+      "http_status": 200
+    },
+    {
+      "endpoint": "resident-visitor",
+      "http_status": 200
+    },
+    {
+      "endpoint": "send-notification",
+      "http_status": 200
+    }
+  ],
+  "subscriptionPlans": [
+    "PREMIUM"
+  ],
+  "database_functions_restored": true,
+  "feature_settings_restored": true,
+  "visitor_created": false,
+  "notification_sent": false
+}

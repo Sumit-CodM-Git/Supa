@@ -1,0 +1,15 @@
+{
+  "restored_accounts": 1,
+  "changed_field": "deleted_at",
+  "account": {
+    "deleted_at": null,
+    "role": [
+      "admin",
+      "resident",
+      "service_agent",
+      "security"
+    ],
+    "status": true,
+    "user_id": "120138e3-20d8-4e65-9196-c9e7062c8faa"
+  }
+}

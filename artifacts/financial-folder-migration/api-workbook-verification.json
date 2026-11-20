@@ -1,0 +1,57 @@
+{
+  "updated_rows": [
+    [
+      1,
+      "17",
+      "admin-payments-console"
+    ],
+    [
+      1,
+      "18",
+      "resident-payments-console"
+    ],
+    [
+      2,
+      "51",
+      "generate-payment-receipt"
+    ],
+    [
+      2,
+      "60",
+      "verify-payment"
+    ],
+    [
+      3,
+      "5",
+      "get-facility-bookings"
+    ],
+    [
+      3,
+      "9",
+      "resident-facility-booking"
+    ],
+    [
+      3,
+      "19",
+      "get-payments-list"
+    ],
+    [
+      3,
+      "23",
+      "make-resident-payment"
+    ],
+    [
+      3,
+      "27",
+      "generate-payment-receipt"
+    ]
+  ],
+  "endpoint_count": 8,
+  "jsonc_examples_validated": 51,
+  "unrelated_package_parts_preserved": true,
+  "bucket": "society-documents",
+  "proof_folder": "<SOCIETY_REGISTRATION_NUMBER>/financial/",
+  "generated_pdf_folder": "receipts/",
+  "edge_function_changes": false,
+  "redeployed": false
+}

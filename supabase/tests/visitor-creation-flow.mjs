@@ -2,9 +2,10 @@ import {visitorTimeISTISO} from '../functions/_shared/visitor-time.ts';
 import {visitorDateOtp} from "../functions/_shared/visitor-otp-date.ts";
 // Run: node supabase/tests/visitor-creation-flow.mjs
 import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {stripTypeScriptTypes} from 'node:module';
-import {hasVisitorName,readVisitorName,findVisitorDraft,isVisitorOtpDraft,canCompleteVisitorDetails,VisitorDraftError,canVerifyVisitorOtp,findPendingVisitorForOtp} from '../functions/_shared/visitor-drafts.ts';
+import {canOmitVisitorPhone,hasVisitorName,readVisitorName,findVisitorDraft,isVisitorOtpDraft,canCompleteVisitorDetails,VisitorDraftError,canVerifyVisitorOtp,findPendingVisitorForOtp} from '../functions/_shared/visitor-drafts.ts';
 const rows=[];
 let failWrites=false;
+let residentPlan='PREMIUM',planLookupError=false;
 // Evaluate the query expressions used by the real handlers rather than treating
 // every OR as a pending-status filter (which hid approved-visit reuse bugs).
 function splitFilter(value) {
@@ -56,14 +57,14 @@ class Query {
  async maybeSingle(){if(failWrites&&this.op==='update')return{data:null,error:{message:'Simulated database failure'}};const result=this.execute();return{data:result[0]??null,error:result.length>1?{message:'Multiple rows',code:'PGRST116'}:null}}
  then(resolve,reject){return Promise.resolve({data:this.execute(),error:null}).then(resolve,reject)}
 }
-const client={from:table=>new Query(table),rpc:async()=>({data:{VISITOR_OTP:true},error:null})};
+const client={from:table=>new Query(table),rpc:async(name)=>name==='get_current_plan_code'?({data:residentPlan,error:planLookupError?{message:'billing unavailable'}:null}):({data:{VISITOR_OTP:true},error:null})};
 const success=data=>new Response(JSON.stringify({success:true,data}));
 const failure=(message,status=400)=>new Response(JSON.stringify({message}),{status});
 const logger={info(){},warn(){},error(){}};
 class Validator{validateRequired(){return this}isValid(){return true}}
 function load(name){let handler;const src=stripTypeScriptTypes(readFileSync(new URL(`../functions/${name}/index.ts`,import.meta.url),'utf8').replace(/^import\s[\s\S]*?from\s+["'][^"']+["'];?\s*$/gm,''));
- new Function('Deno','createClient','requireAuth','corsHeaders','successResponse','errorResponse','createLogger','injectedLogger','sanitizeString','generateId','getCurrentTimestamp','Validator','findVisitorDraft','isVisitorOtpDraft','canCompleteVisitorDetails','VisitorDraftError','canVerifyVisitorOtp','findPendingVisitorForOtp','visitorDateOtp','contactParkingSlot','hasVisitorName','readVisitorName','visitorTimeISTISO',(name==='visitor-otp'?'const logger=injectedLogger;\n':'')+src)
- ({env:{get:()=>''},serve:fn=>handler=fn},()=>client,fn=>fn,{},success,failure,()=>logger,logger,s=>String(s).trim(),()=>crypto.randomUUID(),()=>new Date().toISOString(),Validator,findVisitorDraft,isVisitorOtpDraft,canCompleteVisitorDetails,VisitorDraftError,canVerifyVisitorOtp,findPendingVisitorForOtp,visitorDateOtp,()=>null,hasVisitorName,readVisitorName,visitorTimeISTISO);
+ new Function('Deno','createClient','requireAuth','corsHeaders','successResponse','errorResponse','createLogger','injectedLogger','sanitizeString','generateId','getCurrentTimestamp','Validator','findVisitorDraft','isVisitorOtpDraft','canCompleteVisitorDetails','VisitorDraftError','canVerifyVisitorOtp','findPendingVisitorForOtp','visitorDateOtp','contactParkingSlot','hasVisitorName','readVisitorName','visitorTimeISTISO','canOmitVisitorPhone',(name==='visitor-otp'?'const logger=injectedLogger;\n':'')+src)
+ ({env:{get:()=>''},serve:fn=>handler=fn},()=>client,fn=>fn,{},success,failure,()=>logger,logger,s=>String(s).trim(),()=>crypto.randomUUID(),()=>new Date().toISOString(),Validator,findVisitorDraft,isVisitorOtpDraft,canCompleteVisitorDetails,VisitorDraftError,canVerifyVisitorOtp,findPendingVisitorForOtp,visitorDateOtp,()=>null,hasVisitorName,readVisitorName,visitorTimeISTISO,canOmitVisitorPhone);
  return async body=>{const response=await handler(new Request('https://test',{method:'POST',body:JSON.stringify(body)}),{user:{id:'guard'}});return{status:response.status,body:await response.json()}};
 }
 const otp=load('visitor-otp'),security=load('visitor-pass-operations');
@@ -286,3 +287,25 @@ for(const endpoint of [otp,security,gate]){
  assert.notEqual(response.body.success,true);
 }
 console.log('Database name-save failures return errors in all three APIs; no false name-save success.');
+
+// Both guard APIs accept omitted/blank phones only for known non-Premium walk-ins.
+for (const endpoint of ['visitor-pass-operations','security-gate-console']) {
+ const create=load(endpoint);
+ for (const plan of ['FREE','STARTER','GROWTH','PREMIUM']) {
+  residentPlan=plan;
+  for (const missingPhone of [undefined,null,'','  ']) {
+   const before=rows.length;
+   const result=await create({actionType:'REQUEST_APPROVAL',societyRegistrationNumber:'GZB-1234-ab',societyUserId:'host',visitorName:'Optional phone guest',phoneNumber:missingPhone});
+   assert.equal(result.status,plan==='PREMIUM'?400:200,endpoint+' '+plan+' '+JSON.stringify(result.body));
+   assert.equal(rows.length,before+(plan==='PREMIUM'?0:1));
+   if (plan!=='PREMIUM') {assert.equal(rows.at(-1).phone_number,null);assert.equal(rows.at(-1).is_otp_verified,false);}
+  }
+ }
+ residentPlan='FREE';planLookupError=true;
+ const before=rows.length;
+ assert.equal((await create({actionType:'REQUEST_APPROVAL',societyRegistrationNumber:'GZB-1234-ab',societyUserId:'host',visitorName:'Billing failure'})).status,500);
+ assert.equal(rows.length,before);planLookupError=false;
+ assert.equal((await create({actionType:'REQUEST_APPROVAL',societyRegistrationNumber:'GZB-1234-ab',societyUserId:'host',visitorName:'Vendor',role:'vendor'})).status,400);
+}
+residentPlan='PREMIUM';
+console.log('Both guard APIs: non-Premium phone omission/blank values accepted without OTP; Premium, vendor and billing-error validation preserved.');

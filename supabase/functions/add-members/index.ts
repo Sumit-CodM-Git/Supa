@@ -1,7 +1,5 @@
 import { resolveResidentFlatType, ResidentFlatTypeError } from "../_shared/resident-flat-type.ts";
 import {
-  CONTACT_PHONE_DUPLICATE_MESSAGE,
-  contactPhoneAlreadyExists,
   normalizeParkingSlot,
 } from "../_shared/contact.ts";
 // // deno-lint-ignore-file no-explicit-any no-unused-vars prefer-const
@@ -1173,6 +1171,27 @@ async function createContact(
     parkingSlot: parkingSlot ?? null,
   };
 
+  const { data: existingContacts, error: lookupError } = await supabaseAdmin
+    .from("SSP_Contact")
+    .select("contact_id, gender, id_proof_type, vehicle_type, parking_slot")
+    .eq("society", societyId)
+    .eq("phone", phoneOnlyKey)
+    .limit(1);
+  if (lookupError) throw new Error(`Failed to find contact: ${lookupError.message}`);
+  const existingContact = existingContacts?.[0];
+  if (existingContact) {
+    return {
+      contactId: existingContact.contact_id,
+      isNew: false,
+      normalized: {
+        gender: existingContact.gender ?? null,
+        idProofType: existingContact.id_proof_type ?? null,
+        vehicleType: existingContact.vehicle_type ?? null,
+        parkingSlot: existingContact.parking_slot ?? null,
+      },
+    };
+  }
+
   const newContactPayload = {
     parking_slot: parkingSlot ?? null,
     name: data.fullName,
@@ -1602,26 +1621,6 @@ Deno.serve(
 
       // NON-VENDOR
       console.log(`👥 Creating ${memberType}(s) with contact`);
-
-      const phoneSet = new Set<string>();
-
-      for (const m of memberData) {
-        const phone = String(m.phone).trim();
-        if (phoneSet.has(phone)) {
-          return errorResponse(CONTACT_PHONE_DUPLICATE_MESSAGE, 400);
-        }
-        phoneSet.add(phone);
-      }
-
-      if (
-        await contactPhoneAlreadyExists(
-          supabaseAdmin,
-          societyId,
-          [...phoneSet],
-        )
-      ) {
-        return errorResponse(CONTACT_PHONE_DUPLICATE_MESSAGE, 400);
-      }
 
       const results: any[] = [];
 

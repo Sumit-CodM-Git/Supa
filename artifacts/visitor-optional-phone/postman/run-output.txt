@@ -1,0 +1,109 @@
+newman
+
+SSP — Non-Premium Visitor Optional Phone
+
+→ visitor-pass-operations / non-Premium / phone omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [200 OK, 1.74kB, 1714ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+  ✓  Visitor phone reflects optional input
+
+→ visitor-pass-operations / non-Premium / phone null
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [200 OK, 1.73kB, 1500ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+  ✓  Visitor phone reflects optional input
+
+→ visitor-pass-operations / non-Premium / phone empty
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [200 OK, 1.74kB, 1488ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+  ✓  Visitor phone reflects optional input
+
+→ visitor-pass-operations / non-Premium / phone blank
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [200 OK, 1.74kB, 1599ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+  ✓  Visitor phone reflects optional input
+
+→ visitor-pass-operations / non-Premium / phone supplied
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [200 OK, 1.75kB, 1242ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+  ✓  Visitor phone reflects optional input
+
+→ visitor-pass-operations / reject / Premium phone omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [400 Bad Request, 1.43kB, 1472ms]
+  ✓  HTTP 400 validation preserved
+  ✓  Error response returned
+
+→ visitor-pass-operations / reject / vendor phone omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [400 Bad Request, 1.43kB, 651ms]
+  ✓  HTTP 400 validation preserved
+  ✓  Error response returned
+
+→ visitor-pass-operations / reject / visitor name omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/visitor-pass-operations [400 Bad Request, 1.39kB, 727ms]
+  ✓  HTTP 400 validation preserved
+  ✓  Error response returned
+
+→ security-gate-console / non-Premium / phone omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [200 OK, 1.5kB, 1649ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+
+→ security-gate-console / non-Premium / phone null
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [200 OK, 1.49kB, 1261ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+
+→ security-gate-console / non-Premium / phone empty
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [200 OK, 1.49kB, 1586ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+
+→ security-gate-console / non-Premium / phone blank
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [200 OK, 1.5kB, 1610ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+
+→ security-gate-console / non-Premium / phone supplied
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [200 OK, 1.5kB, 1480ms]
+  ✓  HTTP 200: non-Premium visitor created without OTP
+  ✓  Created visitor ID returned
+
+→ security-gate-console / reject / Premium phone omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [400 Bad Request, 1.43kB, 1146ms]
+  ✓  HTTP 400 validation preserved
+  ✓  Error response returned
+
+→ security-gate-console / reject / vendor phone omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [400 Bad Request, 1.43kB, 711ms]
+  ✓  HTTP 400 validation preserved
+  ✓  Error response returned
+
+→ security-gate-console / reject / visitor name omitted
+  POST https://isrqhkshygauaehwfycw.supabase.co/functions/v1/security-gate-console [400 Bad Request, 1.39kB, 674ms]
+  ✓  HTTP 400 validation preserved
+  ✓  Error response returned
+
+┌─────────────────────────┬──────────────────────┬─────────────────────┐
+│                         │             executed │              failed │
+├─────────────────────────┼──────────────────────┼─────────────────────┤
+│              iterations │                    1 │                   0 │
+├─────────────────────────┼──────────────────────┼─────────────────────┤
+│                requests │                   16 │                   0 │
+├─────────────────────────┼──────────────────────┼─────────────────────┤
+│            test-scripts │                   16 │                   0 │
+├─────────────────────────┼──────────────────────┼─────────────────────┤
+│      prerequest-scripts │                    0 │                   0 │
+├─────────────────────────┼──────────────────────┼─────────────────────┤
+│              assertions │                   37 │                   0 │
+├─────────────────────────┴──────────────────────┴─────────────────────┤
+│ total run duration: 20.7s                                            │
+├──────────────────────────────────────────────────────────────────────┤
+│ total data received: 3.91kB (approx)                                 │
+├──────────────────────────────────────────────────────────────────────┤
+│ average response time: 1281ms [min: 651ms, max: 1714ms, s.d.: 371ms] │
+└──────────────────────────────────────────────────────────────────────┘
+

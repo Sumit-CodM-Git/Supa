@@ -1,0 +1,292 @@
+{
+  "blocks": [
+    {
+      "active": true,
+      "block_id": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+      "block_name": "Gaama",
+      "created_at": "2026-05-04T12:25:19+00:00",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower": null
+    },
+    {
+      "active": true,
+      "block_id": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "block_name": "Delta",
+      "created_at": "2026-06-10T15:43:34+00:00",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower": null
+    },
+    {
+      "active": true,
+      "block_id": "42591087-70c8-41a6-81da-0dbdfec725a5",
+      "block_name": "Zeta",
+      "created_at": "2026-07-20T05:29:25.880806+00:00",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower": null
+    },
+    {
+      "active": true,
+      "block_id": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+      "block_name": "Alpha",
+      "created_at": "2026-11-10T11:01:23.656977+00:00",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower": null
+    },
+    {
+      "active": true,
+      "block_id": "63dcfde8-8c75-4ab4-9ec9-571f3d575a87",
+      "block_name": "Beeta",
+      "created_at": "2026-05-04T12:24:51+00:00",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower": null
+    },
+    {
+      "active": true,
+      "block_id": "816715ed-6597-4890-b7a5-5856c570d0d9",
+      "block_name": "Gaurav Block",
+      "created_at": "2026-11-12T11:56:18.801762+00:00",
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "tower": null
+    }
+  ],
+  "columns": [
+    {
+      "column": "block_id",
+      "table": "SSP_Block",
+      "type": "uuid"
+    },
+    {
+      "column": "created_at",
+      "table": "SSP_Block",
+      "type": "timestamp with time zone"
+    },
+    {
+      "column": "active",
+      "table": "SSP_Block",
+      "type": "boolean"
+    },
+    {
+      "column": "society",
+      "table": "SSP_Block",
+      "type": "uuid"
+    },
+    {
+      "column": "tower",
+      "table": "SSP_Block",
+      "type": "uuid"
+    },
+    {
+      "column": "block_name",
+      "table": "SSP_Block",
+      "type": "text"
+    },
+    {
+      "column": "flat_type_id",
+      "table": "SSP_Flat_Type",
+      "type": "uuid"
+    },
+    {
+      "column": "created_at",
+      "table": "SSP_Flat_Type",
+      "type": "timestamp with time zone"
+    },
+    {
+      "column": "flat_type",
+      "table": "SSP_Flat_Type",
+      "type": "text"
+    },
+    {
+      "column": "maintenance_charges",
+      "table": "SSP_Flat_Type",
+      "type": "numeric"
+    },
+    {
+      "column": "society",
+      "table": "SSP_Flat_Type",
+      "type": "uuid"
+    },
+    {
+      "column": "active",
+      "table": "SSP_Flat_Type",
+      "type": "boolean"
+    },
+    {
+      "column": "active",
+      "table": "SSP_Tower",
+      "type": "boolean"
+    },
+    {
+      "column": "created_at",
+      "table": "SSP_Tower",
+      "type": "timestamp with time zone"
+    },
+    {
+      "column": "block",
+      "table": "SSP_Tower",
+      "type": "uuid"
+    },
+    {
+      "column": "tower_id",
+      "table": "SSP_Tower",
+      "type": "uuid"
+    },
+    {
+      "column": "society",
+      "table": "SSP_Tower",
+      "type": "uuid"
+    },
+    {
+      "column": "name",
+      "table": "SSP_Tower",
+      "type": "text"
+    },
+    {
+      "column": "floors",
+      "table": "SSP_Tower",
+      "type": "integer"
+    },
+    {
+      "column": "flats_per_floor",
+      "table": "SSP_Tower",
+      "type": "integer"
+    }
+  ],
+  "flat_contexts": [
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": "44b8c4d9-eb84-4000-8551-eb9bab2bca98",
+      "residents": 1,
+      "tower": null,
+      "unit_flat_number": "1002"
+    },
+    {
+      "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+      "flat_type_id": "656586be-0f92-4e27-af5f-b86f2ec85704",
+      "residents": 1,
+      "tower": "af11cc32-3dfc-4122-a821-5a8b28af7d67",
+      "unit_flat_number": "104"
+    },
+    {
+      "block": null,
+      "flat_type_id": null,
+      "residents": 1,
+      "tower": null,
+      "unit_flat_number": "108"
+    },
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": "656586be-0f92-4e27-af5f-b86f2ec85704",
+      "residents": 1,
+      "tower": "66047a4f-134e-48de-a410-bc67f960a03c",
+      "unit_flat_number": "1230"
+    },
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": "44b8c4d9-eb84-4000-8551-eb9bab2bca98",
+      "residents": 1,
+      "tower": "66047a4f-134e-48de-a410-bc67f960a03c",
+      "unit_flat_number": "19991"
+    },
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": "656586be-0f92-4e27-af5f-b86f2ec85704",
+      "residents": 1,
+      "tower": "66047a4f-134e-48de-a410-bc67f960a03c",
+      "unit_flat_number": "201"
+    },
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": "44b8c4d9-eb84-4000-8551-eb9bab2bca98",
+      "residents": 1,
+      "tower": "66047a4f-134e-48de-a410-bc67f960a03c",
+      "unit_flat_number": "221"
+    },
+    {
+      "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+      "flat_type_id": "656586be-0f92-4e27-af5f-b86f2ec85704",
+      "residents": 1,
+      "tower": "af11cc32-3dfc-4122-a821-5a8b28af7d67",
+      "unit_flat_number": "25030"
+    },
+    {
+      "block": "85d597cf-3eb9-418a-8720-07bf79f0f39d",
+      "flat_type_id": null,
+      "residents": 1,
+      "tower": "af11cc32-3dfc-4122-a821-5a8b28af7d67",
+      "unit_flat_number": "25030"
+    },
+    {
+      "block": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+      "flat_type_id": "656586be-0f92-4e27-af5f-b86f2ec85704",
+      "residents": 1,
+      "tower": "8c1889b7-d311-4535-b7c2-73ad8dceb3c1",
+      "unit_flat_number": "25046"
+    },
+    {
+      "block": "320c186e-1b99-40a0-9a60-e21ca9e8b5b3",
+      "flat_type_id": null,
+      "residents": 1,
+      "tower": "8c1889b7-d311-4535-b7c2-73ad8dceb3c1",
+      "unit_flat_number": "30199"
+    },
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": null,
+      "residents": 1,
+      "tower": "66047a4f-134e-48de-a410-bc67f960a03c",
+      "unit_flat_number": "321"
+    },
+    {
+      "block": null,
+      "flat_type_id": null,
+      "residents": 1,
+      "tower": null,
+      "unit_flat_number": "9999"
+    },
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": null,
+      "residents": 1,
+      "tower": "6e0afa61-6e67-48c5-856e-b0f9b5a6cf94",
+      "unit_flat_number": "GYHH"
+    },
+    {
+      "block": "41719c49-9450-414f-90bb-ea53effd21dc",
+      "flat_type_id": null,
+      "residents": 1,
+      "tower": "6e0afa61-6e67-48c5-856e-b0f9b5a6cf94",
+      "unit_flat_number": "HGHH"
+    }
+  ],
+  "society": {
+    "active": true,
+    "address_line1": "Sector 98",
+    "address_line2": "City Center",
+    "amenities": [
+      "Pool",
+      "Gym",
+      "Swimming Pool",
+      "Club",
+      "Dance"
+    ],
+    "city": "Noida",
+    "country": "India",
+    "covered_parking": 75,
+    "created_at": "2026-05-04T09:53:44+00:00",
+    "description": "NA",
+    "email": "ghaziabad@example.com",
+    "logo_url": "https://isrqhkshygauaehwfycw.supabase.co/storage/v1/object/public/society-documents/GZB-1234-ab/logo/Gaur-City-Logo-1.png",
+    "open_parking": 425,
+    "operation_start_day": "2026-05-04",
+    "parking_slot": "500",
+    "phone_number": "9876543210",
+    "postal_code": "232124",
+    "registration_number": "GZB-1234-ab",
+    "society_id": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+    "society_name": "Gaur City",
+    "state": "Uttar Pradesh",
+    "total_unit": 480,
+    "updated_at": "2026-11-12T13:28:29.319536+00:00",
+    "year_built": "2009"
+  }
+}

@@ -1,5 +1,6 @@
 import { visitorTimeISTISO } from "../_shared/visitor-time.ts";
-import { hasVisitorName, readVisitorName, findVisitorDraft, isVisitorOtpDraft, canCompleteVisitorDetails, VisitorDraftError } from "../_shared/visitor-drafts.ts";
+import { createResidentPlanLookup } from "../_shared/resident-subscription-plan.ts";
+import { canOmitVisitorPhone, hasVisitorName, readVisitorName, findVisitorDraft, isVisitorOtpDraft, canCompleteVisitorDetails, VisitorDraftError } from "../_shared/visitor-drafts.ts";
 import { contactParkingSlot } from "../_shared/contact.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireAuth, AuthContext } from "../_shared/auth.ts";
@@ -181,6 +182,7 @@ interface ProcessedDocument {
 }
 
 interface ResidentByFlat {
+  subscriptionPlan: string | null;
   phoneNumber: string;
   name: string;
   flatNumber: string;
@@ -462,8 +464,12 @@ Deno.serve(
             return errorResponse("Visitor name does not match this visit.", 409);
           }
           const visitorName = suppliedName ?? savedName;
-          const visitorPhone = phone ?? draft?.phone_number;
-          if (!visitorName || !visitorPhone) return errorResponse("visitorName and phone/phoneNumber (or an OTP visitorId) are required.", 400);
+          const visitorPhone = phone ?? draft?.phone_number ?? null;
+          if (!visitorName) return errorResponse("visitorName is required.", 400);
+          if (!visitorPhone && (normalizedRole !== "visitor" || draft?.pre_approved ||
+              !await canOmitVisitorPhone(supabaseAdmin, hostedByUuid, societyId))) {
+            return errorResponse("phone/phoneNumber is required for this resident or visitor role.", 400);
+          }
           const reusable = draft && (isVisitorOtpDraft(draft) || canCompleteVisitorDetails(draft));
           const keepDecision = draft && ["approved", "rejected"].includes(String(draft.visitor_approval_status ?? "").toLowerCase());
           const submitted = draft && !reusable;
@@ -764,6 +770,8 @@ Deno.serve(
               `
               user_id,
               unit_flat_number,
+              subscription_tower:tower,
+              subscription_block:block,
               block:SSP_Block ( block_name ),
               tower:SSP_Tower ( name ),
               contact:SSP_Contact (parking_slot, name, phone )
@@ -795,8 +803,9 @@ Deno.serve(
             );
           }
 
-          const residents: ResidentByFlat[] = (residentRows ?? []).map(
-            (row: Record<string, unknown>) => {
+          const resolvePlan = createResidentPlanLookup(supabaseAdmin,societyId);
+          const residents: ResidentByFlat[] = await Promise.all((residentRows ?? []).map(
+            async (row: Record<string, unknown>) => {
               const rawContact = Array.isArray(row.contact)
                 ? (row.contact[0] as Record<string, unknown> | undefined)
                 : (row.contact as Record<string, unknown> | undefined);
@@ -808,6 +817,7 @@ Deno.serve(
                 : (row.tower as Record<string, unknown> | undefined);
 
               return {
+                subscriptionPlan: await resolvePlan(row),
                 parkingSlot: contactParkingSlot(rawContact),
                 phoneNumber: String(rawContact?.phone ?? ""),
                 name: String(rawContact?.name ?? ""),
@@ -817,7 +827,7 @@ Deno.serve(
                 societyUserId: String(row.user_id ?? ""),
               };
             }
-          );
+          ));
 
           const totalRecords = residentCount ?? residents.length;
 

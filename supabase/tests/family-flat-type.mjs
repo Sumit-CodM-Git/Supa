@@ -7,14 +7,14 @@ const id='00000000-0000-4000-8000-000000000001';
 const tables={SSP_Flat_Type:[{flat_type_id:id,flat_type:'2 BHK',society:'A',active:true}],SSP_Contact:[],SSP_Society_User:[],SSP_Society:[{society_id:'A',society_name:'Alpha'}]};
 class Query {
  constructor(table){this.table=table;this.filters=[]}
- select(){return this}eq(k,v){this.filters.push(r=>r[k]===v);return this}neq(k,v){this.filters.push(r=>r[k]!==v);return this}is(k,v){this.filters.push(r=>(r[k]??null)===v);return this}
+ select(columns){this.columns=columns;return this}eq(k,v){this.filters.push(r=>r[k]===v);return this}neq(k,v){this.filters.push(r=>r[k]!==v);return this}is(k,v){this.filters.push(r=>(r[k]??null)===v);return this}
  order(){return this}range(){return this}limit(){return this}in(k,values){this.filters.push(r=>values.includes(r[k]));return this}
  insert(value){this.value=value;this.op='insert';return this}update(value){this.value=value;this.op='update';return this}
  result(){
   let rows=tables[this.table]??[];
   if(this.op==='insert'){const row={...this.value,user_id:crypto.randomUUID(),contact_id:crypto.randomUUID()};rows.push(row);rows=[row]}
   else{rows=rows.filter(r=>this.filters.every(f=>f(r)));if(this.op==='update')rows.forEach(r=>Object.assign(r,this.value))}
-  rows=rows.map(r=>({...r,contact:tables.SSP_Contact.find(c=>c.contact_id===r.contact)??r.contact,flatTypeRecord:tables.SSP_Flat_Type.find(f=>f.flat_type_id===r.flat_type_id)??null}));
+  rows=rows.map(r=>({...r,contact:this.columns?.includes("contact:SSP_Contact")?(tables.SSP_Contact.find(c=>c.contact_id===r.contact)??r.contact):r.contact,flatTypeRecord:tables.SSP_Flat_Type.find(f=>f.flat_type_id===r.flat_type_id)??null}));
   return{data:rows,count:rows.length,error:null};
  }
  async single(){const r=this.result();return{...r,data:r.data[0]??null}}async maybeSingle(){return this.single()}
@@ -29,8 +29,9 @@ let r=await handlers.handleCreate(req,ctx,{memberName:'Family member',memberPhon
 assert.equal(r.status,200);assert.equal(tables.SSP_Society_User[0].flat_type_id,id);assert.equal((await r.json()).data.familyUpdate.flatType,'2 BHK');
 const contactCount=tables.SSP_Contact.length,userCount=tables.SSP_Society_User.length;
 r=await handlers.handleCreate(req,ctx,{memberName:'Another family member',memberPhone:'9000000000',idProofType:'PAN',idProofNumber:'ABCDE1234G',relationship:'Sister'});
-assert.equal(r.status,400);assert.equal((await r.json()).errorResponse.message,CONTACT_PHONE_DUPLICATE_MESSAGE);
-assert.equal(tables.SSP_Contact.length,contactCount);assert.equal(tables.SSP_Society_User.length,userCount);
+assert.equal(r.status,200);
+assert.equal(tables.SSP_Contact.length,contactCount);assert.equal(tables.SSP_Society_User.length,userCount+1);
+assert.equal(tables.SSP_Society_User[0].contact,tables.SSP_Society_User[1].contact);
 r=await handlers.handleView(req,ctx,{});const viewed=(await r.json()).data.familyMembers[0];assert.equal(viewed.flatTypeId,id);assert.equal(viewed.flatType,'2 BHK');
 const targetResidentId=tables.SSP_Society_User[0].user_id;
 r=await handlers.handleUpdate(req,ctx,{targetResidentId,flatTypeId:null});assert.equal(r.status,200);assert.equal(tables.SSP_Society_User[0].flat_type_id,null);assert.equal((await r.json()).data.familyUpdate.flatType,null);
@@ -42,8 +43,8 @@ r=await handlers.handleCreate(req,ctx,{memberName:'Legacy family',memberPhone:'9
 assert.equal(r.status,200);assert.equal(tables.SSP_Society_User.at(-1).flat_type_id,null);
 const originalPhone=tables.SSP_Contact.find(c=>c.contact_id===tables.SSP_Society_User[0].contact).phone;
 r=await handlers.handleUpdate(req,ctx,{targetResidentId,memberPhone:'9000000001'});
-assert.equal(r.status,400);assert.equal((await r.json()).errorResponse.message,CONTACT_PHONE_DUPLICATE_MESSAGE);
-assert.equal(tables.SSP_Contact.find(c=>c.contact_id===tables.SSP_Society_User[0].contact).phone,originalPhone);
+assert.equal(r.status,200);
+assert.equal(tables.SSP_Contact.find(c=>c.contact_id===tables.SSP_Society_User[0].contact).phone,'9000000001');
 await assert.rejects(()=>handlers.handleCreate(req,ctx,{memberName:'Explicit type',memberPhone:'9000000002',idProofType:'PAN',idProofNumber:'ABCDE1234H',relationship:'Brother',flatTypeId:id}),ResidentFlatTypeError);
 // Existing secondary-member profile edits do not require new fields or clear assignments.
 tables.SSP_Society_User[0].flat_type_id=id;

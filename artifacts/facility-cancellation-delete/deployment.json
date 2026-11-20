@@ -1,0 +1,8 @@
+{
+  "migration": "20261118170000",
+  "migration_applied": true,
+  "endpoint": "resident-facility-booking",
+  "version": 41,
+  "status": "ACTIVE",
+  "verify_jwt_preserved": true
+}

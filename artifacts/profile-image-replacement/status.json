@@ -1,0 +1,3 @@
+{
+  "status": "Deployed 2026-11-17: profile-images endpoint plus replacement/cleanup migration applied. Live authenticated PREPARE_UPLOAD, binary PUT, CONFIRM_UPLOAD, FETCH, replacement, repeat confirmation and signed download passed on a temporary test profile. Verified one current database reference, deletion of the previous Storage object and no pending cleanup; test profile and files removed. Local failure/concurrency/authorization and reader compatibility tests passed. Flutter UI not exercised."
+}

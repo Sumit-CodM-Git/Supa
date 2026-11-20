@@ -1,0 +1,143 @@
+{
+  "checks": [
+    {
+      "check": "Disposable test authentication created without sending messages",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Disposable resident app session issued",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Real booking API creates disposable request",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "Payment API prepares signed upload URL",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Legacy and merged clients receive identical upload fields",
+      "passed": true
+    },
+    {
+      "check": "Actual image bytes upload to signed URL",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "Upload automatically sets Successful without approving booking",
+      "passed": true,
+      "payment_status": "Successful"
+    },
+    {
+      "check": "Confirmation supports both response contracts",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Payment list returns stored proof image",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Downloaded proof matches uploaded bytes",
+      "passed": true,
+      "http_status": 200,
+      "bytes": 68
+    },
+    {
+      "check": "My Bookings reports Successful payment independently of approval",
+      "passed": true,
+      "http_status": 200,
+      "booking_status": "pending_verification"
+    },
+    {
+      "check": "Separate approvalStatus is pending in My Bookings",
+      "passed": true
+    },
+    {
+      "check": "Payment list exposes pending approval separately",
+      "passed": true
+    },
+    {
+      "check": "Booking stops waiting for payment after proof upload",
+      "passed": true,
+      "booking_status": "pending_verification"
+    },
+    {
+      "check": "Admin can retrieve payment proof",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Admin list separates payment and approval",
+      "passed": true
+    },
+    {
+      "check": "Admin approves disposable test payment",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "My Bookings shows Paid and Approved",
+      "passed": true,
+      "http_status": 200,
+      "booking_status": "Approved",
+      "payment_status": "Paid"
+    },
+    {
+      "check": "Paid receipt downloads as a PDF",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "Second disposable booking created for rejection test",
+      "passed": true
+    },
+    {
+      "check": "Rejection fixture upload prepared",
+      "passed": true
+    },
+    {
+      "check": "Rejection fixture proof uploaded",
+      "passed": true
+    },
+    {
+      "check": "Admin rejection separates and updates both states",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Old proof confirmation preserves admin rejection",
+      "passed": true
+    },
+    {
+      "check": "Resident sees Rejected payment and approval",
+      "passed": true
+    }
+  ],
+  "cleanup": {
+    "storage_objects_removed": true,
+    "test_payments_removed": true,
+    "disposable_auth_removed": true,
+    "disposable_society_facility_resident_removed": true
+  },
+  "booking": {
+    "request_id": "0298de19-fb9a-4354-b4bc-1f96582c694d",
+    "payment_id": "PAY-1794990998526-32ED9915",
+    "amount": 1,
+    "initial_status": "waiting_payment"
+  },
+  "intermediate_booking_status": "pending_verification",
+  "real_money_transferred": false,
+  "result": "passed"
+}

@@ -382,13 +382,21 @@ Deno.serve(
         return errorResponse("societyRegistrationNumber is mandatory.", 400);
       }
 
-      const resolvedAction: BookingAction =
-        action ??
-        (bookingRequestId
-          ? "cancel_booking"
-          : facilityName
-          ? "book"
-          : "list_facilities");
+      // Never allow an unrecognized cancellation action to reach booking creation.
+      const suppliedAction = action == null ? null : String(action).trim().toLowerCase();
+      const normalizedAction = suppliedAction === "cancel" ? "cancel_booking" : suppliedAction;
+      const allowedActions: BookingAction[] = [
+        "list_facilities", "get_blocked_slots", "book", "list_bookings",
+        "cancel_booking", "abort_pending_booking",
+      ];
+      if (normalizedAction !== null && !allowedActions.includes(normalizedAction as BookingAction)) {
+        return errorResponse(`Invalid action. Allowed: ${allowedActions.join(", ")}.`, 400);
+      }
+      const resolvedAction: BookingAction = normalizedAction as BookingAction ??
+        (bookingRequestId ? "cancel_booking" : facilityName ? "book" : "list_facilities");
+      if (resolvedAction === "book" && bookingRequestId) {
+        return errorResponse("Use cancel_booking to cancel an existing bookingRequestId.", 400);
+      }
 
       // =====================================================================
       // WORKFLOW A: LIST AVAILABLE FACILITIES
@@ -617,6 +625,7 @@ Deno.serve(
             bookingId: b.recordType === "booking" ? b.name : null,
             recordType: b.recordType,
             status: b.status,
+            approvalStatus: b.recordType === "request" ? b.status : b.approval_status ?? b.status,
             bookingStart: b.booking_start_date,
             bookingEnd: b.booking_end_date,
             isAllDay: b.is_all_day,
@@ -675,102 +684,22 @@ Deno.serve(
           );
         }
 
-        const { data: booking, error: bErr } = await supabaseAdmin
-          .from("SSP_Facility_Booking_Request")
-          .select(
-            `request_id, status, requested_by, payment:payment ( pay_rec_id, payment_status )`,
-          )
-          .eq("request_id", bookingRequestId.trim())
-          .eq("requested_by", societyUserId)
-          .maybeSingle();
-
-        if (bErr) throw new Error(`Booking lookup failed: ${bErr.message}`);
-        if (!booking) {
-          return errorResponse(
-            "Booking not found or does not belong to you.",
-            404,
-          );
-        }
-
-        const bRec = booking as Record<string, unknown>;
-        const currentStatus = String(bRec.status ?? "").trim().toLowerCase();
-        const payRow = Array.isArray(bRec.payment)
-          ? bRec.payment[0]
-          : bRec.payment;
-        const payRecId = (payRow as Record<string, unknown> | null)
-          ?.pay_rec_id as string | undefined;
-        const payStatus = String(
-          (payRow as Record<string, unknown> | null)?.payment_status ?? "",
-        ).trim().toLowerCase();
-
-        if (currentStatus === "cancelled") {
-          return errorResponse(
-            "This booking has already been cancelled.",
-            409,
-          );
-        }
-
-        const paymentPending =
-          payStatus === "unpaid" ||
-          payStatus === "pending" ||
-          payStatus === "waiting_payment";
-
-        // Release request and payment together; never report success after a failed write.
-        if (paymentPending) {
-          const released = await releaseUnpaidReservation(
-            supabaseAdmin, bookingRequestId.trim(), societyUserId,
-          );
-          if (!released) return errorResponse("Booking or payment changed. Refresh your bookings before cancelling.", 409);
-
-          logger.info({
-            action: "resident_facility_booking_cancel_unpaid",
-            requestId: bookingRequestId,
-          });
-
-          return successResponse({
-            action: "cancel_booking",
-            facilityBooking: {
-              requestId: bookingRequestId,
-              status: "cancelled",
-              message: "Your unpaid booking has been cancelled and the slot is now free.",
-            },
-            availableFacilities: null,
-            bookings: null,
-            blockedSlots: null,
-            uploadUrl: null,
-            documentId: null,
-            paymentId: null,
-          });
-        }
-
-        // If already paid, just mark as cancelled for admin audit
-        const { error: cancelErr } = await supabaseAdmin
-          .from("SSP_Facility_Booking_Request")
-          .update({ status: "cancelled" })
-          .eq("request_id", bookingRequestId.trim());
-        if (cancelErr) {
-          throw new Error(`Failed to cancel booking: ${cancelErr.message}`);
-        }
-
-        if (payRecId) {
-          await supabaseAdmin
-            .from("SSP_Payment")
-            .update({ payment_status: "cancelled" })
-            .eq("pay_rec_id", payRecId);
-        }
-
-        logger.info({
-          action: "resident_facility_booking_cancel_soft",
-          requestId: bookingRequestId,
-          durationMs: Date.now() - startTime,
-        });
+        // Resolve either a request ID or the facilityBookingId returned by lists.
+        // All linked records must change in the same database transaction.
+        // Preserve booking and payment records as cancelled regardless of payment proof.
+        const { data: cancelled, error: cancelErr } = await supabaseAdmin.rpc(
+          "cancel_resident_facility_booking",
+          { p_booking_id: bookingRequestId.trim(), p_resident_id: societyUserId },
+        );
+        if (cancelErr) throw new Error(`Failed to cancel booking: ${cancelErr.message}`);
+        if (!cancelled) return errorResponse("Booking not found or does not belong to you.", 404);
 
         return successResponse({
           action: "cancel_booking",
           facilityBooking: {
             requestId: bookingRequestId,
             status: "cancelled",
-            message: "Your facility booking has been cancelled successfully. Please contact admin for refunds if already paid.",
+            message: "Your facility booking has been cancelled and the slot is now free. Booking and payment records are retained as cancelled. Cancellation does not issue a refund.",
           },
           availableFacilities: null,
           bookings: null,
@@ -836,6 +765,7 @@ Deno.serve(
         }
 
         const abortableStatuses = [
+          "cancelled",
           "waiting_payment",
           "requested",
           "pending_verification",
@@ -847,9 +777,11 @@ Deno.serve(
           );
         }
 
-        const released = await releaseUnpaidReservation(
-          supabaseAdmin, cleanBookingId, societyUserId,
+        const { data: released, error: abortErr } = await supabaseAdmin.rpc(
+          "cancel_resident_facility_booking",
+          { p_booking_id: cleanBookingId, p_resident_id: societyUserId, p_unpaid_only: true },
         );
+        if (abortErr) throw new Error(`Failed to abort booking: ${abortErr.message}`);
         if (!released) return errorResponse("Booking or payment changed. Refresh your bookings before aborting.", 409);
 
         logger.info({
@@ -866,7 +798,7 @@ Deno.serve(
             aborted: true,
             partial: false,
             message:
-              "Booking aborted and the slot released. You can book again anytime.",
+              "Booking and linked payment record marked cancelled, and the slot released. You can book again anytime.",
           },
           availableFacilities: null,
           bookings: null,
@@ -880,6 +812,7 @@ Deno.serve(
       // =====================================================================
       // WORKFLOW F: CREATE BOOKING
       // =====================================================================
+      if (resolvedAction !== "book") return errorResponse("Invalid booking action.", 400);
       if (!facilityName || facilityName.trim() === "") {
         return errorResponse(
           "facilityName is required to book a facility.",
@@ -1176,7 +1109,7 @@ Deno.serve(
           booking_end_date: reqEnd.toISOString(),
           purpose_of_visit: purpose ?? null,
           is_all_day: isAllDay,
-          status: "waiting_payment",
+          status: "cancelled",
         })
         .select("request_id")
         .single();
@@ -1277,7 +1210,7 @@ Deno.serve(
           payRecId: payment.pay_rec_id,
           paymentId: finalPaymentId,
           amount: payment.amount,
-          status: "waiting_payment",
+          status: "cancelled",
           isAllDay,
           pricingBreakdown: {
             units: price.units,
@@ -1286,7 +1219,7 @@ Deno.serve(
             total: price.total,
           },
           message:
-            "Your booking request has been created. Please complete the payment to proceed.",
+            "Your unpaid booking is cancelled and does not reserve the slot. Upload payment proof to submit it for approval.",
         },
         availableFacilities: null,
         bookings: null,

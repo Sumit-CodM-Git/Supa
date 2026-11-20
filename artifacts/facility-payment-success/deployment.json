@@ -1,0 +1,51 @@
+{
+  "migration": "20261118140000",
+  "migration_result": [
+    {
+      "payments_updated": 1
+    }
+  ],
+  "functions": {
+    "resident-payments-console": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 33
+    },
+    "make-resident-payment": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 32
+    },
+    "view-resident-payments": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 24
+    },
+    "admin-payments-console": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 18
+    },
+    "get-payments-list": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 38
+    },
+    "resident-facility-booking": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 40
+    },
+    "get-my-facility-bookings": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 29
+    },
+    "facility-console": {
+      "deployed": true,
+      "verify_jwt_preserved": false,
+      "active_version": 16
+    }
+  },
+  "status": "deployed and ACTIVE"
+}

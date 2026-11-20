@@ -1,0 +1,21 @@
+{
+  "request_id": "0f56bfbc-d423-4e76-b369-6ddd077aeb67",
+  "payment_record_id": "2ac11cef-c8b3-4942-a396-809bb273f96b",
+  "payment_id": "PAY-1794985056941-DCB5B6BE",
+  "latest_live_booking_status": "waiting_payment",
+  "latest_live_payment_status": "unpaid",
+  "proof_uploaded": false,
+  "observed_app_call": {
+    "endpoint": "resident-payments-console",
+    "action": "SUBMIT_PAYMENT",
+    "http_status": 200,
+    "receiptUploadStatus": "pending_upload",
+    "nested_upload_url": true,
+    "top_level_upload_url": false,
+    "confirmation_call_found": false
+  },
+  "confirmed_issue": "Receipt bytes are absent; creating the upload URL does not complete proof submission.",
+  "compatibility_fix": "Add legacy top-level upload fields alongside existing success/data response.",
+  "production_flutter_parser_verified": false,
+  "reported_booking_manually_modified": false
+}

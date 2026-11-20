@@ -1,4 +1,5 @@
 import { parkingCounts } from "../_shared/parking-counts.ts";
+import { profileImageUrl } from "../_shared/profile-images.ts";
 import { contactParkingSlot } from "../_shared/contact.ts";
 // ============================================
 // get-dashboard - Using Shared Middleware
@@ -405,6 +406,7 @@ Deno.serve(
                                 foundUser,
                                 [],
                                 false,
+                                new URL(req.url).searchParams.get("includeProfileImage") === "true",
                             );
                         }
                     }
@@ -521,6 +523,7 @@ Deno.serve(
                 user,
                 formattedAlerts,
                 alertData.hasTodayAlerts,
+                new URL(req.url).searchParams.get("includeProfileImage") === "true",
             );
         } catch (error: unknown) {
             const err = error as Error;
@@ -541,6 +544,7 @@ async function buildDashboardResponse(
     user: EnrichedSocietyUser,
     alerts: FormattedAlert[],
     hasTodayAlerts: boolean,
+    includeProfileImage = false,
 ): Promise<Response> {
     try {
         let owners = 0, tenants = 0, twoWheelers = 0, fourWheelers = 0;
@@ -638,6 +642,7 @@ async function buildDashboardResponse(
 
         const responseData: DashboardResponse = {
             user: {
+                ...(includeProfileImage ? {profileImageUrl:await profileImageUrl(supabaseAdmin,user.society?.society_id,"society_user",user.user_id)} : {}),
                 parkingSlot: contactParkingSlot(user.contact),
                 id: user.user_id,
                 name: user.contact?.name || "User",

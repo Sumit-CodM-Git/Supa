@@ -253,7 +253,7 @@ interface BookingData {
 
 function normalizeBookingStatus(value: unknown): string {
   const status = String(value ?? '').trim().toLowerCase()
-  if (['waiting_payment', 'payment_pending', 'pending_payment', 'requested'].includes(status)) return 'requested'
+  if (['waiting_payment', 'payment_pending', 'pending_payment', 'pending_verification', 'requested'].includes(status)) return 'requested'
   if (['approved', 'booked'].includes(status)) return 'approved'
   if (['rejected', 'failed_slot_already_booked'].includes(status)) return 'rejected'
   return status

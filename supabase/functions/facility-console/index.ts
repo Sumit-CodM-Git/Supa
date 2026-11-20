@@ -228,7 +228,8 @@ Deno.serve(
             maintenance_start, maintenance_end, maintenance_reason,
             SSP_Society!inner ( registration_number )
           `)
-          .eq("society", society.society_id);
+          .eq("society", society.society_id)
+          .order("created_at", { ascending: false, nullsFirst: false });
 
         if (dbErr) throw dbErr;
 
@@ -327,7 +328,8 @@ Deno.serve(
           .from("SSP_Facility")
           .select(SELECT_FACILITY)
           .eq("society", society.society_id)
-          .ilike("name", facSearchTerm);
+          .ilike("name", facSearchTerm)
+          .order("created_at", { ascending: false, nullsFirst: false });
 
         if (facilityError) throw facilityError;
 
@@ -336,7 +338,8 @@ Deno.serve(
             .from("SSP_Facility")
             .select(SELECT_FACILITY)
             .eq("society", society.society_id)
-            .ilike("facility_type", facSearchTerm);
+            .ilike("facility_type", facSearchTerm)
+            .order("created_at", { ascending: false, nullsFirst: false });
 
           if (typeError) throw typeError;
           facilityData = typeData;

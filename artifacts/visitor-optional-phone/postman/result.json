@@ -1,0 +1,30 @@
+{
+  "tool": "Newman (Postman collection runner)",
+  "postman_cli_signin_required": true,
+  "date": "2026-11-17",
+  "result": "passed",
+  "newman_exit_code": 0,
+  "requests": 16,
+  "created_visitors": 10,
+  "phone_less_visitors": 8,
+  "optional_supplied_phone_visitors": 2,
+  "otp_verified_false_for_all": true,
+  "live_plan_coverage": [
+    "FREE",
+    "PREMIUM"
+  ],
+  "endpoints": [
+    "visitor-pass-operations",
+    "security-gate-console"
+  ],
+  "device_push_avoided": "Selected FREE resident has no active push devices",
+  "database_checks_passed": true,
+  "cleanup": {
+    "removed_visitors": 10,
+    "remaining_visitors": 0
+  },
+  "assertions": {
+    "total": 37,
+    "failed": 0
+  }
+}

@@ -304,6 +304,7 @@ import {
     serverError,
 } from "../_shared/errors.ts";
 import { logger } from "../_shared/logger.ts";
+import { finalizeSubscriptionPayment } from "../_shared/subscription-payment.ts";
 import { resolveBlockForOrder } from "../_shared/subscription-utils.ts";
 import {
     fetchOrder,
@@ -353,42 +354,6 @@ serve(requireAuth(async (req, ctx) => {
             throw badRequest("Invalid payment signature");
         }
 
-        // ─────────────────────────────────────────────
-        // 2. Idempotency — already processed?
-        // ─────────────────────────────────────────────
-        const { data: existingLink } = await supabase
-            .from("SSP_Subscription_Payment")
-            .select("subscription_id")
-            .eq("provider", "razorpay")
-            .eq("provider_payment_id", paymentId)
-            .maybeSingle();
-
-        if (existingLink) {
-            const { data: subRec } = await supabase
-                .from("SSP_Subscription")
-                .select("subscription_id, start_date, end_date, plan_id")
-                .eq("subscription_id", existingLink.subscription_id)
-                .maybeSingle();
-
-            const { data: planRec } = await supabase
-                .from("SSP_Subscription_Plan")
-                .select("plan_code")
-                .eq("plan_id", subRec?.plan_id)
-                .maybeSingle();
-
-            return successResponse({
-                success: true,
-                alreadyProcessed: true,
-                subscriptionId: existingLink.subscription_id,
-                planCode: planRec?.plan_code,
-                startDate: subRec?.start_date,
-                endDate: subRec?.end_date,
-            });
-        }
-
-        // ─────────────────────────────────────────────
-        // 3. Fetch payment + order from Razorpay
-        // ─────────────────────────────────────────────
         const payment = await fetchPayment(paymentId);
 
         if (payment.status !== "captured") {
@@ -411,7 +376,7 @@ serve(requireAuth(async (req, ctx) => {
         const planCode = notes.plan_code;
         const planPriceId = notes.plan_price_id || null;
         const validityMonths = parseInt(notes.validity_months ?? "1", 10);
-        const paymentPurpose = (notes.payment_purpose ?? "new").toLowerCase();
+        let paymentPurpose = (notes.payment_purpose ?? "new").toLowerCase();
         const renewingSubId = notes.renewing_subscription_id || null;
 
         if (!society || !flatNumber || !planCode) {
@@ -441,195 +406,20 @@ serve(requireAuth(async (req, ctx) => {
 
         if (!planRec) throw notFound(`Plan '${planCode}' not found`);
 
-        // ─────────────────────────────────────────────
-        // 5. Insert SSP_Payment (always)
-        // ─────────────────────────────────────────────
-        const { data: paymentRec, error: paymentErr } = await supabase
-            .from("SSP_Payment")
-            .insert({
-                amount: payment.amount / 100,
-                payment_status: "paid",
-                payment_type: "subscription",
-                payment_method: "razorpay",
-                payment_id: paymentId,
-                transaction_id: paymentId,
-                society_user: ownerUserId,
-                payment_date: new Date().toISOString(),
-                receipt_information: JSON.stringify({
-                    order_id: orderId,
-                    payment_id: paymentId,
-                    plan_code: planCode,
-                    billing_period: notes.billing_period,
-                    payment_purpose: paymentPurpose,
-                }),
-            })
-            .select("pay_rec_id")
-            .single();
-
-        if (paymentErr) {
-            throw serverError(
-                `Failed to create payment record: ${paymentErr.message}`,
-            );
-        }
-
-        // ─────────────────────────────────────────────
-        // 6. Branch on purpose
-        // ─────────────────────────────────────────────
-        let subscriptionId: string;
-        let startDate: string;
-        let endDate: string;
-
-        if (paymentPurpose === "renewal") {
-            // ─────────────────────────────────────────────
-            // RENEWAL — extend existing subscription
-            // ─────────────────────────────────────────────
-            if (!renewingSubId) {
-                throw serverError(
-                    "RENEWAL order missing renewing_subscription_id",
-                );
-            }
-
-            const { data: existing, error: fetchErr } = await supabase
-                .from("SSP_Subscription")
-                .select("subscription_id, start_date, end_date, status")
-                .eq("subscription_id", renewingSubId)
-                .single();
-
-            if (fetchErr || !existing) {
-                throw serverError("Renewal target subscription not found");
-            }
-
-            // Extend from GREATEST(end_date, NOW())
-            const now = new Date();
-            const existingEnd = existing.end_date
-                ? new Date(existing.end_date)
-                : null;
-            const baseDate = existingEnd && existingEnd > now
-                ? existingEnd
-                : now;
-
-            const newStart = existing.start_date ?? now.toISOString();
-            const newEnd = new Date(baseDate);
-            newEnd.setMonth(newEnd.getMonth() + validityMonths);
-
-            const { error: updateErr } = await supabase
-                .from("SSP_Subscription")
-                .update({
-                    status: "active",
-                    end_date: newEnd.toISOString(),
-                    plan_price_id: planPriceId,
-                    updated_at: now.toISOString(),
-                })
-                .eq("subscription_id", renewingSubId);
-
-            if (updateErr) {
-                throw serverError(
-                    `Failed to extend subscription: ${updateErr.message}`,
-                );
-            }
-
-            subscriptionId = renewingSubId;
-            startDate = newStart;
-            endDate = newEnd.toISOString();
-        } else if (paymentPurpose === "upgrade") {
-            // ─────────────────────────────────────────────
-            // UPGRADE — replace plan on existing subscription
-            // ─────────────────────────────────────────────
-            if (!renewingSubId) {
-                throw serverError(
-                    "UPGRADE order missing renewing_subscription_id",
-                );
-            }
-
-            const { data: existing } = await supabase
-                .from("SSP_Subscription")
-                .select("subscription_id, start_date")
-                .eq("subscription_id", renewingSubId)
-                .single();
-
-            const now = new Date();
-            const newEnd = new Date(now);
-            newEnd.setMonth(newEnd.getMonth() + validityMonths);
-
-            const { error: updateErr } = await supabase
-                .from("SSP_Subscription")
-                .update({
-                    plan_id: planRec.plan_id,
-                    plan_price_id: planPriceId,
-                    status: "active",
-                    start_date: now.toISOString(),
-                    end_date: newEnd.toISOString(),
-                    auto_renew: false,
-                    payment_provider: "razorpay",
-                    updated_at: now.toISOString(),
-                })
-                .eq("subscription_id", renewingSubId);
-
-            if (updateErr) {
-                throw serverError(
-                    `Failed to upgrade subscription: ${updateErr.message}`,
-                );
-            }
-
-            subscriptionId = renewingSubId;
-            startDate = now.toISOString();
-            endDate = newEnd.toISOString();
-        } else {
-            // ─────────────────────────────────────────────
-            // NEW — first-time subscription
-            // ─────────────────────────────────────────────
-            const startDateObj = new Date();
-            const endDateObj = new Date(startDateObj);
-            endDateObj.setMonth(endDateObj.getMonth() + validityMonths);
-
-            const { data: subRec, error: subErr } = await supabase
-                .from("SSP_Subscription")
-                .insert({
-                    society,
-                    tower,
-                    block,
-                    flat_number: flatNumber,
-                    owner_society_user: ownerUserId,
-                    plan_id: planRec.plan_id,
-                    plan_price_id: planPriceId,
-                    status: "active",
-                    start_date: startDateObj.toISOString(),
-                    end_date: endDateObj.toISOString(),
-                    auto_renew: false,
-                    payment_provider: "razorpay",
-                })
-                .select("subscription_id")
-                .single();
-
-            if (subErr) {
-                throw serverError(
-                    `Failed to create subscription: ${subErr.message}`,
-                );
-            }
-
-            subscriptionId = subRec.subscription_id;
-            startDate = startDateObj.toISOString();
-            endDate = endDateObj.toISOString();
-        }
-
-        // ─────────────────────────────────────────────
-        // 7. Link subscription ↔ payment
-        // ─────────────────────────────────────────────
-        const { error: linkErr } = await supabase
-            .from("SSP_Subscription_Payment")
-            .insert({
-                subscription_id: subscriptionId,
-                payment: paymentRec.pay_rec_id,
-                provider: "razorpay",
-                provider_order_id: orderId,
-                provider_payment_id: paymentId,
-                provider_signature_verified: true,
-                payment_purpose: paymentPurpose,
-                captured_at: new Date().toISOString(),
+        // Payment, subscription mutation and provider link commit together.
+        const result = await finalizeSubscriptionPayment(supabase, {
+            paymentId, orderId, ownerUserId, society, tower, block, flatNumber,
+            planCode, planPriceId, validityMonths, amountPaise: payment.amount,
+            billingPeriod: notes.billing_period, paymentPurpose,
+            targetSubscriptionId: renewingSubId,
+        });
+        const { subscriptionId, startDate, endDate } = result;
+        paymentPurpose = result.paymentPurpose;
+        if (result.alreadyProcessed) {
+            return successResponse({
+                success: true, alreadyProcessed: true, subscriptionId,
+                planCode: result.planCode, startDate, endDate,
             });
-
-        if (linkErr) {
-            throw serverError(`Failed to link payment: ${linkErr.message}`);
         }
 
         // ─────────────────────────────────────────────

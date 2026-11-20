@@ -1,0 +1,153 @@
+BEGIN;
+
+
+CREATE TABLE public."SSP_User_Availability" (
+  user_id uuid PRIMARY KEY,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive','away')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public."SSP_User_Availability" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public."SSP_User_Availability" FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT, UPDATE ON public."SSP_User_Availability" TO service_role;
+
+CREATE FUNCTION public.apply_user_availability()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  NEW.updated_at := now();
+  IF NEW.status = 'away' THEN
+    UPDATE public."SSP_Notification"
+      SET delivery_status = 'failed',
+          extra_data = coalesce(extra_data,'{}'::jsonb) || '{"suppressedReason":"user_away"}'::jsonb
+      WHERE recipient_id = NEW.user_id AND delivery_status::text = 'pending';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER apply_user_availability BEFORE INSERT OR UPDATE ON public."SSP_User_Availability"
+FOR EACH ROW EXECUTE FUNCTION public.apply_user_availability();
+
+CREATE FUNCTION public.suppress_away_user_notifications()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+BEGIN
+  IF NEW.delivery_status::text = 'pending' AND EXISTS (
+    SELECT 1 FROM public."SSP_User_Availability" a
+    WHERE a.user_id = NEW.recipient_id AND a.status = 'away'
+  ) THEN
+    NEW.delivery_status := 'failed';
+    NEW.extra_data := coalesce(NEW.extra_data,'{}'::jsonb) || '{"suppressedReason":"user_away"}'::jsonb;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER suppress_away_user_notifications BEFORE INSERT OR UPDATE OF delivery_status
+ON public."SSP_Notification" FOR EACH ROW EXECUTE FUNCTION public.suppress_away_user_notifications();
+
+
+
+
+-- Visitor scope only. Other plan features are unchanged.
+INSERT INTO public."SSP_Feature" (feature_code,feature_name,description,is_active)
+SELECT code,label,label,true FROM (VALUES
+ ('VISITOR_TAB','Resident visitor tab'),
+ ('VISITOR_DASHBOARD_CARD','Resident visitor dashboard card')
+) AS requested(code,label)
+WHERE NOT EXISTS(SELECT 1 FROM public."SSP_Feature" f WHERE f.feature_code=requested.code);
+UPDATE public."SSP_Feature" SET is_active=true
+WHERE feature_code IN ('VISITOR_APPROVAL','VISITOR_OTP','VISITOR_TAB','VISITOR_DASHBOARD_CARD');
+UPDATE public."SSP_Plan_Feature" pf SET enabled=CASE
+  WHEN f.feature_code='VISITOR_APPROVAL' THEN true
+  WHEN f.feature_code='VISITOR_OTP' THEN p.plan_code='PREMIUM'
+  ELSE p.plan_code IN ('STARTER','GROWTH','PREMIUM') END
+FROM public."SSP_Subscription_Plan" p, public."SSP_Feature" f
+WHERE pf.plan_id=p.plan_id AND pf.feature_id=f.feature_id
+  AND p.plan_code IN ('FREE','STARTER','GROWTH','PREMIUM')
+  AND f.feature_code IN ('VISITOR_APPROVAL','VISITOR_OTP','VISITOR_TAB','VISITOR_DASHBOARD_CARD');
+INSERT INTO public."SSP_Plan_Feature" (plan_id,feature_id,enabled)
+SELECT p.plan_id,f.feature_id,CASE WHEN f.feature_code='VISITOR_APPROVAL' THEN true
+  WHEN f.feature_code='VISITOR_OTP' THEN p.plan_code='PREMIUM'
+  ELSE p.plan_code IN ('STARTER','GROWTH','PREMIUM') END
+FROM public."SSP_Subscription_Plan" p CROSS JOIN public."SSP_Feature" f
+WHERE p.plan_code IN ('FREE','STARTER','GROWTH','PREMIUM')
+  AND f.feature_code IN ('VISITOR_APPROVAL','VISITOR_OTP','VISITOR_TAB','VISITOR_DASHBOARD_CARD')
+  AND NOT EXISTS(SELECT 1 FROM public."SSP_Plan_Feature" pf WHERE pf.plan_id=p.plan_id AND pf.feature_id=f.feature_id);
+
+-- OTP is a plan-specific requirement, never a forged verification flag.
+CREATE OR REPLACE FUNCTION public.visitor_phone_requirement_satisfied(p_visitor public."SSP_Non_Society_User")
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path='' AS $$
+DECLARE resident public."SSP_Society_User"%ROWTYPE; features jsonb;
+BEGIN
+  SELECT * INTO resident FROM public."SSP_Society_User" WHERE user_id=p_visitor.hosted_by;
+  IF NOT FOUND OR resident.deleted_at IS NOT NULL THEN RETURN false; END IF;
+  features:=public.get_entitlements(resident.society,resident.tower,resident.block,resident.unit_flat_number);
+  RETURN coalesce((features->>'VISITOR_APPROVAL')::boolean,false)
+    AND (NOT coalesce((features->>'VISITOR_OTP')::boolean,false) OR coalesce(p_visitor.is_otp_verified,false));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.visitor_ready_for_resident_approval(p_visitor public."SSP_Non_Society_User")
+RETURNS boolean LANGUAGE sql STABLE SET search_path = '' AS $$
+  SELECT public.visitor_phone_requirement_satisfied(p_visitor)
+    AND lower(coalesce(p_visitor.role,''))='visitor'
+    AND p_visitor.hosted_by IS NOT NULL
+    AND NOT coalesce(p_visitor.pre_approved,false)
+    AND trim(coalesce(p_visitor.phone_number,''))<>''
+    AND lower(trim(coalesce(p_visitor.name,''))) NOT IN ('','unknown','unknown visitor','unknown user')
+    AND lower(coalesce(p_visitor.visitor_status,''))='pending'
+    AND lower(coalesce(p_visitor.visitor_approval_status,'pending'))='pending';
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.trg_non_society_user_notifications()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public' AS $$
+DECLARE v_was_ready boolean:=false;
+BEGIN
+  IF lower(coalesce(NEW.role,'')) <> 'visitor' THEN RETURN NEW; END IF;
+  IF TG_OP='UPDATE' THEN
+    v_was_ready:=public.visitor_ready_for_resident_approval(OLD);
+    -- Resident decisions still notify security using the existing behavior.
+    PERFORM public.fn_visitor_approval_status(NEW,OLD);
+  END IF;
+
+  IF public.visitor_phone_requirement_satisfied(NEW) THEN
+    IF public.visitor_ready_for_resident_approval(NEW) AND NOT v_was_ready THEN
+      -- Existing helper is insert-oriented; invoke it once when the visit becomes ready.
+      PERFORM public.fn_notify_resident(NEW,NULL);
+    END IF;
+    IF TG_OP='INSERT' THEN
+      IF coalesce(NEW.pre_approved,false) AND NEW.approver IS NOT NULL THEN
+        PERFORM public.fn_preapproved_visitor_arrived(NEW,NULL);
+      END IF;
+    ELSE
+      IF coalesce(NEW.pre_approved,false) AND coalesce(OLD.pre_approved,false)
+         AND NEW.approver IS NOT NULL
+         AND (NOT coalesce(OLD.is_otp_verified,false) OR OLD.approver IS NULL) THEN
+        PERFORM public.fn_preapproved_visitor_arrived(NEW,NULL);
+      END IF;
+      PERFORM public.fn_visitor_checked_in(NEW,OLD);
+      PERFORM public.fn_visitor_checked_out(NEW,OLD);
+    END IF;
+  END IF;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RAISE WARNING 'trg_non_society_user_notifications(): %',SQLERRM;
+  RETURN NEW;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.block_unverified_visitor_notifications()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE v_visitor public."SSP_Non_Society_User"%ROWTYPE;
+BEGIN
+  IF NEW.reference_table='SSP_Non_Society_User' AND NEW.recipient_type::text='Resident' THEN
+    SELECT * INTO v_visitor
+    FROM public."SSP_Non_Society_User" WHERE non_society_user_id=NEW.reference_id AND lower(role)='visitor';
+    IF FOUND AND NOT public.visitor_phone_requirement_satisfied(v_visitor) THEN RETURN NULL; END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+
+COMMIT;

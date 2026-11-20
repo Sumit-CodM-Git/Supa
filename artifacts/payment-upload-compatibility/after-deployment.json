@@ -1,0 +1,14 @@
+{
+  "created_at": 1790669327038,
+  "entrypoint_path": "file:///tmp/user_fn_isrqhkshygauaehwfycw_68893d19-7bf9-4f0b-b045-8889e00c84b7_32/source/supabase/functions/resident-payments-console/index.ts",
+  "ezbr_sha256": "b4a1e1ff2b4ffeba502bf30e9e6dcac89f0769ed83c6f84a33b1a8f7090a4d33",
+  "id": "68893d19-7bf9-4f0b-b045-8889e00c84b7",
+  "import_map": true,
+  "import_map_path": "file:///tmp/user_fn_isrqhkshygauaehwfycw_68893d19-7bf9-4f0b-b045-8889e00c84b7_32/source/supabase/functions/resident-payments-console/deno.json",
+  "name": "resident-payments-console",
+  "slug": "resident-payments-console",
+  "status": "ACTIVE",
+  "updated_at": 1794985380498,
+  "verify_jwt": false,
+  "version": 32
+}

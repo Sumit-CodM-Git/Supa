@@ -1,0 +1,15 @@
+{
+  "historical_audit_logs_preserved": 57,
+  "old_document_links_remaining": 0,
+  "original_objects_remaining": 0,
+  "updated_document_links": 42,
+  "verified_destination_objects": 43,
+  "destination_http_head_checks_passed": 43,
+  "migrated_bytes": 12051657,
+  "bucket": "society-documents",
+  "source_folder": "GZB-1234-ab/Financial/",
+  "destination_folder": "GZB-1234-ab/financial/",
+  "payment_statuses_preserved": true,
+  "file_contents_downloaded_locally": false,
+  "status": "complete"
+}

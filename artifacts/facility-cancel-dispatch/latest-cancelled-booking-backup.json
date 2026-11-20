@@ -1,0 +1,37 @@
+[
+  {
+    "payment": {
+      "amount": 1000,
+      "created_at": "2026-11-18T13:19:09.911954+00:00",
+      "due_date": "2026-11-18T13:19:09.911954",
+      "facility": "f57185f0-a72e-4957-83d1-ee6b45c55507",
+      "month_period": null,
+      "pay_rec_id": "4d710885-31de-499c-a480-90739d50c226",
+      "payment_date": "2026-11-18T13:19:09.762",
+      "payment_id": "PAY-1795007949762-8692ECEF",
+      "payment_method": "cash",
+      "payment_status": "unpaid",
+      "payment_type": "facility_booking",
+      "receipt_information": null,
+      "receipt_url": null,
+      "rejection_reason": null,
+      "society_user": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "transaction_id": null
+    },
+    "request": {
+      "booking_end_date": "2026-11-20T04:30:00",
+      "booking_start_date": "2026-11-20T03:30:00",
+      "created_at": "2026-11-18T13:19:10.149109+00:00",
+      "facility": "f57185f0-a72e-4957-83d1-ee6b45c55507",
+      "is_all_day": false,
+      "payment": "4d710885-31de-499c-a480-90739d50c226",
+      "purpose_of_visit": "Bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "rejected_at": null,
+      "rejected_by": null,
+      "rejection_reason": null,
+      "request_id": "6747f7aa-3ccb-465f-ab22-35713acfecc7",
+      "requested_by": "3096f2ea-dba7-46fa-9b56-00add869b034",
+      "status": "waiting_payment"
+    }
+  }
+]

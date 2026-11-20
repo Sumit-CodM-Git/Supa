@@ -1,0 +1,14 @@
+{
+  "user_id": "120138e3-20d8-4e65-9196-c9e7062c8faa",
+  "phone": "8888888883",
+  "registration_number": "GZB-1234-ab",
+  "role": [
+    "admin",
+    "resident",
+    "service_agent",
+    "security"
+  ],
+  "status": true,
+  "deleted_at": "2026-11-17T08:24:57.012Z",
+  "move_out_date": null
+}

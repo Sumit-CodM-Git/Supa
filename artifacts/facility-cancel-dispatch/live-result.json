@@ -1,0 +1,110 @@
+{
+  "checks": [
+    {
+      "check": "Disposable test authentication created without sending messages",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Disposable resident app session issued",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "No creation for 'cancel' without booking ID",
+      "passed": true,
+      "http_status": 400,
+      "payment_count": 0,
+      "request_count": 0
+    },
+    {
+      "check": "No creation for 'cancel_payment' without booking ID",
+      "passed": true,
+      "http_status": 400,
+      "payment_count": 0,
+      "request_count": 0
+    },
+    {
+      "check": "No creation for 'CANCEL_PAYMENT' without booking ID",
+      "passed": true,
+      "http_status": 400,
+      "payment_count": 0,
+      "request_count": 0
+    },
+    {
+      "check": "No creation for 'typo' without booking ID",
+      "passed": true,
+      "http_status": 400,
+      "payment_count": 0,
+      "request_count": 0
+    },
+    {
+      "check": "No creation for '' without booking ID",
+      "passed": true,
+      "http_status": 400,
+      "payment_count": 0,
+      "request_count": 0
+    },
+    {
+      "check": "Real booking API creates disposable request",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "cancel HTTP success",
+      "passed": true,
+      "http_status": 200,
+      "message": null
+    },
+    {
+      "check": "cancel physically removes request and booking; payment cancelled",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "cancelled",
+      "request_count": 0
+    },
+    {
+      "check": "cancel removed from resident booking list",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Same slot can be rebooked after cancellation",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "abort_pending_booking HTTP success",
+      "passed": true,
+      "http_status": 200,
+      "message": null
+    },
+    {
+      "check": "abort_pending_booking physically removes request and booking; payment cancelled",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "cancelled",
+      "request_count": 0
+    },
+    {
+      "check": "abort_pending_booking removed from resident booking list",
+      "passed": true,
+      "http_status": 200
+    }
+  ],
+  "cleanup": {
+    "storage_objects_removed": true,
+    "test_payments_removed": true,
+    "disposable_auth_removed": true,
+    "disposable_society_facility_resident_removed": true
+  },
+  "booking": {
+    "request_id": "30d66cc3-120d-4529-967a-4cf1fe5be1eb",
+    "payment_id": "PAY-1795008272807-8DBB944C",
+    "amount": 1,
+    "initial_status": "waiting_payment"
+  },
+  "result": "passed",
+  "passed": true
+}

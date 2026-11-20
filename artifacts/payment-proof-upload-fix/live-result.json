@@ -1,0 +1,48 @@
+{
+  "checks": [
+    {
+      "check": "Disposable test authentication created without sending messages",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Disposable resident app session issued",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Payment API prepares signed upload URL",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Actual image bytes upload to signed URL",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "Upload automatically sets UNDER REVIEW without confirmation",
+      "passed": true,
+      "payment_status": "UNDER REVIEW"
+    },
+    {
+      "check": "Payment list returns stored proof image",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Downloaded proof matches uploaded bytes",
+      "passed": true,
+      "http_status": 200,
+      "bytes": 68
+    }
+  ],
+  "cleanup": {
+    "storage_object_removed": true,
+    "test_payment_removed": true,
+    "disposable_auth_removed": true,
+    "disposable_resident_removed": true
+  },
+  "result": "passed"
+}

@@ -5,7 +5,7 @@ import { stripTypeScriptTypes } from 'node:module';
 import { releaseUnpaidReservation } from '../functions/_shared/facility-reservations.ts';
 const source = stripTypeScriptTypes(readFileSync(new URL('../functions/resident-facility-booking/index.ts', import.meta.url), 'utf8')
   .replace(/^import\s[\s\S]*?from\s+["'][^"']+["'];?\s*$/gm, ''));
-async function run(action, { owner = 'resident', paymentStatus = 'unpaid', requestStatus = 'waiting_payment', rpcError = null, rpcRefuse = false } = {}) {
+async function run(action, { owner = 'resident', paymentStatus = 'unpaid', requestStatus = 'waiting_payment', rpcError = null, rpcRefuse = false, uploadedProof = false } = {}) {
   let handler;
   const calls = [];
   const oldRequest = { request_id: 'old', status: requestStatus, requested_by: owner, facility: 'facility', payment: 'old-pay',
@@ -41,6 +41,13 @@ async function run(action, { owner = 'resident', paymentStatus = 'unpaid', reque
   const client = { from: table => new Query(table), rpc: async (name, args) => {
     calls.push(args);
     if (rpcError) return { data: null, error: { message: rpcError } };
+    if (name === 'cancel_resident_facility_booking') {
+      if ((args.p_unpaid_only && (rpcRefuse || !['unpaid','pending','waiting_payment'].includes(oldPayment.payment_status.toLowerCase()))) || args.p_resident_id !== owner || args.p_booking_id !== 'old') return { data: false, error: null };
+      const retain = uploadedProof || ['successful','success','paid','completed','under review','under_review','processing'].includes(oldPayment.payment_status.toLowerCase());
+      if (args.p_unpaid_only && retain) return { data: false, error: null };
+      oldRequest.status = 'cancelled'; oldPayment.payment_status = 'cancelled';
+      return { data: true, error: null };
+    }
     if (rpcRefuse || args.p_resident_id !== oldRequest.requested_by || !['unpaid','pending','waiting_payment'].includes(oldPayment.payment_status.toLowerCase())) return { data: false, error: null };
     oldRequest.status = 'cancelled'; oldPayment.payment_status = 'cancelled'; return { data: true, error: null };
   }};
@@ -51,15 +58,29 @@ async function run(action, { owner = 'resident', paymentStatus = 'unpaid', reque
     (deno, fn => fn, () => client, {}, success, failure, () => ({ info() {}, error() {} }), releaseUnpaidReservation, async () => []);
   const body = { action, residentId: 'resident', societyRegistrationNumber: 'GZB-1234-ab', facilityName: 'Court',
     bookingStartDateTime: '2090-01-01T12:00:00+05:30', bookingEndDateTime: '2090-01-01T13:00:00+05:30' };
-  if (['cancel_booking','abort_pending_booking'].includes(action)) body.bookingRequestId = 'old';
+  if (['cancel_booking','abort_pending_booking','cancel',' CANCEL_BOOKING '].includes(action)) body.bookingRequestId = 'old';
   const result = await handler(new Request('https://example.test', { method: 'POST', body: JSON.stringify(body) }), { user: { id: 'resident' } });
-  return { status: result.status, body: await result.json(), calls, oldRequest, requests };
+  return { status: result.status, body: await result.json(), calls, oldRequest, requests, payments };
 }
 for (const action of ['cancel_booking','abort_pending_booking']) {
-  assert.equal((await run(action)).status, 200);
+  const cancelled = await run(action);
+  assert.equal(cancelled.status, 200);
+  assert.equal(cancelled.requests.length, 1);
+  assert.equal(cancelled.requests[0].status, 'cancelled');
+  assert.equal(cancelled.payments.length, 1);
+  assert.equal(cancelled.payments[0].payment_status, 'cancelled');
   assert.equal((await run(action, { rpcError: 'database unavailable' })).status, 500);
-  assert.equal((await run(action, { rpcRefuse: true })).status, 409);
+  if (action === 'abort_pending_booking') assert.equal((await run(action, { rpcRefuse: true })).status, 409);
   assert.equal((await run(action, { owner: 'other' })).status, 404);
+}
+for (const paymentStatus of ['unpaid', 'Successful', 'UNDER REVIEW', 'paid', 'cancelled', 'Rejected']) {
+  const result = await run('cancel_booking', { paymentStatus });
+  assert.equal(result.status, 200);
+  const retained = true;
+  assert.equal(result.requests.length, retained ? 1 : 0);
+  assert.equal(result.payments.length, retained ? 1 : 0);
+  if (retained) assert.equal(result.requests[0].status, 'cancelled');
+  assert.equal(result.calls[0].p_booking_id, 'old');
 }
 assert.equal((await run('abort_pending_booking', { paymentStatus: 'paid' })).status, 409);
 assert.equal((await run('abort_pending_booking', { paymentStatus: 'UNDER REVIEW' })).status, 409);
@@ -67,6 +88,8 @@ const retry = await run('book');
 assert.equal(retry.status, 200, JSON.stringify(retry.body));
 assert.equal(retry.oldRequest.status, 'cancelled');
 assert.equal(retry.body.data.facilityBooking.amount, 500);
+assert.equal(retry.body.data.facilityBooking.status, 'cancelled');
+assert.equal(retry.requests.find(row => row.request_id === 'new').status, 'cancelled');
 assert.equal((await run('book', { requestStatus: 'WAITING_PAYMENT' })).status, 200);
 assert.equal((await run('book', { paymentStatus: 'UNDER REVIEW' })).status, 409);
 assert.equal((await run('book', { paymentStatus: 'paid' })).status, 409);
@@ -76,3 +99,23 @@ assert.deepEqual((await run('get_blocked_slots')).body.data.blockedSlots, []);
 assert.equal((await run('get_blocked_slots', { owner: 'other' })).body.data.blockedSlots.length, 1);
 assert.equal((await run('get_blocked_slots', { paymentStatus: 'UNDER REVIEW' })).body.data.blockedSlots.length, 1);
 console.log('Cancellation, exact-slot retry, payment protection, ownership, error propagation and blocked-slot regression checks passed.');
+
+for (const action of ['cancel', ' CANCEL_BOOKING ']) {
+  const result = await run(action);
+  assert.equal(result.status, 200);
+  assert.equal(result.requests.length, 1);
+  assert.equal(result.payments.length, 1);
+  assert.equal(result.calls[0].p_booking_id, 'old');
+}
+for (const action of ['cancel_payment', 'CANCEL_PAYMENT', 'typo', '']) {
+  const result = await run(action);
+  assert.equal(result.status, 400);
+  assert.equal(result.requests.length, 1, 'Invalid action must not create or remove rows');
+  assert.equal(result.calls.length, 0);
+}
+console.log('Cancellation alias, normalized actions and invalid-action creation guard tests passed.');
+
+const proofCancellation = await run('cancel_booking', { uploadedProof: true });
+assert.equal(proofCancellation.requests[0].status, 'cancelled');
+assert.equal(proofCancellation.payments[0].payment_status, 'cancelled');
+assert.equal((await run('abort_pending_booking', { uploadedProof: true })).status, 409);

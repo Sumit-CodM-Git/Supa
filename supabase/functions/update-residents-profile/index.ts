@@ -1,7 +1,5 @@
 import { resolveResidentFlatType, residentFlatTypeFields, ResidentFlatTypeError } from "../_shared/resident-flat-type.ts";
 import {
-  CONTACT_PHONE_DUPLICATE_MESSAGE,
-  contactPhoneAlreadyExists,
   normalizeParkingSlot,
 } from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
@@ -514,24 +512,6 @@ serve(async (req: Request): Promise<Response> => {
       targetContactId = su.contact[0]?.contact_id || null;
     } else if (su.contact && typeof su.contact === "object") {
       targetContactId = su.contact.contact_id || null;
-    }
-
-    if (
-      typeof contactUpdates.phone === "string" &&
-      contactUpdates.phone &&
-      targetContactId &&
-      await contactPhoneAlreadyExists(
-        supabase,
-        societyContext.society_id,
-        contactUpdates.phone,
-        targetContactId,
-      )
-    ) {
-      return buildErrorResponse(
-        "DUPLICATE_CONTACT_PHONE",
-        CONTACT_PHONE_DUPLICATE_MESSAGE,
-        400,
-      );
     }
 
     if (Object.keys(contactUpdates).length > 0 && targetContactId) {

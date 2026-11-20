@@ -1,0 +1,51 @@
+import assert from 'node:assert/strict';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {PGlite} from '/private/tmp/ssp-availability-sql-check/node_modules/@electric-sql/pglite/dist/index.js';
+process.on('uncaughtException',e=>{console.error('Local profile migration test failed:',e.message);process.exit(1)});
+const db=new PGlite();
+await db.exec(`CREATE ROLE anon;CREATE ROLE authenticated;CREATE ROLE service_role BYPASSRLS;
+CREATE SCHEMA storage;GRANT USAGE ON SCHEMA storage TO anon,authenticated;
+CREATE TABLE storage.buckets(id text PRIMARY KEY,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+CREATE TABLE storage.objects(id uuid DEFAULT gen_random_uuid(),bucket_id text,name text);
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+GRANT SELECT,INSERT,UPDATE,DELETE ON storage.objects TO anon,authenticated;
+CREATE POLICY existing_policy ON storage.objects FOR ALL TO anon,authenticated USING(true) WITH CHECK(true);
+CREATE TABLE public."SSP_Society"(society_id uuid PRIMARY KEY);
+CREATE TABLE public."SSP_Society_User"(user_id uuid PRIMARY KEY,society uuid);
+CREATE TABLE public."SSP_Non_Society_User"(non_society_user_id uuid PRIMARY KEY,society uuid);
+CREATE TABLE public."SSP_Servant"(servant_id uuid PRIMARY KEY,society uuid);
+CREATE TABLE public."SSP_Society_Staff"(staff_id uuid PRIMARY KEY,society_id uuid);
+CREATE TABLE public."SSP_Document"(document_id uuid DEFAULT gen_random_uuid(),document_type text,s3_path text);
+INSERT INTO storage.buckets VALUES('society-documents','society-documents',true,NULL,NULL);
+INSERT INTO storage.objects(bucket_id,name) VALUES('society-documents','existing/payment.jpg');
+INSERT INTO public."SSP_Document"(document_type,s3_path) VALUES('financial','existing/payment.jpg');`);
+const snapshot=async()=>({documents:(await db.query('SELECT * FROM public."SSP_Document"')).rows,bucket:(await db.query("SELECT * FROM storage.buckets WHERE id='society-documents'")).rows,objects:(await db.query("SELECT * FROM storage.objects WHERE bucket_id='society-documents'")).rows});
+const before=await snapshot();
+await db.exec(readFileSync('supabase/migrations/20261116120000_profile_images.sql','utf8'));
+assert.deepEqual(await snapshot(),before,'Existing documents, bucket and objects must be unchanged');
+const society=crypto.randomUUID(),otherSociety=crypto.randomUUID(),actor=crypto.randomUUID(),owners={society_user:actor,non_society_user:crypto.randomUUID(),servant:crypto.randomUUID(),society_staff:crypto.randomUUID()};
+await db.query('INSERT INTO public."SSP_Society" VALUES($1),($2)',[society,otherSociety]);
+for(const [type,table,key] of [['society_user','SSP_Society_User','user_id'],['non_society_user','SSP_Non_Society_User','non_society_user_id'],['servant','SSP_Servant','servant_id'],['society_staff','SSP_Society_Staff','staff_id']]){
+ await db.query(`INSERT INTO public."${table}" VALUES($1,$2)`,[owners[type],society]);
+}
+const insert=async(type,owner,tenant=society,mime='image/png',size=68)=>db.query(`INSERT INTO public."SSP_Profile_Image"(owner_type,owner_id,society,object_key,file_name,file_type,file_size,uploaded_by) VALUES($1,$2,$3,$4,'avatar.png',$5,$6,$7) RETURNING *`,[type,owner,tenant,`${tenant}/${type}/${owner}/${crypto.randomUUID()}.png`,mime,size,actor]);
+for(const [type,owner] of Object.entries(owners)){
+ const row=(await insert(type,owner)).rows[0];assert.equal(row[type],owner);assert.equal(Object.keys(owners).filter(k=>row[k]!==null).length,1);
+}
+await assert.rejects(insert('society_user',crypto.randomUUID()),/Profile owner does not belong/);
+await assert.rejects(insert('society_user',actor,otherSociety),/Profile owner does not belong/);
+await assert.rejects(insert('society_user',actor,society,'image/svg+xml'),/check constraint/);
+await assert.rejects(insert('society_user',actor,society,'image/png',5242881),/check constraint/);
+await assert.rejects(db.query('UPDATE public."SSP_Profile_Image" SET object_key=$1 WHERE owner_type=$2 AND owner_id=$3',['outside/profile.png','society_user',actor]),/check constraint/);
+const first=(await db.query('SELECT created_at FROM public."SSP_Profile_Image" WHERE owner_type=$1 AND owner_id=$2',['society_user',actor])).rows[0];
+await db.query('UPDATE public."SSP_Profile_Image" SET file_name=$1,created_at=now()+interval \'1 day\' WHERE owner_type=$2 AND owner_id=$3',['new.png','society_user',actor]);
+assert.deepEqual((await db.query('SELECT created_at FROM public."SSP_Profile_Image" WHERE owner_type=$1 AND owner_id=$2',['society_user',actor])).rows[0],first);
+await db.exec('SET ROLE authenticated;');
+await db.exec("INSERT INTO storage.objects(bucket_id,name) VALUES('society-documents','still-allowed.jpg');");
+await assert.rejects(db.exec("INSERT INTO storage.objects(bucket_id,name) VALUES('profile-images','blocked.jpg');"),/row-level security/);
+await assert.rejects(db.exec('SELECT * FROM public."SSP_Profile_Image"'),/permission denied/);
+await db.exec('RESET ROLE;');
+await db.query('DELETE FROM public."SSP_Servant" WHERE servant_id=$1',[owners.servant]);
+assert.equal((await db.query("SELECT count(*)::int AS count FROM public.\"SSP_Profile_Image\" WHERE owner_type='servant'")).rows[0].count,0);
+const report={passed:true,engine:'local PostgreSQL/PGlite',checks:['all four owner foreign keys','one profile per owner','tenant validation','private bucket','5 MB limit','MIME restriction','legacy bucket/policy preservation','client access denial','creation timestamp preservation','owner deletion cascade'],productionChanged:false};
+writeFileSync('artifacts/profile-images/database-test.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));await db.close();

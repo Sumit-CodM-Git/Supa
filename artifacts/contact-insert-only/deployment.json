@@ -1,0 +1,13 @@
+{
+  "project": "isrqhkshygauaehwfycw",
+  "functions": [
+    "add-members",
+    "crud-family",
+    "process-csv-import",
+    "resident-profile-console",
+    "update-member",
+    "update-residents-profile"
+  ],
+  "migration_applied": true,
+  "date": "2026-11-17"
+}

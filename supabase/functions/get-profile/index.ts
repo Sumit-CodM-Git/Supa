@@ -1,4 +1,5 @@
 import { residentFlatTypeFields } from "../_shared/resident-flat-type.ts";
+import { authorizedProfileImageUrls, type ProfileOwner } from "../_shared/profile-images.ts";
 import { contactParkingSlot } from "../_shared/contact.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Validator } from "../_shared/validation.ts";
@@ -94,6 +95,7 @@ Deno.serve(async (req: Request) => {
     let serviceAgentDetail = null;
     let vendorDetail = null;
     let targetContactId: string | null = null;
+    let imageOwner: ProfileOwner | null = null;
 
     // 5. FETCH VENDOR PROFILE (If requested)
     if (targetRoleNormalized === "vendor") {
@@ -108,6 +110,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle();
 
       if (vendorData) {
+        imageOwner = {ownerType:"non_society_user",ownerId:vendorData.non_society_user_id};
         vendorDetail = {
           vendorId: vendorData.vendor_id ?? vendorData.non_society_user_id ?? "NA",
           name: vendorData.name ?? "NA",
@@ -153,7 +156,7 @@ Deno.serve(async (req: Request) => {
         const { data: suData } = await supabase
           .from("SSP_Society_User")
           .select(`
-            role, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), status, move_in_date, move_out_date, user_ownership_type, user_type,
+            user_id, role, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), status, move_in_date, move_out_date, user_ownership_type, user_type,
             agent_availability_status, service_agent_services,
             SSP_Block!left ( block_name ),
             SSP_Tower!left ( name )
@@ -163,6 +166,7 @@ Deno.serve(async (req: Request) => {
           .maybeSingle();
 
         if (suData) {
+          imageOwner = {ownerType:"society_user",ownerId:suData.user_id};
           const blockObj = Array.isArray(suData.SSP_Block) ? suData.SSP_Block[0] : suData.SSP_Block;
           const towerObj = Array.isArray(suData.SSP_Tower) ? suData.SSP_Tower[0] : suData.SSP_Tower;
 
@@ -189,7 +193,7 @@ Deno.serve(async (req: Request) => {
           if (targetRoleNormalized === "service agent") {
             serviceAgentDetail = {
               parkingSlot: contactParkingSlot(contactData),
-              agentId: targetContactId, // Using contactId as fallback since we didn't select user_id
+              agentId: targetContactId, // Preserve the legacy contact-based ID.
               name: contactData.name ?? "NA",
               contactId: targetContactId,
               phoneNumber: phoneInput,
@@ -210,6 +214,9 @@ Deno.serve(async (req: Request) => {
         SocietyAddress: societyAddress,
         serviceAgent: serviceAgentDetail,
         vendor: vendorDetail,
+        ...(body.includeProfileImage === true ? {profileImageUrl:imageOwner
+          ? (await authorizedProfileImageUrls(supabase,authUser.user_metadata?.user_id??authUser.id,societyContext.society_id,[imageOwner]))
+              .get(`${imageOwner.ownerType}:${imageOwner.ownerId}`)??null : null} : {}),
         errorResponse: null,
       }),
       {

@@ -1,0 +1,11 @@
+{
+  "endpoint": "visitor-pass-operations",
+  "actionType": "FETCH_RESIDENTS_BY_FLAT",
+  "http_status": 200,
+  "resident_count": 1,
+  "subscriptionPlans": [
+    "PREMIUM"
+  ],
+  "visitor_created": false,
+  "notification_sent": false
+}

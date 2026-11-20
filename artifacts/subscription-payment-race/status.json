@@ -1,0 +1,3 @@
+{
+  "status": "Deployed 2026-11-17: atomic database finalizer plus verify-razorpay-payment and razorpay-webhook. Live database RPC replay passed twice for both affected captured payments with no added payment rows or subscription/date changes. HTTP handlers verified locally together; no live authenticated HTTP replay or new checkout/payment performed."
+}

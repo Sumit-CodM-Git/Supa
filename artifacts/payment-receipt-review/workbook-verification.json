@@ -1,0 +1,22 @@
+{
+  "updated_rows": [
+    [
+      1,
+      "18",
+      "resident-payments-console"
+    ],
+    [
+      3,
+      "16",
+      "view-resident-payments"
+    ],
+    [
+      3,
+      "23",
+      "make-resident-payment"
+    ]
+  ],
+  "jsonc_examples_validated": 13,
+  "unrelated_package_parts_preserved": true,
+  "status": "Deployed 2026-11-18 to isrqhkshygauaehwfycw. Migration recorded and storage trigger enabled. Live database trigger regression passed with all fixture writes rolled back. Existing payments repaired: 0. Live HTTP regression passed using a disposable resident: SUBMIT_PAYMENT, raw-byte PUT to uploadUrl (HTTP 200), automatic UNDER REVIEW without confirmation, FETCH_OWN signed proof URL, and byte-identical image download. All disposable storage, payment, auth, resident, and contact fixtures removed. App UI not tested; reported booking proof file remains absent from Storage."
+}

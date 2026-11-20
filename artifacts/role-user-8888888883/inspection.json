@@ -1,0 +1,872 @@
+{
+  "columns": [
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "contact_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "description",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "emergency_phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "gender",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_proof_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_proof_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "occupation",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "society",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "vehicle_registration_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "vehicle_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "whatsapp_phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": null,
+      "column_name": "parking_slot",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Contact"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "non_society_user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "check_in",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "check_out",
+      "data_type": "timestamp without time zone",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "delivery_origin",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "email",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "gate_no",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "gender",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "hosted_by",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_proof_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_proof_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": "false",
+      "column_name": "is_otp_verified",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "is_recurring",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "name",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "one_time_password",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "phone_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "purpose",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "recurring_days",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "role",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "service_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "society",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "pre_approved",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "vehicle_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "vehicle_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "verification_pin",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "visitor_approval_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "visitor_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "approver",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "vendor_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "vendor_rating",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "deleted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "idempotency_key",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Non_Society_User"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "staff_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "society_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "staff_name",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "phone_number",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "alternate_phone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "staff_role",
+      "data_type": "text",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": "false",
+      "column_name": "is_emergency_contact",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "shift_timing",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": "'available'::text",
+      "column_name": "availability_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_proof_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "id_proof_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "address",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": null,
+      "column_name": "emergency_category",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_Staff"
+    },
+    {
+      "column_default": "gen_random_uuid()",
+      "column_name": "user_id",
+      "data_type": "uuid",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": "now()",
+      "column_name": "created_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "NO",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "agent_availability_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "block",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "contact",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "gate_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "move_in_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "move_out_date",
+      "data_type": "date",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "one_time_password_otp",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "security_guard_id",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "security_guard_status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "security_zone",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "service_agent_rating",
+      "data_type": "numeric",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "service_agent_services",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "shift",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "society",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "tower",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "unit_flat_number",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "role",
+      "data_type": "ARRAY",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "user_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "user_ownership_type",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "flat_type_id",
+      "data_type": "uuid",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "relationship",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "deleted_at",
+      "data_type": "timestamp with time zone",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": null,
+      "column_name": "idempotency_key",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": "'In_active'::text",
+      "column_name": "Status",
+      "data_type": "text",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_default": "false",
+      "column_name": "status",
+      "data_type": "boolean",
+      "is_nullable": "YES",
+      "table_name": "SSP_Society_User"
+    }
+  ],
+  "constraints": [
+    {
+      "conname": "chk_user_type",
+      "contype": "c",
+      "definition": "CHECK (((user_type IS NULL) OR (user_type = ANY (ARRAY['owner'::text, 'tenant'::text]))))",
+      "table_name": "\"SSP_Society_User\""
+    },
+    {
+      "conname": "ssp_contact_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (contact_id)",
+      "table_name": "\"SSP_Contact\""
+    },
+    {
+      "conname": "ssp_society_user_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (user_id)",
+      "table_name": "\"SSP_Society_User\""
+    },
+    {
+      "conname": "ssp_non_society_user_pkey",
+      "contype": "p",
+      "definition": "PRIMARY KEY (non_society_user_id)",
+      "table_name": "\"SSP_Non_Society_User\""
+    },
+    {
+      "conname": "fk_alert_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society_user) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Alert\""
+    },
+    {
+      "conname": "fk_contact_society",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society) REFERENCES \"SSP_Society\"(society_id)",
+      "table_name": "\"SSP_Contact\""
+    },
+    {
+      "conname": "fk_booking_requested_by",
+      "contype": "f",
+      "definition": "FOREIGN KEY (requested_by) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Facility_Booking\""
+    },
+    {
+      "conname": "fk_market_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society_user) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Market_Place\""
+    },
+    {
+      "conname": "fk_nsu_society",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society) REFERENCES \"SSP_Society\"(society_id)",
+      "table_name": "\"SSP_Non_Society_User\""
+    },
+    {
+      "conname": "fk_nsu_hosted_by",
+      "contype": "f",
+      "definition": "FOREIGN KEY (hosted_by) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Non_Society_User\""
+    },
+    {
+      "conname": "fk_nsu_approver",
+      "contype": "f",
+      "definition": "FOREIGN KEY (approver) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Non_Society_User\""
+    },
+    {
+      "conname": "fk_payment_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society_user) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Payment\""
+    },
+    {
+      "conname": "fk_ss_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society_user) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Society_Servant\""
+    },
+    {
+      "conname": "fk_su_society",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society) REFERENCES \"SSP_Society\"(society_id)",
+      "table_name": "\"SSP_Society_User\""
+    },
+    {
+      "conname": "fk_su_block",
+      "contype": "f",
+      "definition": "FOREIGN KEY (block) REFERENCES \"SSP_Block\"(block_id)",
+      "table_name": "\"SSP_Society_User\""
+    },
+    {
+      "conname": "fk_su_tower",
+      "contype": "f",
+      "definition": "FOREIGN KEY (tower) REFERENCES \"SSP_Tower\"(tower_id)",
+      "table_name": "\"SSP_Society_User\""
+    },
+    {
+      "conname": "fk_su_flat_type",
+      "contype": "f",
+      "definition": "FOREIGN KEY (flat_type_id) REFERENCES \"SSP_Flat_Type\"(flat_type_id)",
+      "table_name": "\"SSP_Society_User\""
+    },
+    {
+      "conname": "fk_su_contact",
+      "contype": "f",
+      "definition": "FOREIGN KEY (contact) REFERENCES \"SSP_Contact\"(contact_id)",
+      "table_name": "\"SSP_Society_User\""
+    },
+    {
+      "conname": "fk_complaint_assigned_agent",
+      "contype": "f",
+      "definition": "FOREIGN KEY (assigned_agent) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Complaint\""
+    },
+    {
+      "conname": "fk_complaint_assigned_by",
+      "contype": "f",
+      "definition": "FOREIGN KEY (assigned_by) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Complaint\""
+    },
+    {
+      "conname": "fk_complaint_non_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (non_society_user) REFERENCES \"SSP_Non_Society_User\"(non_society_user_id)",
+      "table_name": "\"SSP_Complaint\""
+    },
+    {
+      "conname": "fk_complaint_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society_user) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Complaint\""
+    },
+    {
+      "conname": "fk_document_non_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (non_society_user) REFERENCES \"SSP_Non_Society_User\"(non_society_user_id)",
+      "table_name": "\"SSP_Document\""
+    },
+    {
+      "conname": "fk_document_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society_user) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Document\""
+    },
+    {
+      "conname": "fk_fbr_requested_by",
+      "contype": "f",
+      "definition": "FOREIGN KEY (requested_by) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Facility_Booking_Request\""
+    },
+    {
+      "conname": "fk_sos_acknowledged_by",
+      "contype": "f",
+      "definition": "FOREIGN KEY (acknowledged_by) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_SOS_Alert\""
+    },
+    {
+      "conname": "fk_sos_raised_by_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (raised_by_user) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_SOS_Alert\""
+    },
+    {
+      "conname": "SSP_Document_uploaded_by_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (uploaded_by) REFERENCES \"SSP_Society_User\"(user_id) ON DELETE SET NULL",
+      "table_name": "\"SSP_Document\""
+    },
+    {
+      "conname": "fk_wishlist_society_user",
+      "contype": "f",
+      "definition": "FOREIGN KEY (society_user) REFERENCES \"SSP_Society_User\"(user_id) ON DELETE CASCADE",
+      "table_name": "\"SSP_Market_Wishlist\""
+    },
+    {
+      "conname": "SSP_Subscription_owner_society_user_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (owner_society_user) REFERENCES \"SSP_Society_User\"(user_id) ON DELETE SET NULL",
+      "table_name": "\"SSP_Subscription\""
+    },
+    {
+      "conname": "SSP_Subscription_Transfer_from_society_user_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (from_society_user) REFERENCES \"SSP_Society_User\"(user_id) ON DELETE SET NULL",
+      "table_name": "\"SSP_Subscription_Transfer\""
+    },
+    {
+      "conname": "SSP_Subscription_Transfer_to_society_user_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (to_society_user) REFERENCES \"SSP_Society_User\"(user_id) ON DELETE SET NULL",
+      "table_name": "\"SSP_Subscription_Transfer\""
+    },
+    {
+      "conname": "SSP_Refund_requested_by_fkey",
+      "contype": "f",
+      "definition": "FOREIGN KEY (requested_by) REFERENCES \"SSP_Society_User\"(user_id) ON DELETE RESTRICT",
+      "table_name": "\"SSP_Refund\""
+    },
+    {
+      "conname": "chk_non_society_user_role",
+      "contype": "c",
+      "definition": "CHECK (((role IS NULL) OR (role = ANY (ARRAY['visitor'::text, 'vendor'::text]))))",
+      "table_name": "\"SSP_Non_Society_User\""
+    },
+    {
+      "conname": "fk_fbr_rejected_by",
+      "contype": "f",
+      "definition": "FOREIGN KEY (rejected_by) REFERENCES \"SSP_Society_User\"(user_id)",
+      "table_name": "\"SSP_Facility_Booking_Request\""
+    },
+    {
+      "conname": "chk_society_user_role",
+      "contype": "c",
+      "definition": "CHECK (((role IS NULL) OR (role <@ ARRAY['admin'::text, 'resident'::text, 'security'::text, 'service_agent'::text])))",
+      "table_name": "\"SSP_Society_User\""
+    }
+  ],
+  "contacts": [
+    {
+      "contact_id": "5b9035c7-9ad1-47c6-92c1-3fd13d83f9ba",
+      "name": "Nobro",
+      "phone": "8888888883"
+    }
+  ],
+  "society_users": [
+    {
+      "contact": "5b9035c7-9ad1-47c6-92c1-3fd13d83f9ba",
+      "deleted_at": null,
+      "role": [
+        "admin"
+      ],
+      "society": "74628c82-7e11-4f5a-952a-d062193b3fb9",
+      "unit_flat_number": null,
+      "user_id": "ac4e1eed-29db-4651-ad1c-8a7c50cddf8c"
+    }
+  ],
+  "non_society_users": [],
+  "society": [
+    {
+      "registration_number": "GZB-1234-ab",
+      "society_id": "74628c82-7e11-4f5a-952a-d062193b3fb9"
+    }
+  ],
+  "auth": []
+}

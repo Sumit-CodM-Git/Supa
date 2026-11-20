@@ -1,0 +1,133 @@
+{
+  "checks": [
+    {
+      "check": "Disposable test authentication created without sending messages",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Disposable resident app session issued",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "cancel_booking book as resident only",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "cancel_booking before payment page: request created, no confirmed booking, no image",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "unpaid",
+      "request_count": 1,
+      "uploaded_files": 0
+    },
+    {
+      "check": "cancel_booking cancellation without uploading any image",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "cancel_booking no booking/request remains, ledger cancelled, no uploaded image",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "cancelled",
+      "request_count": 0,
+      "uploaded_files": 0
+    },
+    {
+      "check": "cancel_booking resident list is empty",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "abort_pending_booking book as resident only",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "abort_pending_booking before payment page: request created, no confirmed booking, no image",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "unpaid",
+      "request_count": 1,
+      "uploaded_files": 0
+    },
+    {
+      "check": "Payment image upload URL prepared but no image uploaded",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Preparing upload creates no confirmed booking and payment remains unpaid",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "unpaid",
+      "request_count": 1,
+      "uploaded_files": 0
+    },
+    {
+      "check": "abort_pending_booking cancellation without uploading any image",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "abort_pending_booking no booking/request remains, ledger cancelled, no uploaded image",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "cancelled",
+      "request_count": 0,
+      "uploaded_files": 0
+    },
+    {
+      "check": "abort_pending_booking resident list is empty",
+      "passed": true,
+      "http_status": 200
+    }
+  ],
+  "cleanup": {
+    "storage_objects_removed": true,
+    "test_payments_removed": true,
+    "disposable_auth_removed": true,
+    "disposable_society_facility_resident_removed": true
+  },
+  "scenarios": [
+    {
+      "action": "cancel_booking",
+      "prepared_upload_only": false,
+      "request_id": "76c2a237-3be5-4253-8708-c776b9e8a144",
+      "before": {
+        "booking_count": 0,
+        "payment_status": "unpaid",
+        "request_count": 1,
+        "uploaded_files": 0
+      },
+      "after": {
+        "booking_count": 0,
+        "payment_status": "cancelled",
+        "request_count": 0,
+        "uploaded_files": 0
+      }
+    },
+    {
+      "action": "abort_pending_booking",
+      "prepared_upload_only": true,
+      "request_id": "cd8a096b-3c12-454a-94bd-c117bb3945c7",
+      "before": {
+        "booking_count": 0,
+        "payment_status": "unpaid",
+        "request_count": 1,
+        "uploaded_files": 0
+      },
+      "after": {
+        "booking_count": 0,
+        "payment_status": "cancelled",
+        "request_count": 0,
+        "uploaded_files": 0
+      }
+    }
+  ],
+  "result": "passed",
+  "passed": true
+}

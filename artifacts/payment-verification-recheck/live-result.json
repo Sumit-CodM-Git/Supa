@@ -1,0 +1,26 @@
+{
+  "date": "2026-11-17",
+  "endpoint": "verify-razorpay-payment",
+  "checks": [
+    {
+      "attempt": 1,
+      "http_status": 200,
+      "success": true,
+      "alreadyProcessed": true,
+      "subscriptionId": "1fea95a9-5e66-4d77-8458-a2064822cbdb",
+      "planCode": "PREMIUM",
+      "message": null
+    },
+    {
+      "attempt": 2,
+      "http_status": 200,
+      "success": true,
+      "alreadyProcessed": true,
+      "subscriptionId": "1fea95a9-5e66-4d77-8458-a2064822cbdb",
+      "planCode": "PREMIUM",
+      "message": null
+    }
+  ],
+  "payment_rows_and_subscription_unchanged": true,
+  "new_checkout_or_charge": false
+}

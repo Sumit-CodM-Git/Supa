@@ -88,10 +88,20 @@ serve(async (req) => {
     if (notification.reference_table === "SSP_Non_Society_User" &&
         String(recipientType).toLowerCase() === "resident") {
       const { data: visitor, error: visitorError } = await supabase
-        .from("SSP_Non_Society_User").select("is_otp_verified,role")
+        .from("SSP_Non_Society_User").select("*")
         .eq("non_society_user_id", notification.reference_id).maybeSingle();
       if (visitorError) throw new Error(`Visitor verification check failed: ${visitorError.message}`);
-      if (!visitor || (visitor.role === "visitor" && visitor.is_otp_verified !== true)) {
+      let phoneRequirementSatisfied = true;
+      if (visitor && String(visitor.role).toLowerCase() === "visitor") {
+        // Only non-Premium walk-in approval requests may bypass OTP.
+        const { data: satisfied, error: requirementError } = await supabase.rpc(
+          "visitor_phone_requirement_satisfied", { p_visitor: visitor },
+        );
+        if (requirementError) throw new Error(`Visitor plan check failed: ${requirementError.message}`);
+        phoneRequirementSatisfied = satisfied === true &&
+          (visitor.is_otp_verified === true || notification.notification_type === "VISITOR_APPROVAL_REQUEST");
+      }
+      if (!visitor || !phoneRequirementSatisfied) {
         await supabase.from("SSP_Notification").update({
           delivery_status: "failed",
           extra_data: { ...(notification.extra_data ?? {}), suppressedReason: "visitor_phone_not_verified" },

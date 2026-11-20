@@ -1,0 +1,332 @@
+{
+  "dependencies": [
+    {
+      "column_name": "user_id",
+      "count": 1,
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_name": "contact",
+      "count": 1,
+      "table_name": "SSP_Society_User"
+    },
+    {
+      "column_name": "contact_id",
+      "count": 1,
+      "table_name": "SSP_Contact"
+    }
+  ],
+  "auth": [],
+  "staff": [],
+  "triggers": [
+    {
+      "action_statement": "EXECUTE FUNCTION prevent_duplicate_primary()",
+      "event_manipulation": "INSERT",
+      "event_object_table": "SSP_Society_User",
+      "trigger_name": "trg_prevent_duplicate_primary"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION prevent_duplicate_primary()",
+      "event_manipulation": "UPDATE",
+      "event_object_table": "SSP_Society_User",
+      "trigger_name": "trg_prevent_duplicate_primary"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION fn_society_user_notifications()",
+      "event_manipulation": "UPDATE",
+      "event_object_table": "SSP_Society_User",
+      "trigger_name": "trg_society_user_notifications"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION sync_user_block_from_tower()",
+      "event_manipulation": "INSERT",
+      "event_object_table": "SSP_Society_User",
+      "trigger_name": "trg_sync_user_block_from_tower"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION sync_user_block_from_tower()",
+      "event_manipulation": "UPDATE",
+      "event_object_table": "SSP_Society_User",
+      "trigger_name": "trg_sync_user_block_from_tower"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION reset_visitor_phone_verification()",
+      "event_manipulation": "UPDATE",
+      "event_object_table": "SSP_Non_Society_User",
+      "trigger_name": "reset_visitor_phone_verification"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION sync_visitor_approval_notification_name()",
+      "event_manipulation": "UPDATE",
+      "event_object_table": "SSP_Non_Society_User",
+      "trigger_name": "sync_visitor_approval_notification_name"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION trg_non_society_user_notifications()",
+      "event_manipulation": "INSERT",
+      "event_object_table": "SSP_Non_Society_User",
+      "trigger_name": "trg_non_society_user_notifications"
+    },
+    {
+      "action_statement": "EXECUTE FUNCTION trg_non_society_user_notifications()",
+      "event_manipulation": "UPDATE",
+      "event_object_table": "SSP_Non_Society_User",
+      "trigger_name": "trg_non_society_user_notifications"
+    }
+  ],
+  "picklists": [
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "role",
+      "id": "ec622de8-8233-4d7d-99b1-ca48d2eebcd7",
+      "is_active": true,
+      "label": "Vendor",
+      "language": "en",
+      "sort_order": 1,
+      "table_name": "SSP_Non_Society_User",
+      "value": "vendor"
+    },
+    {
+      "created_at": "2026-09-11 07:46:21.564223+00",
+      "field_name": "role",
+      "id": "a2221eb1-f913-4852-8478-2fd0cfd6f828",
+      "is_active": true,
+      "label": "Caretaker",
+      "language": "en",
+      "sort_order": 9,
+      "table_name": "SSP_Servant",
+      "value": "caretaker"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "role",
+      "id": "72027920-180e-470b-917f-ca675072d88d",
+      "is_active": true,
+      "label": "Visitor",
+      "language": "en",
+      "sort_order": 2,
+      "table_name": "SSP_Non_Society_User",
+      "value": "visitor"
+    },
+    {
+      "created_at": "2026-09-11 06:51:28.903063+00",
+      "field_name": "role",
+      "id": "e4134167-0bc4-4df3-9f41-8dc5b8348726",
+      "is_active": true,
+      "label": "Maid",
+      "language": "en",
+      "sort_order": 1,
+      "table_name": "SSP_Servant",
+      "value": "maid"
+    },
+    {
+      "created_at": "2026-09-11 06:51:28.903063+00",
+      "field_name": "role",
+      "id": "9af8df9f-59c6-4d0b-9199-56d376d90dc5",
+      "is_active": true,
+      "label": "Cook",
+      "language": "en",
+      "sort_order": 2,
+      "table_name": "SSP_Servant",
+      "value": "cook"
+    },
+    {
+      "created_at": "2026-09-11 06:51:28.903063+00",
+      "field_name": "role",
+      "id": "77fc77ba-8940-4bf8-812f-f928f0f65962",
+      "is_active": true,
+      "label": "Driver",
+      "language": "en",
+      "sort_order": 3,
+      "table_name": "SSP_Servant",
+      "value": "driver"
+    },
+    {
+      "created_at": "2026-09-11 06:51:28.903063+00",
+      "field_name": "role",
+      "id": "cfdfeee0-06fe-4d66-bbaa-1218be81c5cc",
+      "is_active": true,
+      "label": "Cleaner",
+      "language": "en",
+      "sort_order": 4,
+      "table_name": "SSP_Servant",
+      "value": "cleaner"
+    },
+    {
+      "created_at": "2026-09-11 06:51:28.903063+00",
+      "field_name": "role",
+      "id": "cc5db8c7-f034-457e-8480-fef439d959a5",
+      "is_active": true,
+      "label": "Gardener",
+      "language": "en",
+      "sort_order": 5,
+      "table_name": "SSP_Servant",
+      "value": "gardener"
+    },
+    {
+      "created_at": "2026-09-11 06:51:28.903063+00",
+      "field_name": "role",
+      "id": "c3edb52e-27b8-49d6-823f-a3d0bfc91719",
+      "is_active": true,
+      "label": "Housekeeper",
+      "language": "en",
+      "sort_order": 6,
+      "table_name": "SSP_Servant",
+      "value": "housekeeper"
+    },
+    {
+      "created_at": "2026-09-11 06:51:28.903063+00",
+      "field_name": "role",
+      "id": "16e3319b-b2af-446e-be95-6170274ee953",
+      "is_active": true,
+      "label": "Laundry",
+      "language": "en",
+      "sort_order": 7,
+      "table_name": "SSP_Servant",
+      "value": "laundry"
+    },
+    {
+      "created_at": "2026-09-11 07:14:27.0141+00",
+      "field_name": "role",
+      "id": "67e567b2-2185-4abf-bbcf-bc4c9f19972c",
+      "is_active": true,
+      "label": "Other",
+      "language": "en",
+      "sort_order": 8,
+      "table_name": "SSP_Servant",
+      "value": "other"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "agent_availability_status",
+      "id": "83dea76d-435e-4f69-80bb-3e69b58bf0ec",
+      "is_active": true,
+      "label": "Available",
+      "language": "en",
+      "sort_order": 1,
+      "table_name": "SSP_Society_User",
+      "value": "available"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "role",
+      "id": "2f6f8f0f-7ade-4e24-9181-02b1948af443",
+      "is_active": true,
+      "label": "Administrator",
+      "language": "en",
+      "sort_order": 1,
+      "table_name": "SSP_Society_User",
+      "value": "admin"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "role",
+      "id": "6d63d066-1ee2-4ece-9252-c79e7cb8393e",
+      "is_active": true,
+      "label": "Resident",
+      "language": "en",
+      "sort_order": 2,
+      "table_name": "SSP_Society_User",
+      "value": "resident"
+    },
+    {
+      "created_at": "2026-06-24 06:30:02.839508+00",
+      "field_name": "security_guard_status",
+      "id": "3cd1e508-5f2b-4249-b036-2df1bbd9e982",
+      "is_active": true,
+      "label": "On Leave",
+      "language": "en",
+      "sort_order": 2,
+      "table_name": "SSP_Society_User",
+      "value": "on_leave"
+    },
+    {
+      "created_at": "2026-06-24 07:52:20.470591+00",
+      "field_name": "role",
+      "id": "e5972aed-4647-469a-89a9-f9d595c0fde2",
+      "is_active": false,
+      "label": "Vendor",
+      "language": "en",
+      "sort_order": 6,
+      "table_name": "SSP_Society_User",
+      "value": "vendor"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "role",
+      "id": "3300d8b8-62f7-48f0-b01f-b359a27b91d7",
+      "is_active": false,
+      "label": "Security Guard",
+      "language": "en",
+      "sort_order": 4,
+      "table_name": "SSP_Society_User",
+      "value": "security_guard"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "role",
+      "id": "5e0df68d-fe86-466a-9c62-210b4cd53212",
+      "is_active": true,
+      "label": "Security",
+      "language": "en",
+      "sort_order": 3,
+      "table_name": "SSP_Society_User",
+      "value": "security"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "role",
+      "id": "a70ba021-9e90-4c7a-8823-5c6f407419df",
+      "is_active": true,
+      "label": "Service Agent",
+      "language": "en",
+      "sort_order": 5,
+      "table_name": "SSP_Society_User",
+      "value": "service_agent"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "user_ownership_type",
+      "id": "4d03cd42-62a3-4da6-8231-5bee9c36472e",
+      "is_active": true,
+      "label": "Primary",
+      "language": "en",
+      "sort_order": 1,
+      "table_name": "SSP_Society_User",
+      "value": "primary"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "agent_availability_status",
+      "id": "fce0d2ee-e039-47ed-9904-0b7257b9e1bb",
+      "is_active": true,
+      "label": "Busy",
+      "language": "en",
+      "sort_order": 2,
+      "table_name": "SSP_Society_User",
+      "value": "busy"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "security_guard_status",
+      "id": "f611213c-0066-47dd-9c29-bb27b4471d12",
+      "is_active": true,
+      "label": "On Duty",
+      "language": "en",
+      "sort_order": 1,
+      "table_name": "SSP_Society_User",
+      "value": "on_duty"
+    },
+    {
+      "created_at": "2026-06-22 06:12:14.241517+00",
+      "field_name": "user_ownership_type",
+      "id": "fed61fc2-9daa-4f9d-acae-942361e7cec6",
+      "is_active": true,
+      "label": "Secondary",
+      "language": "en",
+      "sort_order": 2,
+      "table_name": "SSP_Society_User",
+      "value": "secondary"
+    }
+  ]
+}

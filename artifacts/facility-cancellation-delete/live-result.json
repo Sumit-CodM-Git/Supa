@@ -1,0 +1,75 @@
+{
+  "checks": [
+    {
+      "check": "Disposable test authentication created without sending messages",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Disposable resident app session issued",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Real booking API creates disposable request",
+      "passed": true,
+      "http_status": 200,
+      "error": null
+    },
+    {
+      "check": "cancel_booking HTTP success",
+      "passed": true,
+      "http_status": 200,
+      "message": null
+    },
+    {
+      "check": "cancel_booking physically removes request and booking; payment cancelled",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "cancelled",
+      "request_count": 0
+    },
+    {
+      "check": "cancel_booking removed from resident booking list",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "Same slot can be rebooked after cancellation",
+      "passed": true,
+      "http_status": 200
+    },
+    {
+      "check": "abort_pending_booking HTTP success",
+      "passed": true,
+      "http_status": 200,
+      "message": null
+    },
+    {
+      "check": "abort_pending_booking physically removes request and booking; payment cancelled",
+      "passed": true,
+      "booking_count": 0,
+      "payment_status": "cancelled",
+      "request_count": 0
+    },
+    {
+      "check": "abort_pending_booking removed from resident booking list",
+      "passed": true,
+      "http_status": 200
+    }
+  ],
+  "cleanup": {
+    "storage_objects_removed": true,
+    "test_payments_removed": true,
+    "disposable_auth_removed": true,
+    "disposable_society_facility_resident_removed": true
+  },
+  "booking": {
+    "request_id": "a93a0639-5dc8-4881-a488-70cbf2b0cf20",
+    "payment_id": "PAY-1795007811469-205E9249",
+    "amount": 1,
+    "initial_status": "waiting_payment"
+  },
+  "result": "passed",
+  "passed": true
+}

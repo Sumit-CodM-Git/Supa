@@ -1,0 +1,11 @@
+{
+  "date": "2026-11-17",
+  "database_checks": [
+    {
+      "result": "passed",
+      "verification": "Duplicate INSERT blocked; unique INSERT and duplicate-phone UPDATE allowed. Test records rolled back."
+    }
+  ],
+  "rolled_back": true,
+  "live_member_or_profile_endpoint_test": false
+}

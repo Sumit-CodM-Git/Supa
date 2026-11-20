@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "security-gate-console",
+    "version": 35,
+    "status": "ACTIVE",
+    "verify_jwt": false
+  },
+  {
+    "slug": "send-notification",
+    "version": 34,
+    "status": "ACTIVE",
+    "verify_jwt": false
+  },
+  {
+    "slug": "get-dashboard",
+    "version": 64,
+    "status": "ACTIVE",
+    "verify_jwt": false
+  },
+  {
+    "slug": "visitor-pass-operations",
+    "version": 39,
+    "status": "ACTIVE",
+    "verify_jwt": false
+  },
+  {
+    "slug": "resident-visitor",
+    "version": 25,
+    "status": "ACTIVE",
+    "verify_jwt": false
+  }
+]
