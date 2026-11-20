@@ -1100,8 +1100,8 @@
 // Auth: residentId (UUID) from SSP_Society_User
 // Society scoped. Max 25 MB. Max 10 docs per category per resident.
 //
-// Personal upload categories: photo, aadhaar_card, pan_card, driving_license, rent_agreement
-// Society-shared read/download categories: bylaws, society_rules, legal, agreement
+// Resident-visible & uploadable categories ONLY:
+//   photo, aadhaar_card, pan_card, driving_license, rent_agreement
 //
 // Storage path:
 //   <societyRegNo>/documents/residentDocuments/<documentId>/<fileName>
@@ -1116,7 +1116,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 type Action = "VIEW" | "UPLOAD" | "DOWNLOAD" | "DELETE";
 type UploadPhase = "request" | "confirm";
-type ViewScope = "own" | "shared" | "all";
+type ViewScope = "own" | "all";
 
 interface CrudResidentDocumentRequest {
   societyRegistrationNumber: string;
@@ -1198,7 +1198,7 @@ const VALID_ACTIONS: readonly Action[] = [
   "DOWNLOAD",
   "DELETE",
 ];
-const VALID_SCOPES: readonly ViewScope[] = ["own", "shared", "all"];
+const VALID_SCOPES: readonly ViewScope[] = ["own", "all"];
 const VALID_SORT_FIELDS = [
   "name",
   "file_name",
@@ -1208,7 +1208,7 @@ const VALID_SORT_FIELDS = [
 ] as const;
 
 // ── Resident-visible & uploadable categories (ONLY these) ──
-// KYC / identity categories remain private and resident-uploadable.
+// KYC / identity docs. Shared society documents are NOT visible here.
 const RESIDENT_CATEGORIES = [
   "photo",
   "aadhaar_card",
@@ -1216,14 +1216,6 @@ const RESIDENT_CATEGORIES = [
   "driving_license",
   "rent_agreement",
 ] as const;
-
-// Admin-managed categories visible to members of the same society.
-const SHARED_CATEGORIES = ["bylaws", "society_rules", "legal", "agreement"] as const;
-const VISIBLE_CATEGORIES = [...RESIDENT_CATEGORIES, ...SHARED_CATEGORIES];
-function isSharedDocument(row: DocumentRow): boolean {
-  return row.society_user == null &&
-    (SHARED_CATEGORIES as readonly string[]).includes((row.document_type ?? "").toLowerCase());
-}
 
 // ── Valid file types (image OR PDF) ──
 const VALID_FILE_TYPES = [
@@ -1439,8 +1431,7 @@ async function formatDocument(
     documentType: row.document_type,
     uploadedOn: row.uploaded_on,
     isOwnedByMe: isOwner,
-    canDelete: isOwner && isResidentCategory((row.document_type ?? "").toLowerCase()),
-    isShared: isSharedDocument(row),
+    canDelete: isOwner,
     viewUrl: signedUrl,
     downloadUrl: signedUrl,
     expiresIn: SIGNED_URL_EXPIRY,
@@ -1448,7 +1439,7 @@ async function formatDocument(
 }
 
 // ============================================
-// ACTION: VIEW — private resident docs and society-shared admin docs
+// ACTION: VIEW — only own resident docs
 // ============================================
 
 async function handleView(
@@ -1467,10 +1458,10 @@ async function handleView(
     ? (req.scope as ViewScope)
     : "all";
 
-  // Filters may select private categories or the four shared categories.
+  // Explicit category filter (must be a subset of RESIDENT_CATEGORIES)
   const requestedTypes = normalizeArray(req.filters?.documentType);
   const categoryFilter = requestedTypes && requestedTypes.length > 0
-    ? requestedTypes.filter((c) => (VISIBLE_CATEGORIES as readonly string[]).includes(c.toLowerCase()))
+    ? requestedTypes.filter((c) => isResidentCategory(c.toLowerCase()))
     : null;
 
   if (
@@ -1479,32 +1470,41 @@ async function handleView(
   ) {
     return fail(
       `Invalid documentType filter. Residents can only view: ${
-        VISIBLE_CATEGORIES.join(", ")
+        RESIDENT_CATEGORIES.join(", ")
       }`,
       400,
       "INVALID_PARAMETERS",
     );
   }
 
-  const ownFilter = `and(society_user.eq.${memberId},document_type.in.(${RESIDENT_CATEGORIES.join(",")}))`;
-  const sharedFilter = `and(society_user.is.null,document_type.in.(${SHARED_CATEGORIES.join(",")}))`;
-  const visibility = scope === "own" ? ownFilter : scope === "shared" ? sharedFilter : `${ownFilter},${sharedFilter}`;
-  // Build one OR expression so search cannot replace the visibility constraint.
-  const term = req.search?.trim();
-  const pattern = term ? JSON.stringify(`%${term}%`) : null;
-  const search = pattern ? ["name", "file_name", "document_type", "file_type"]
-    .map(field => `${field}.ilike.${pattern}`).join(",") : null;
   let query = supabase
     .from("SSP_Document")
     .select(DOC_SELECT_FIELDS, { count: "exact" })
     .eq("society", societyId)
     .not("s3_path", "is", null)
-    .or(search ? `and(or(${visibility}),or(${search}))` : visibility);
+    // Resident API — always scoped to this resident's own docs
+    .eq("society_user", memberId)
+    // And only the resident-category set
+    .in("document_type", RESIDENT_CATEGORIES);
+
+  // scope === "own" is identical to the base query; "all" here = same (no shared docs)
+  // Kept for request-shape compatibility.
+  void scope;
 
   if (categoryFilter && categoryFilter.length > 0) {
     query = query.in(
       "document_type",
       categoryFilter.map((c) => c.toLowerCase()),
+    );
+  }
+
+  if (req.search && req.search.trim() !== "") {
+    const term = req.search.trim();
+    query = query.or(
+      `name.ilike.%${term}%,` +
+        `file_name.ilike.%${term}%,` +
+        `document_type.ilike.%${term}%,` +
+        `file_type.ilike.%${term}%`,
     );
   }
 
@@ -1812,9 +1812,20 @@ async function handleDownload(
   const row = doc as DocumentRow;
   const category = (row.document_type ?? "").toLowerCase();
 
-  const isOwn = row.society_user === memberId && isResidentCategory(category);
-  if (!isOwn && !isSharedDocument(row)) {
-    return fail("Access denied. Document is neither your own nor shared with your society.", 403, "UNAUTHORIZED");
+  // Must be an own document AND in the resident category set
+  if (row.society_user !== memberId) {
+    return fail(
+      "Access denied. Document does not belong to you.",
+      403,
+      "UNAUTHORIZED",
+    );
+  }
+  if (!isResidentCategory(category)) {
+    return fail(
+      "Access denied. Document is not a resident-uploadable category.",
+      403,
+      "UNAUTHORIZED",
+    );
   }
 
   const storageKey = extractStorageKey(row.s3_path);

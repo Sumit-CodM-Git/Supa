@@ -1,4 +1,3 @@
-import { visitorTimeISTISO } from "../_shared/visitor-time.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -1049,7 +1048,6 @@ interface ResidentLogVisitorsRequest {
 }
 
 interface VisitorLogResponse {
-  visitorName?: string;
   visitorId: string;
   name: string;
   phoneNumber: string;
@@ -1620,9 +1618,7 @@ Deno.serve(
           .select("non_society_user, s3_path")
           .in("non_society_user", visitorIds)
           .eq("society", society.society_id)
-          .not("s3_path", "is", null)
-          .in("document_type", ["visitor_image", "security_guard_image", "guest_image", "photo"])
-          .order("created_at", { ascending: false });
+          .not("s3_path", "is", null);
 
         for (const doc of (documents ?? []) as {
           non_society_user: string;
@@ -1663,7 +1659,6 @@ Deno.serve(
         formattedVisitors.push({
           visitorId: raw.non_society_user_id,
           name: raw.name || "N/A",
-          visitorName: raw.name || "N/A",
           phoneNumber: raw.phone_number || "N/A",
           role: raw.role || "visitor",
           visitorStatus: raw.visitor_status || null,
@@ -1672,8 +1667,8 @@ Deno.serve(
           vehicleNumber: raw.vehicle_number || null,
           idProofType: raw.id_proof_type || null,
           gateNumber: raw.gate_no || null,
-          checkInTime: visitorTimeISTISO(raw.check_in),
-          checkOutTime: visitorTimeISTISO(raw.check_out),
+          checkInTime: raw.check_in || null,
+          checkOutTime: raw.check_out || null,
           imageUrl,
           createdAt: raw.created_at || new Date().toISOString(),
         });

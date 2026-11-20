@@ -17,7 +17,6 @@
 // ============================================
 
 import * as DJWT from "https://deno.land/x/djwt@v2.8/mod.ts";
-import { isUserAway } from "./user-availability.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 // ============================================
@@ -53,7 +52,6 @@ export interface FcmUserSendSummary {
     failed: number;
     deactivated: number;
     results: FcmSendResult[];
-    skippedReason?: "user_away" | "availability_check_failed";
 }
 
 interface DeviceRow {
@@ -423,17 +421,6 @@ export async function sendFcmToUser(
     };
 
     if (!userId) return summary;
-
-    // Includes direct SOS sends, which do not use the notification webhook.
-    try {
-        if (await isUserAway(supabase, userId)) {
-            summary.skippedReason = "user_away";
-            return summary;
-        }
-    } catch {
-        summary.skippedReason = "availability_check_failed";
-        return summary;
-    }
 
     // Fetch active tokens for this user + type
     const { data: devices, error: fetchErr } = await supabase

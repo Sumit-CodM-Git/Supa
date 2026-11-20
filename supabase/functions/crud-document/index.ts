@@ -89,8 +89,6 @@ const SIGNED_URL_EXPIRY = 900; // 15 min
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-const ADMIN_DOCUMENT_TYPES = ["bylaws", "society_rules", "legal", "agreement"];
-
 const VALID_ACTIONS: readonly Action[] = [
     "VIEW",
     "UPLOAD",
@@ -331,7 +329,7 @@ async function buildUploaderMap(userIds: string[]): Promise<Map<string, string>>
 
     const { data: contacts } = await supabase
         .from("SSP_Contact")
-        .select("parking_slot, contact_id, name")
+        .select("contact_id, name")
         .in("contact_id", contactIds);
 
     const contactNameMap = new Map(
@@ -411,8 +409,7 @@ async function handleView(
     let query = supabase
         .from("SSP_Document")
         .select(DOC_SELECT_FIELDS, { count: "exact" })
-        .eq("society", societyId)
-        .in("document_type", ADMIN_DOCUMENT_TYPES);
+        .eq("society", societyId);
 
     // ── Search ──
     if (req.search && req.search.trim() !== "") {
@@ -604,24 +601,15 @@ async function handleUpload(
         const folder = objectKey.split("/").slice(0, -1).join("/");
         const leaf = objectKey.split("/").pop() ?? "";
 
-        const { data: existsCheck, error: existsError } = await supabase.storage
+        const { data: existsCheck } = await supabase.storage
             .from(BUCKET_NAME)
             .list(folder, { search: leaf });
 
-        if (existsError) {
-            return fail("Failed to verify uploaded file metadata.", 500, "STORAGE_ERROR");
-        }
+        const fileExists = Array.isArray(existsCheck) &&
+            existsCheck.some((f) => `${folder}/${f.name}` === objectKey);
 
-        const storedFile = existsCheck?.find((f) => `${folder}/${f.name}` === objectKey);
-
-        if (!storedFile) {
+        if (!fileExists) {
             return fail("Uploaded file not found in storage. Please re-upload.", 400, "STORAGE_ERROR");
-        }
-
-        const storedFileType = String(storedFile.metadata?.mimetype ?? "")
-            .split(";")[0].trim().toLowerCase();
-        if (!isValidFileType(storedFileType)) {
-            return fail("Uploaded file has an unsupported or missing storage MIME type.", 400, "INVALID_PARAMETERS");
         }
 
         const { data: urlData } = supabase.storage
@@ -634,7 +622,7 @@ async function handleUpload(
                 document_id: documentId,
                 name: cleanTitle,           
                 file_name: cleanFileName,   
-                file_type: storedFileType,
+                file_type: cleanFileType,
                 file_size: fileSize,
                 document_type: cleanCategory,
                 s3_path: urlData.publicUrl, 

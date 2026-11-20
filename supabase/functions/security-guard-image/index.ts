@@ -229,7 +229,6 @@ interface SecurityGuardImagePayload {
   fileName?: string;
   fileType?: string;
   fileSize?: string | number;
-  fileBase64?: string;
   documentId?: string;
   visitorId?: string;
   // Pagination Parameters
@@ -328,7 +327,7 @@ Deno.serve(
         // Fetch non-society visitor profile row matching visitorId
         const { data: nonSocietyUser, error: nsuErr } = await supabaseAdmin
           .from("SSP_Non_Society_User")
-          .select("non_society_user_id, society")
+          .select("non_society_user_id")
           .eq("non_society_user_id", cleanVisitorId)
           .maybeSingle();
 
@@ -347,40 +346,22 @@ Deno.serve(
           return errorResponse("Target society context not found.", 404);
         }
 
-        if (nonSocietyUser.society !== society.society_id) {
-          return errorResponse("Visitor does not belong to this society.", 403);
-        }
-        let imageBytes: Uint8Array | null = null;
-        if (requestObj.fileBase64 != null) {
-          if (typeof requestObj.fileBase64 !== "string") return errorResponse("fileBase64 must be text.", 400);
-          try {
-            const encoded = requestObj.fileBase64.trim().replace(/^data:[^,]*;base64,/i, "");
-            const binary = atob(encoded);
-            if (!binary.length) throw new Error("Empty image");
-            imageBytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-          } catch {
-            return errorResponse("fileBase64 must contain a valid, non-empty base64 image.", 400);
-          }
-        }
-
         const cleanFileName = fileName.trim().replace(/\s+/g, "_");
         const uniqueFileName = `${Date.now()}_${cleanFileName}`;
 
         // Compute Storage Object Key
         const objectKey = `${cleanRegNum}/securityGuard/${uniqueFileName}`;
 
-        let uploadUrl: string | null = null;
-        if (imageBytes) {
-          const { error: uploadError } = await supabaseAdmin.storage.from(BUCKET_NAME)
-            .upload(objectKey, imageBytes, { contentType: fileType, upsert: false });
-          if (uploadError) return errorResponse(`Photo upload failed: ${uploadError.message}`, 500);
-        } else {
-          const { data: uploadUrlData, error: uploadUrlErr } = await supabaseAdmin.storage
-            .from(BUCKET_NAME).createSignedUploadUrl(objectKey, { upsert: true });
-          if (uploadUrlErr || !uploadUrlData) {
-            return errorResponse(`Failed generating upload link: ${uploadUrlErr?.message}`, 500);
-          }
-          uploadUrl = uploadUrlData.signedUrl;
+        // Create Presigned Signed Upload URL
+        const { data: uploadUrlData, error: uploadUrlErr } = await supabaseAdmin.storage
+          .from(BUCKET_NAME)
+          .createSignedUploadUrl(objectKey, { upsert: true });
+
+        if (uploadUrlErr || !uploadUrlData) {
+          return errorResponse(
+            `Failed generating upload link: ${uploadUrlErr?.message}`,
+            500
+          );
         }
 
         const { data: urlInfo } = supabaseAdmin.storage
@@ -394,8 +375,8 @@ Deno.serve(
             name: fileName,
             file_name: fileName,
             file_type: fileType,
-            file_size: imageBytes?.byteLength ?? (fileSize ? parseFloat(String(fileSize)) : null),
-            document_type: "security_guard_image",
+            file_size: fileSize ? parseFloat(String(fileSize)) : null,
+            document_type: "Security Guard Image",
             s3_path: urlInfo.publicUrl,
             society: society.society_id,
             non_society_user: nonSocietyUser.non_society_user_id,
@@ -405,7 +386,6 @@ Deno.serve(
           .single();
 
         if (insertErr || !newDoc) {
-          if (imageBytes) await supabaseAdmin.storage.from(BUCKET_NAME).remove([objectKey]);
           return errorResponse(
             `Failed saving document metadata record: ${insertErr?.message}`,
             500
@@ -419,16 +399,9 @@ Deno.serve(
           durationMs: Date.now() - startTime,
         });
 
-        const signedView = imageBytes
-          ? await supabaseAdmin.storage.from(BUCKET_NAME).createSignedUrl(objectKey, 900)
-          : null;
         return successResponse({
           uploaded: true,
-          fileUrl: imageBytes ? signedView?.data?.signedUrl ?? null : uploadUrl,
-          imageUrl: signedView?.data?.signedUrl ?? null,
-          uploadUrl,
-          requiresUpload: imageBytes === null,
-          objectKey,
+          fileUrl: uploadUrlData.signedUrl,
           documentId: newDoc.document_id,
         });
       }
@@ -501,7 +474,7 @@ Deno.serve(
           `,
             { count: "exact" }
           )
-          .eq("document_type", "security_guard_image");
+          .eq("document_type", "Security Guard Image");
 
         if (visitorId && visitorId.trim() !== "") {
           query = query.eq("non_society_user", visitorId.trim());

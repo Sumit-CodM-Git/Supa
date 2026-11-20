@@ -1,4 +1,3 @@
-import { loadSocietyConfiguration, formatSocietyConfiguration, societyConfigurationVersion, type SocietyConfigurationRows } from "../_shared/society-configuration.ts";
 // deno-lint-ignore-file no-import-prefix
 // ============================================
 // get-picklists - Unified Metadata Provider
@@ -79,7 +78,8 @@ const corsHeaders = {
 };
 
 const DEFAULT_LANGUAGE = "en";
-const CONFIGURATION_CACHE_CONTROL = "private, no-cache, must-revalidate";
+const CACHE_MAX_AGE_CLIENT = 300; // 5 min
+const CACHE_MAX_AGE_CDN = 3600; // 1 hour
 
 const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
@@ -101,8 +101,8 @@ function successResponse(
             ...corsHeaders,
             "Content-Type": "application/json",
             "Cache-Control":
-                CONFIGURATION_CACHE_CONTROL,
-            "ETag": `"${version}"`,
+                `public, max-age=${CACHE_MAX_AGE_CLIENT}, s-maxage=${CACHE_MAX_AGE_CDN}`,
+            "ETag": version,
         },
     });
 }
@@ -113,8 +113,8 @@ function notModifiedResponse(version: string): Response {
         headers: {
             ...corsHeaders,
             "Cache-Control":
-                CONFIGURATION_CACHE_CONTROL,
-            "ETag": `"${version}"`,
+                `public, max-age=${CACHE_MAX_AGE_CLIENT}, s-maxage=${CACHE_MAX_AGE_CDN}`,
+            "ETag": version,
         },
     });
 }
@@ -288,6 +288,30 @@ async function fetchFieldMeta(
     return (data ?? []) as FieldMetaRow[];
 }
 
+async function fetchBlocks(societyId: string) {
+    const { data, error } = await supabase
+        .from("SSP_Block")
+        .select("block_id,block_name")
+        .eq("society", societyId)
+        .eq("active", true)
+        .order("block_name", { ascending: true });
+
+    if (error) throw error;
+    return data ?? [];
+}
+
+async function fetchTowers(societyId: string) {
+    const { data, error } = await supabase
+        .from("SSP_Tower")
+        .select("tower_id,name")
+        .eq("society", societyId)
+        .eq("active", true)
+        .order("name", { ascending: true });
+
+    if (error) throw error;
+    return data ?? [];
+}
+
 // ============================================
 // MERGE LOGIC
 // ============================================
@@ -295,8 +319,8 @@ async function fetchFieldMeta(
 function buildResponse(
     options: PicklistRow[],
     meta: FieldMetaRow[],
-    configuration: SocietyConfigurationRows,
-    scope?: string[],
+    blocks: { block_id: string; block_name: string | null }[],
+    towers: { tower_id: string; name: string | null }[],
 ): PicklistsByTable {
     const result: PicklistsByTable = {};
 
@@ -349,41 +373,46 @@ function buildResponse(
         }
     }
 
-    // Always replace dynamic options, including empty arrays after the last deletion.
-    const blocks = configuration.blocks.map(row => ({value: row.block_id, label: row.block_name || "Unnamed Block"}));
-    const towers = configuration.towers.map(row => ({value: row.tower_id, label: row.name || "Unnamed Tower"}));
-    const flatTypes = configuration.flatTypes.map(row => ({value: row.flat_type_id, label: row.flat_type || "Unnamed Flat Type"}));
-    const labels = (options: PicklistOption[]) => options.map(option => ({value: option.label, label: option.label}));
-    function set(table: string, field: string, label: string, options: PicklistOption[]) {
-        if (scope && !scope.includes(table) && table !== "SSP_Society") return;
-        result[table] ??= {};
-        const existing = result[table][field];
-        const defaultValue = existing?.defaultValue;
-        result[table][field] = {
-            fieldLabel: label, fieldPlaceholder: `Select ${label.toLowerCase()}`,
-            fieldHelperText: null, inputType: "select", isRequired: false,
-            isVisible: true, validationRegex: null, sortOrder: 999,
-            ...existing,
-            defaultValue: defaultValue && options.some(option => option.value === defaultValue) ? defaultValue : null,
-            options,
-        };
+    // 4. Inject dynamic blocks & towers
+    if (blocks.length > 0 || towers.length > 0) {
+        if (!result["SSP_Society"]) result["SSP_Society"] = {};
+
+        if (blocks.length > 0) {
+            result["SSP_Society"]["block"] = {
+                fieldLabel: "Block",
+                fieldPlaceholder: "Select block",
+                fieldHelperText: null,
+                inputType: "select",
+                isRequired: false,
+                isVisible: true,
+                defaultValue: null,
+                validationRegex: null,
+                sortOrder: 1,
+                options: blocks.map((b) => ({
+                    value: b.block_id,
+                    label: b.block_name || "Unnamed Block",
+                })),
+            };
+        }
+
+        if (towers.length > 0) {
+            result["SSP_Society"]["tower"] = {
+                fieldLabel: "Tower",
+                fieldPlaceholder: "Select tower",
+                fieldHelperText: null,
+                inputType: "select",
+                isRequired: false,
+                isVisible: true,
+                defaultValue: null,
+                validationRegex: null,
+                sortOrder: 2,
+                options: towers.map((t) => ({
+                    value: t.tower_id,
+                    label: t.name || "Unnamed Tower",
+                })),
+            };
+        }
     }
-    for (const table of ["SSP_Society", "SSP_Society_User"]) {
-        set(table, "block", "Block", blocks);
-        set(table, "tower", "Tower", towers);
-        set(table, "block_name", "Block", labels(blocks));
-        set(table, "tower_name", "Tower", labels(towers));
-        set(table, "flat_type", "Flat type", labels(flatTypes));
-        set(table, "flat_type_id", "Flat type", flatTypes);
-    }
-    set("SSP_Block", "block_id", "Block", blocks);
-    set("SSP_Block", "block_name", "Block", labels(blocks));
-    set("SSP_Block", "tower", "Tower", towers);
-    set("SSP_Tower", "tower_id", "Tower", towers);
-    set("SSP_Tower", "name", "Tower", labels(towers));
-    set("SSP_Tower", "block", "Block", blocks);
-    set("SSP_Flat_Type", "flat_type_id", "Flat type", flatTypes);
-    set("SSP_Flat_Type", "flat_type", "Flat type", labels(flatTypes));
 
     return result;
 }
@@ -481,18 +510,25 @@ serve(async (req: Request) => {
         if (!auth.ok) return auth.response;
 
         // ── Parallel fetch ──
-        const [options, meta, configuration] = await Promise.all([
+        const needsSocietyData = !cleanScope ||
+            cleanScope.includes("SSP_Society");
+
+        const [options, meta, blocks, towers] = await Promise.all([
             fetchPicklistOptions(cleanScope, cleanLang),
             fetchFieldMeta(cleanScope, cleanLang),
-            loadSocietyConfiguration(supabase, societyId),
+            needsSocietyData ? fetchBlocks(societyId) : Promise.resolve([]),
+            needsSocietyData ? fetchTowers(societyId) : Promise.resolve([]),
         ]);
-        const societyConfiguration = formatSocietyConfiguration(configuration);
-        const configurationVersion = await societyConfigurationVersion(societyId, societyConfiguration);
-        const picklistsByTable = buildResponse(options, meta, configuration, cleanScope);
-        // Include society and scope so an ETag from a different society cannot validate this response.
-        const version = await computeVersion({societyId, language: cleanLang, scope: cleanScope ?? "all", picklistsByTable, societyConfiguration});
+
+        // ── Build response ──
+        const picklistsByTable = buildResponse(options, meta, blocks, towers);
+
+        // ── Version hash ──
+        const version = await computeVersion(picklistsByTable);
+
+        // ── 304 support ──
         const clientETag = req.headers.get("if-none-match");
-        if (clientETag?.split(",").some(tag => tag.trim().replace(/^W\//, "").replace(/^"|"$/g, "") === version)) {
+        if (clientETag && clientETag === version) {
             return notModifiedResponse(version);
         }
 
@@ -504,11 +540,6 @@ serve(async (req: Request) => {
             societyId,
             scope: cleanScope ?? "all",
             picklistsByTable,
-            societyConfiguration,
-            configurationVersion,
-            // Global creation choices are separate from the society's configured filter values.
-            flatTypeCatalog: options.filter(row => row.table_name === "SSP_Flat_Type" && row.field_name === "flat_type")
-                .map(row => ({value: row.value, label: row.label})),
         };
 
         console.log(
@@ -516,7 +547,7 @@ serve(async (req: Request) => {
                 Object.keys(picklistsByTable).length
             } tables, ` +
                 `${options.length} options, ${meta.length} fields, ` +
-                `${configuration.blocks.length} blocks, ${configuration.towers.length} towers, ` +
+                `${blocks.length} blocks, ${towers.length} towers, ` +
                 `v=${version}, ${Date.now() - startTime}ms`,
         );
 

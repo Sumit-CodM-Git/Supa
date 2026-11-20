@@ -1,4 +1,3 @@
-import { contactParkingSlot } from "../_shared/contact.ts";
 import { requireAuth, type AuthContext } from "../_shared/auth.ts";
 import {
   corsHeaders,
@@ -369,7 +368,7 @@ Deno.serve(
             SSP_Society_User!inner (
               user_id,
               society,
-              SSP_Contact (parking_slot,
+              SSP_Contact (
                 name,
                 phone
               )
@@ -503,7 +502,6 @@ Deno.serve(
             description: mp.description || "",
             postedBy: contact?.name || "Resident",
             sellerPhone: contact?.phone || "N/A",
-            parkingSlot: contactParkingSlot(contact),
             createdAt: mp.created_at,
             imageCount: images.length,
             images,

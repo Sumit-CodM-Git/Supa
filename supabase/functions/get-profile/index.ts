@@ -1,5 +1,3 @@
-import { residentFlatTypeFields } from "../_shared/resident-flat-type.ts";
-import { contactParkingSlot } from "../_shared/contact.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Validator } from "../_shared/validation.ts";
 import { sanitizeString, sanitizePagination } from "../_shared/sanitizer.ts";
@@ -121,7 +119,7 @@ Deno.serve(async (req: Request) => {
       // Fetch Contact
       const { data: contactData } = await supabase
         .from("SSP_Contact")
-        .select(`parking_slot,
+        .select(`
           contact_id, name, phone, email, whatsapp_phone, gender, emergency_phone, 
           occupation, vehicle_type, vehicle_registration_number, id_proof_type, id_proof_number, society
         `)
@@ -133,7 +131,6 @@ Deno.serve(async (req: Request) => {
       if (contactData) {
         targetContactId = contactData.contact_id;
         contactProfile = {
-          parkingSlot: contactParkingSlot(contactData),
           contactId: contactData.contact_id,
           fullName: contactData.name ?? "NA",
           phone: contactData.phone ?? "NA",
@@ -153,7 +150,7 @@ Deno.serve(async (req: Request) => {
         const { data: suData } = await supabase
           .from("SSP_Society_User")
           .select(`
-            role, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), status, move_in_date, move_out_date, user_ownership_type, user_type,
+            role, unit_flat_number, status, move_in_date, move_out_date, user_ownership_type, user_type,
             agent_availability_status, service_agent_services,
             SSP_Block!left ( block_name ),
             SSP_Tower!left ( name )
@@ -176,7 +173,6 @@ Deno.serve(async (req: Request) => {
             role: displayRole, // <--- THIS FIXES THE FLUTTER UI OVERWRITE BUG
             blockName: blockObj?.block_name ?? "NA",
             towerName: towerObj?.name ?? "NA",
-            ...residentFlatTypeFields(suData),
             unitFlatNumber: suData.unit_flat_number ?? "NA",
             status: suData.status ? "Active" : "Inactive",
             moveInDate: suData.move_in_date ?? null,
@@ -188,7 +184,6 @@ Deno.serve(async (req: Request) => {
           // Populate Service Agent details if this is the requested role
           if (targetRoleNormalized === "service agent") {
             serviceAgentDetail = {
-              parkingSlot: contactParkingSlot(contactData),
               agentId: targetContactId, // Using contactId as fallback since we didn't select user_id
               name: contactData.name ?? "NA",
               contactId: targetContactId,

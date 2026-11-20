@@ -69,19 +69,13 @@ export async function isAssignedVendor(params: {
 
   const { data, error } = await supabaseAdmin
     .from("SSP_Non_Society_User")
-    .select("non_society_user_id, role, phone_number, deleted_at")
+    .select("non_society_user_id")
     .eq("non_society_user_id", params.complaintVendorId)
+    .eq("phone_number", params.callerPhone)
     .maybeSingle();
 
   if (error) return false;
-  const callerPhone = normalizePhone(params.callerPhone);
-  return Boolean(
-    data &&
-      !data.deleted_at &&
-      String(data.role ?? "").trim().toLowerCase() === "vendor" &&
-      callerPhone?.length === 10 &&
-      normalizePhone(data.phone_number) === callerPhone,
-  );
+  return !!data;
 }
 
 /**
@@ -129,7 +123,6 @@ export async function getStaffType(
 export async function resolveComplaintAssignee(params: {
   complaintId: string;
   callerAuthId: string;
-  callerAuthUserId?: string;
   callerPhone?: string | null;
   select?: string;
 }): Promise<
@@ -161,42 +154,10 @@ export async function resolveComplaintAssignee(params: {
     return { ok: true, complaint: data, role: "SERVICE_AGENT" };
   }
 
-  // Vendor assignments use the vendor profile ID, while multi-role logins use
-  // SSP_Society_User.user_id. Resolve through the caller's stored profile first.
+  // Vendor path — match by phone
   if (data.non_society_user) {
-    const { data: vendor, error: vendorError } = await supabaseAdmin
-      .from("SSP_Non_Society_User")
-      .select("non_society_user_id, society, role, phone_number, deleted_at")
-      .eq("non_society_user_id", data.non_society_user)
-      .maybeSingle();
-    if (vendorError) return { ok: false, code: 500, message: "Failed to load assigned vendor." };
-    if (!vendor || vendor.deleted_at || String(vendor.role).toLowerCase() !== "vendor") {
-      return { ok: false, code: 403, message: "Not assigned to you" };
-    }
-    if (vendor.non_society_user_id === params.callerAuthId) {
-      return { ok: true, complaint: data, role: "VENDOR" };
-    }
-
-    const { data: caller, error: callerError } = await supabaseAdmin
-      .from("SSP_Society_User")
-      .select("society, deleted_at, contact:SSP_Contact!contact(phone)")
-      .eq("user_id", params.callerAuthId)
-      .maybeSingle();
-    if (callerError) return { ok: false, code: 500, message: "Failed to load caller profile." };
-    const contact = Array.isArray(caller?.contact) ? caller.contact[0] : caller?.contact;
-    if (caller) {
-      const phone = normalizePhone(contact?.phone);
-      if (!caller.deleted_at && caller.society === vendor.society && phone &&
-          phone.length === 10 && phone === normalizePhone(vendor.phone_number)) {
-        return { ok: true, complaint: data, role: "VENDOR" };
-      }
-      // An existing application profile must match both society and phone.
-      return { ok: false, code: 403, message: "Not assigned to you" };
-    }
-
-    // Legacy phone-auth sessions may have only an auth.users record.
     const callerPhone = await getCallerPhone({
-      userId: params.callerAuthUserId ?? params.callerAuthId,
+      userId: params.callerAuthId,
       jwtPhone: params.callerPhone ?? null,
     });
 

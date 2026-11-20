@@ -295,7 +295,7 @@ async function getContext(
             role,
             society,
             SSP_Society!inner ( society_id, registration_number ),
-            SSP_Contact:SSP_Contact!contact (parking_slot, name )
+            SSP_Contact:SSP_Contact!contact ( name )
         `)
         .eq("user_id", userId)
         .eq("SSP_Society.registration_number", societyRegistrationNumber)

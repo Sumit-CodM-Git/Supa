@@ -668,7 +668,7 @@ Deno.serve(
           user_id,
           user_type,
           user_ownership_type,
-          contact:SSP_Contact!inner(parking_slot, contact_id, name, email, phone)
+          contact:SSP_Contact!inner(contact_id, name, email, phone)
         `)
         .eq("society", socId);
 

@@ -237,8 +237,7 @@ Deno.serve(
                         society_name,
                         registration_number
                     )
-                `)
-        .is("deleted_at", null);
+                `);
 
       if (userError) {
         console.error("❌ User fetch error:", userError);
@@ -277,15 +276,6 @@ Deno.serve(
             401,
           );
         }
-
-        // Resolve the user's flat subscription through the authoritative billing
-        // tables, rather than the removed SSP_Society subscription column.
-        const { data: subscriptionSummary, error: subscriptionError } = await supabaseAdmin
-          .rpc("get_my_subscription_summary", { p_user_id: matchedUser.user_id });
-        if (subscriptionError) {
-          return buildErrorResponse("SERVER_ERROR", "Failed to load subscription plan.", 500);
-        }
-        const subscriptionPlan = subscriptionSummary?.plan?.plan_code ?? null;
 
         // Invalidate OTP
         await supabaseAdmin
@@ -351,7 +341,6 @@ Deno.serve(
             success: true,
             token: jwtToken,
             user: {
-              subscriptionPlan,
               id: matchedUser.user_id,
               name: userName,
               phone: contact?.phone || "",
@@ -393,7 +382,7 @@ Deno.serve(
                         registration_number
                     )
                 `)
-        .ilike("role", "vendor"); // Accept existing vendor role casing
+        .eq("role", "Vendor"); // ✅ Only fetch vendors
 
       if (vendorError) {
         console.error("❌ Vendor fetch error:", vendorError);
@@ -485,7 +474,6 @@ Deno.serve(
               email: matchedVendor.email,
               roles: roles,
               userType: "vendor",
-              subscriptionPlan: null,
               vendorId: matchedVendor.vendor_id,
               society: {
                 id: society?.society_id || null,

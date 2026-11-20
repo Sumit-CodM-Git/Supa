@@ -1,4 +1,3 @@
-import { contactParkingSlot } from "../_shared/contact.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // import { PDFDocument, StandardFonts, rgb } from "https://esm.sh/pdf-lib@1.17.1";
@@ -248,7 +247,7 @@ import { contactParkingSlot } from "../_shared/contact.ts";
 // // Body: { "paymentId": "<SSP_Payment.pay_rec_id uuid>" }
 // // Returns: application/pdf attachment
 // //
-// // Ownership: verified JWT application user_id → SSP_Payment.society_user
+// // Ownership: JWT.sub → auth.users.phone → matches payment owner's contact phone
 // // Branding:  society logo (header left) + app logo (footer right)
 // // ============================================
 
@@ -1215,12 +1214,12 @@ import { contactParkingSlot } from "../_shared/contact.ts";
 
 // deno-lint-ignore-file no-import-prefix no-explicit-any
 // ============================================
-// generate-payment-receipt — Direct PDF download + owner-scoped receipt list
+// generate-payment-receipt — Download + List + Generate (PROD v6)
 // ============================================
 // POST /functions/v1/generate-payment-receipt
 //
 // Auth: Bearer <custom JWT from verify-otp> — verified with SUPABASE_JWT_SECRET
-// Ownership: verified JWT application user_id → SSP_Payment.society_user
+// Ownership: JWT.sub → auth.users.phone → matches payment owner's contact phone
 //
 // Three modes (auto-detected from the body):
 //   A. { "paymentId": "<uuid>" }          → download by pay_rec_id
@@ -1228,9 +1227,9 @@ import { contactParkingSlot } from "../_shared/contact.ts";
 //   C. { "list": true, ... }              → list caller's receipts
 //
 // Download behavior:
-//   1. Default: return a PDF attachment directly; generate it if no stored PDF exists.
-//   2. Uploaded proof images are retained and never substituted for a PDF receipt.
-//   3. Explicit responseFormat: "url" returns JSON with a signed downloadUrl.
+//   1. If a stored file exists (receipt_url OR SSP_Document.s3_path)
+//      → normalize key, sign for 300s, return JSON { mode: "url", downloadUrl }
+//   2. Else → generate PDF on the fly, return binary with X-Receipt-Source: generated
 // ============================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -1270,7 +1269,6 @@ const SIGNED_URL_EXPIRY = 300; // seconds
 
 interface DownloadRequest {
     paymentId: string;
-    responseFormat?: "file" | "url";
 }
 
 interface ListRequest {
@@ -1341,7 +1339,6 @@ interface FacilityRow {
 }
 
 interface ReceiptData {
-  parkingSlot?: string | null;
     receiptNo: string;
     generatedAt: string;
 
@@ -1383,7 +1380,7 @@ type Err = {
 };
 
 // ✅ FIX 2: Explicit type definitions for proper TypeScript narrowing
-type AuthSuccess = { ok: true; authUserId: string; residentId: string };
+type AuthSuccess = { ok: true; authUserId: string; authPhone: string };
 type AuthResult = AuthSuccess | Err;
 
 // ============================================
@@ -1394,7 +1391,6 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
     facility: "Facility Charges",
     facility_booking: "Booking Advance",
     maintenance: "Monthly Maintenance",
-    subscription: "Subscription Payment",
     parking_charges: "Parking Charges",
     sinking_fund: "Sinking Fund",
     water_charges: "Water Charges",
@@ -1459,7 +1455,6 @@ function corsHeaders(origin: string | null): Record<string, string> {
         "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Vary": "Origin",
-        "Access-Control-Expose-Headers": "Content-Disposition, Content-Length, X-Receipt-Source",
     };
 }
 
@@ -1469,6 +1464,12 @@ function corsHeaders(origin: string | null): Record<string, string> {
 
 function isValidUUID(v: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
+
+function normalizePhone(p: string | null | undefined): string {
+    if (!p) return "";
+    const digits = String(p).replace(/\D/g, "");
+    return digits.slice(-10);
 }
 
 function formatAmount(n: number): string {
@@ -1483,7 +1484,7 @@ function formatDate(input: string | null): string {
     try {
         const d = new Date(input);
         if (isNaN(d.getTime())) return input;
-        return d.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" });
+        return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
     } catch {
         return input;
     }
@@ -1495,7 +1496,6 @@ function formatDateTime(input: string | null): string {
         const d = new Date(input);
         if (isNaN(d.getTime())) return input;
         return d.toLocaleString("en-IN", {
-            timeZone: "Asia/Kolkata",
             day: "2-digit", month: "short", year: "numeric",
             hour: "2-digit", minute: "2-digit", hour12: true,
         });
@@ -1620,7 +1620,7 @@ async function authenticate(req: Request): Promise<AuthResult> {
         return { ok: false, status: 500, code: "SERVER_ERROR", message: "Auth not configured." };
     }
 
-    let payload: { sub?: string; exp?: number; user_id?: string; user_metadata?: { user_id?: string } };
+    let payload: { sub?: string; exp?: number };
     try {
         const key = await crypto.subtle.importKey(
             "raw",
@@ -1646,22 +1646,17 @@ async function authenticate(req: Request): Promise<AuthResult> {
         return { ok: false, status: 401, code: "UNAUTHORIZED", message: "Could not resolve account." };
     }
 
-    const metadataId = adminData.user.user_metadata?.user_id;
-    const claimedId = payload.user_id ?? payload.user_metadata?.user_id;
-    if (metadataId && claimedId && metadataId !== claimedId) {
-        return { ok: false, status: 401, code: "UNAUTHORIZED", message: "Token identity does not match this account. Please sign in again." };
+    const authPhone = normalizePhone(adminData.user.phone);
+    if (!authPhone) {
+        return {
+            ok: false,
+            status: 401,
+            code: "UNAUTHORIZED",
+            message: "Account has no phone number on record.",
+        };
     }
-    const residentId = String(claimedId ?? metadataId ?? "").trim();
-    if (!isValidUUID(residentId)) {
-        return { ok: false, status: 401, code: "UNAUTHORIZED", message: "Account is not linked to a society user." };
-    }
-    const { data: member, error: memberError } = await adminClient.from("SSP_Society_User")
-        .select("user_id, status, deleted_at").eq("user_id", residentId).maybeSingle();
-    if (memberError) return { ok: false, status: 500, code: "DATABASE_ERROR", message: "Failed to resolve resident account." };
-    if (!member || member.status === false || member.deleted_at) {
-        return { ok: false, status: 403, code: "FORBIDDEN", message: "Resident account is inactive or unavailable." };
-    }
-    return { ok: true, authUserId, residentId };
+
+    return { ok: true, authUserId, authPhone };
 }
 
 // ============================================
@@ -1729,7 +1724,7 @@ async function embedLogo(pdfDoc: PDFDocument, url: string | null): Promise<PDFIm
 
 async function resolvePaymentForCaller(
     identifier: string,
-    residentId: string,
+    authPhone: string,
 ): Promise<{ ok: true; payment: PaymentRow } | Err> {
     const isUuid = isValidUUID(identifier);
 
@@ -1740,7 +1735,7 @@ async function resolvePaymentForCaller(
             payment_status, payment_method, payment_type,
             transaction_id, month_period, facility,
             rejection_reason, society_user, receipt_url, created_at
-        `).eq("society_user", residentId);
+        `);
 
     if (isUuid) {
         query = query.eq("pay_rec_id", identifier);
@@ -1764,6 +1759,23 @@ async function resolvePaymentForCaller(
         return { ok: false, status: 404, code: "NOT_FOUND", message: "Payment not found." };
     }
 
+    // Ownership check via owner's contact phone
+    const { data: owner, error: ownerErr } = await adminClient
+        .from("SSP_Society_User")
+        .select(`user_id, contact:SSP_Contact!inner( phone )`)
+        .eq("user_id", p.society_user)
+        .maybeSingle();
+
+    if (ownerErr || !owner) {
+        return { ok: false, status: 404, code: "NOT_FOUND", message: "Payment not found." };
+    }
+
+    const ownerAny = owner as any;
+    const ownerPhone = normalizePhone(ownerAny.contact?.phone);
+    if (!ownerPhone || ownerPhone !== authPhone) {
+        return { ok: false, status: 404, code: "NOT_FOUND", message: "Payment not found." };
+    }
+
     return { ok: true, payment: p };
 }
 
@@ -1771,35 +1783,47 @@ async function resolvePaymentForCaller(
 // STORED FILE RESOLUTION
 // ============================================
 
-function receiptFilename(payment: PaymentRow): string {
-    return `Receipt_${sanitizeFilename(payment.payment_id || payment.pay_rec_id)}.pdf`;
-}
+async function trySignedUrl(
+    payment: PaymentRow,
+): Promise<{ ok: true; downloadUrl: string; fileName: string } | { ok: false }> {
+    // 1. Prefer payment.receipt_url
+    let rawUrl: string | null = payment.receipt_url ?? null;
+    let fileLabel: string | null = null;
 
-function generatedReceiptKey(payment: PaymentRow): string {
-    return `receipts/${payment.pay_rec_id}_${receiptFilename(payment)}`;
-}
+    // 2. Fall back to SSP_Document.s3_path
+    if (!rawUrl) {
+        const { data: doc } = await adminClient
+            .from("SSP_Document")
+            .select("s3_path, file_name")
+            .eq("payment", payment.pay_rec_id)
+            .not("s3_path", "is", null)
+            .limit(1)
+            .maybeSingle();
 
-async function storedReceiptPDF(payment: PaymentRow): Promise<{ bytes: Uint8Array; key: string } | null> {
-    const { data: documents, error } = await adminClient.from("SSP_Document")
-        .select("s3_path, file_name").eq("payment", payment.pay_rec_id)
-        .not("s3_path", "is", null).order("created_at", { ascending: false });
-    if (error) console.warn("Receipt document lookup failed:", error.message);
-    const keys = [...new Set([
-        generatedReceiptKey(payment), payment.receipt_url,
-        ...(documents ?? []).map((document: { s3_path: string | null }) => document.s3_path),
-    ].filter((path): path is string => typeof path === "string" && !!path.trim()).map(normalizeStorageKey))];
-    for (const key of keys) {
-        try {
-            const { data, error: downloadError } = await adminClient.storage.from(BUCKET_NAME).download(key);
-            if (downloadError || !data) continue;
-            const bytes = new Uint8Array(await data.arrayBuffer());
-            // Payment proof images are not PDF receipts. Generate a receipt instead.
-            if (new TextDecoder().decode(bytes.slice(0, 5)) === "%PDF-") return { bytes, key };
-        } catch (error) {
-            console.warn("Stored receipt unavailable:", error instanceof Error ? error.message : "storage error");
+        if (doc?.s3_path) {
+            rawUrl = doc.s3_path;
+            fileLabel = (doc as any).file_name ?? null;
         }
     }
-    return null;
+
+    if (!rawUrl) return { ok: false };
+
+    const key = normalizeStorageKey(rawUrl);
+    if (!key) return { ok: false };
+
+    const fileName = fileLabel || key.split("/").pop() || `Receipt_${payment.payment_id ?? payment.pay_rec_id}.pdf`;
+
+    const { data: signed, error: signErr } = await adminClient
+        .storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(key, SIGNED_URL_EXPIRY, { download: fileName });
+
+    if (signErr || !signed?.signedUrl) {
+        console.warn(`[storage] sign failed for key="${key}": ${signErr?.message ?? "no url"}`);
+        return { ok: false };
+    }
+
+    return { ok: true, downloadUrl: signed.signedUrl, fileName };
 }
 
 // ============================================
@@ -1893,7 +1917,7 @@ async function buildReceiptDataFromPayment(payment: PaymentRow): Promise<{ ok: t
         .select(`
             user_id,
             unit_flat_number,
-            contact:SSP_Contact!inner (parking_slot,
+            contact:SSP_Contact!inner (
                 contact_id, name, email, phone
             ),
             block:SSP_Block!left ( block_name ),
@@ -1911,9 +1935,7 @@ async function buildReceiptDataFromPayment(payment: PaymentRow): Promise<{ ok: t
         return { ok: false, status: 404, code: "NOT_FOUND", message: "Resident not found." };
     }
 
-    const one = (value: any) => Array.isArray(value) ? value[0] ?? null : value;
-    const r = { ...resident, contact: one(resident.contact), society: one(resident.society),
-        block: one(resident.block), tower: one(resident.tower) } as SocietyUserRow;
+    const r = resident as unknown as SocietyUserRow;
     if (!r.society || !r.contact) {
         return { ok: false, status: 404, code: "NOT_FOUND", message: "Resident data incomplete." };
     }
@@ -1955,7 +1977,6 @@ async function buildReceiptDataFromPayment(payment: PaymentRow): Promise<{ ok: t
         : `PAY-${payment.pay_rec_id.slice(0, 8).toUpperCase()}`;
 
     const data: ReceiptData = {
-        parkingSlot: contactParkingSlot(r.contact),
         receiptNo,
         generatedAt: new Date().toISOString(),
 
@@ -2236,13 +2257,35 @@ function jsonOk(req: Request, payload: Record<string, unknown>): Response {
 
 async function listReceipts(
     req: Request,
-    residentId: string,
+    authPhone: string,
     body: ListRequest,
 ): Promise<Response> {
     const page = Math.max(1, Number(body.pagination?.page ?? 1) | 0);
     const pageSize = Math.min(100, Math.max(1, Number(body.pagination?.pageSize ?? 10) | 0));
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+
+    // Find all SSP_Society_User ids whose contact phone matches caller
+    const { data: myUsers, error: uErr } = await adminClient
+        .from("SSP_Society_User")
+        .select(`user_id, contact:SSP_Contact!inner( phone )`);
+
+    if (uErr) {
+        console.error("List: user lookup failed", uErr);
+        return jsonError(req, "Failed to resolve account.", 500, "DATABASE_ERROR");
+    }
+
+    const myIds: string[] = (myUsers ?? [])
+        .filter((u: any) => normalizePhone(u.contact?.phone) === authPhone)
+        .map((u: any) => u.user_id);
+
+    if (myIds.length === 0) {
+        return jsonOk(req, {
+            mode: "list",
+            receipts: [],
+            pagination: { page, pageSize, total: 0, totalPages: 1 },
+        });
+    }
 
     // Build query
     let q = adminClient
@@ -2252,7 +2295,7 @@ async function listReceipts(
             receipt_url,
             document:SSP_Document( s3_path, file_name )
         `, { count: "exact" })
-        .eq("society_user", residentId);
+        .in("society_user", myIds);
 
     const f = body.filters ?? {};
     if (f.paymentStatus) {
@@ -2312,52 +2355,92 @@ async function listReceipts(
 
 async function downloadReceipt(
     req: Request,
-    residentId: string,
+    authPhone: string,
     identifier: string,
-    responseFormat: "file" | "url" = "file",
 ): Promise<Response> {
-    const resolved = await resolvePaymentForCaller(identifier, residentId);
-    if (resolved.ok === false) return jsonError(req, resolved.message, resolved.status, resolved.code);
+    const resolved = await resolvePaymentForCaller(identifier, authPhone);
+    if (resolved.ok === false) {
+        return jsonError(req, resolved.message, resolved.status, resolved.code);
+    }
     const payment = resolved.payment;
+
+    // Status gate
     const status = String(payment.payment_status ?? "").trim().toLowerCase();
     if (!ALLOWED_STATUSES.has(status)) {
-        return jsonError(req, `Receipt is only available for paid payments. Current status: ${payment.payment_status ?? "unknown"}.`, 400, "INVALID_STATUS");
+        return jsonError(
+            req,
+            `Receipt is only available for paid payments. Current status: ${payment.payment_status ?? "unknown"}.`,
+            400,
+            "INVALID_STATUS",
+        );
     }
-    const stored = await storedReceiptPDF(payment);
-    let bytes: Uint8Array;
-    if (stored) {
-        bytes = stored.bytes;
-    } else {
-        const built = await buildReceiptDataFromPayment(payment);
-        if (built.ok === false) return jsonError(req, built.message, built.status, built.code);
-        bytes = await generateReceiptPDF(built.data);
+
+    // 1. Try stored file
+    const stored = await trySignedUrl(payment);
+    if (stored.ok) {
+        return jsonOk(req, {
+            mode: "url",
+            source: "stored",
+            payRecId: payment.pay_rec_id,
+            paymentId: payment.payment_id,
+            fileName: stored.fileName,
+            downloadUrl: stored.downloadUrl,
+            expiresIn: SIGNED_URL_EXPIRY,
+        });
     }
-    const fileName = receiptFilename(payment);
-    if (responseFormat === "url") {
-        const key = stored?.key ?? generatedReceiptKey(payment);
-        if (!stored) {
-            const { error } = await adminClient.storage.from(BUCKET_NAME)
-                .upload(key, bytes, { contentType: "application/pdf", upsert: true });
-            if (error) return jsonError(req, "Failed to prepare receipt download.", 500, "STORAGE_ERROR");
-        }
-        const { data: signed, error } = await adminClient.storage.from(BUCKET_NAME)
-            .createSignedUrl(key, SIGNED_URL_EXPIRY, { download: fileName });
-        if (error || !signed?.signedUrl) return jsonError(req, "Failed to generate download URL.", 500, "STORAGE_ERROR");
-        return jsonOk(req, { mode: "url", source: stored ? "stored" : "generated",
-            payRecId: payment.pay_rec_id, paymentId: payment.payment_id,
-            fileName, downloadUrl: signed.signedUrl, expiresIn: SIGNED_URL_EXPIRY });
+
+    // 2. Fall back to generating PDF
+    const built = await buildReceiptDataFromPayment(payment);
+    if (built.ok === false) {
+        return jsonError(req, built.message, built.status, built.code);
     }
-    // Direct downloads do not upload a file or overwrite payment-proof metadata.
-    return new Response(bytes, {
-        status: 200,
-        headers: {
-            ...corsHeaders(req.headers.get("origin")),
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${fileName}"`,
-            "Content-Length": String(bytes.byteLength),
-            "Cache-Control": "private, no-store",
-            "X-Receipt-Source": stored ? "stored" : "generated",
-        },
+
+    const pdfBytes = await generateReceiptPDF(built.data);
+    const safeNo = sanitizeFilename(built.data.receiptNo);
+    const filename = `Receipt_${safeNo}.pdf`;
+    
+    // ✅ SSP-0009 FIX: Upload the generated PDF to storage and return a signed URL
+    // instead of sending raw bytes to the Flutter app (which breaks JSON parsing).
+    const objectKey = `receipts/${payment.pay_rec_id}_${filename}`;
+    
+    const { error: uploadErr } = await adminClient
+        .storage
+        .from(BUCKET_NAME)
+        .upload(objectKey, pdfBytes, {
+            contentType: "application/pdf",
+            upsert: true,
+        });
+
+    if (uploadErr) {
+        console.error("Failed to upload generated PDF:", uploadErr);
+        return jsonError(req, "Failed to generate receipt file.", 500, "STORAGE_ERROR");
+    }
+
+    // Save to DB so next time it uses the fast path
+    await adminClient
+        .from("SSP_Payment")
+        .update({ receipt_url: objectKey })
+        .eq("pay_rec_id", payment.pay_rec_id);
+
+    // Generate signed URL for the newly uploaded file
+    const { data: signed, error: signErr } = await adminClient
+        .storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(objectKey, SIGNED_URL_EXPIRY, { download: filename });
+
+    if (signErr || !signed?.signedUrl) {
+        return jsonError(req, "Failed to generate download URL.", 500, "STORAGE_ERROR");
+    }
+
+    // ✅ Now it always returns JSON! 
+    return jsonOk(req, {
+        mode: "url",
+        source: "generated",
+        payRecId: payment.pay_rec_id,
+        paymentId: payment.payment_id,
+        fileName: filename,
+        downloadUrl: signed.signedUrl,
+        expiresIn: SIGNED_URL_EXPIRY,
     });
 }
 
@@ -2390,7 +2473,7 @@ serve(async (req: Request) => {
 
         // Mode: list
         if (body.list === true) {
-            return await listReceipts(req, auth.residentId, body as ListRequest);
+            return await listReceipts(req, auth.authPhone, body as ListRequest);
         }
 
         // Mode: download
@@ -2399,9 +2482,7 @@ serve(async (req: Request) => {
             return jsonError(req, "paymentId is required.", 400, "MISSING_PARAMETERS");
         }
 
-        const responseFormat = body.responseFormat ?? "file";
-        if (!["file", "url"].includes(responseFormat)) return jsonError(req, "responseFormat must be file or url.", 400, "INVALID_PARAMETERS");
-        const response = await downloadReceipt(req, auth.residentId, paymentId, responseFormat);
+        const response = await downloadReceipt(req, auth.authPhone, paymentId);
 
         console.log(
             `generate-payment-receipt OK paymentId=${paymentId} user=${auth.authUserId} ` +

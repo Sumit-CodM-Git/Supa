@@ -203,14 +203,12 @@ interface FlatTypeRow {
   flat_type: string | null;
   maintenance_charges: number | string | null;
   society: string | null;
-  active: boolean;
 }
 
 interface FormattedFlatType {
   flatTypeId: string;
   flatType: string | null;
   maintenanceCharges: number;
-  active: boolean;
   createdAt: string;
 }
 
@@ -239,13 +237,14 @@ const VALID_SORT_FIELDS = [
 
 const ADMIN_ROLE = "admin";
 const FLAT_TYPE_SELECT_FIELDS =
-  "flat_type_id,created_at,flat_type,maintenance_charges,society,active";
+  "flat_type_id,created_at,flat_type,maintenance_charges,society";
 
 const PICKLIST_TABLE = "SSP_Flat_Type";
 const PICKLIST_FIELD = "flat_type";
 
 // Postgres error codes
 const PG_UNIQUE_VIOLATION = "23505";
+const PG_FK_VIOLATION = "23503";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL") ?? "",
@@ -320,7 +319,6 @@ function parseMaintenance(raw: unknown): MaintenanceParse {
 function formatFlatType(row: FlatTypeRow): FormattedFlatType {
   return {
     flatTypeId: row.flat_type_id,
-    active: row.active,
     flatType: row.flat_type,
     maintenanceCharges: Number(row.maintenance_charges ?? 0),
     createdAt: row.created_at,
@@ -534,8 +532,7 @@ async function handleView(
   let query = supabase
     .from("SSP_Flat_Type")
     .select(FLAT_TYPE_SELECT_FIELDS, { count: "exact" })
-    .eq("society", societyId)
-    .eq("active", true);
+    .eq("society", societyId);
 
   if (req.search && req.search.trim() !== "") {
     const term = req.search.trim();
@@ -643,7 +640,7 @@ async function handleCreate(
   // Escape LIKE metacharacters so `6_bhk` doesn't match `6xbhk`.
   const { data: existing, error: dupErr } = await supabase
     .from("SSP_Flat_Type")
-    .select("flat_type_id,active")
+    .select("flat_type_id")
     .eq("society", societyId)
     .ilike("flat_type", escapeLikePattern(cleanFlatType))
     .maybeSingle();
@@ -651,7 +648,7 @@ async function handleCreate(
   if (dupErr) {
     return fail(dupErr.message, 500, "DATABASE_ERROR");
   }
-  if (existing?.active) {
+  if (existing) {
     return fail(
       "A flat type with this name already exists.",
       409,
@@ -668,12 +665,11 @@ async function handleCreate(
     insertPayload.maintenance_charges = maintenance.value;
   }
 
-  insertPayload.active = true;
-  if (existing) insertPayload.maintenance_charges = maintenance.kind === "set" ? maintenance.value : null;
-  const write = existing
-    ? supabase.from("SSP_Flat_Type").update(insertPayload).eq("flat_type_id", existing.flat_type_id).eq("society", societyId).eq("active", false)
-    : supabase.from("SSP_Flat_Type").insert(insertPayload);
-  const { data, error } = await write.select(FLAT_TYPE_SELECT_FIELDS).single();
+  const { data, error } = await supabase
+    .from("SSP_Flat_Type")
+    .insert(insertPayload)
+    .select(FLAT_TYPE_SELECT_FIELDS)
+    .single();
 
   if (error) {
     if (error.code === PG_UNIQUE_VIOLATION) {
@@ -783,7 +779,6 @@ async function handleUpdate(
     .update(updatePayload as never)
     .eq("flat_type_id", targetId)
     .eq("society", societyId)
-    .eq("active", true)
     .select(FLAT_TYPE_SELECT_FIELDS)
     .maybeSingle();
 
@@ -824,17 +819,52 @@ async function handleDelete(
     return fail("flatTypeId must be a valid UUID.", 400, "INVALID_PARAMETERS");
   }
 
-  const { data, error } = await supabase.rpc("deactivate_society_flat_type", {
-    p_society: societyId,
-    p_flat_type: targetId,
-  });
-  if (error) return fail(error.message, 500, "DATABASE_ERROR");
-  if (!data) return fail("Flat type not found in this society.", 404, "NOT_FOUND");
+  // Best-effort pre-check: friendly IN_USE message before attempting delete.
+  // If the pre-check query fails (unknown table/column or RLS), fall through
+  // to the actual delete and rely on the FK-violation catch below.
+  try {
+    const { count: usageCount, error: preErr } = await supabase
+      .from("SSP_Flat")
+      .select("*", { count: "exact", head: true })
+      .eq("society", societyId)
+      .eq("flat_type_id", targetId);
+
+    if (!preErr && (usageCount ?? 0) > 0) {
+      return fail(
+        `Cannot delete: ${usageCount} flat(s) currently use this flat type. ` +
+          `Reassign or remove them first.`,
+        409,
+        "IN_USE",
+      );
+    }
+  } catch {
+    // ignore — schema differs; FK catch below will handle it
+  }
+
+  const { error, count } = await supabase
+    .from("SSP_Flat_Type")
+    .delete({ count: "exact" })
+    .eq("flat_type_id", targetId)
+    .eq("society", societyId);
+
+  if (error) {
+    if (error.code === PG_FK_VIOLATION) {
+      return fail(
+        "Cannot delete: this flat type is in use by existing flats. " +
+          "Reassign or remove them first.",
+        409,
+        "IN_USE",
+      );
+    }
+    return fail(error.message, 500, "DATABASE_ERROR");
+  }
+  if (!count || count === 0) {
+    return fail("Flat type not found in this society.", 404, "NOT_FOUND");
+  }
+
   return respond({
     flatTypeId: targetId,
-    active: false,
-    clearedAssignments: data.clearedAssignments,
-    message: "Flat type deactivated and society assignments cleared successfully.",
+    message: "Flat type deleted successfully.",
   });
 }
 

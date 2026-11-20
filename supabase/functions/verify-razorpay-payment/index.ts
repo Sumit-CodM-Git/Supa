@@ -304,7 +304,6 @@ import {
     serverError,
 } from "../_shared/errors.ts";
 import { logger } from "../_shared/logger.ts";
-import { resolveBlockForOrder } from "../_shared/subscription-utils.ts";
 import {
     fetchOrder,
     fetchPayment,
@@ -406,7 +405,7 @@ serve(requireAuth(async (req, ctx) => {
         const ownerUserId = notes.user_id;
         const society = notes.society;
         const tower = notes.tower || null;
-        const orderBlock = notes.block || null;
+        const block = notes.block || null;
         const flatNumber = notes.flat_number;
         const planCode = notes.plan_code;
         const planPriceId = notes.plan_price_id || null;
@@ -423,12 +422,6 @@ serve(requireAuth(async (req, ctx) => {
         if (payment.amount !== order.amount) {
             throw badRequest("Payment amount does not match order amount");
         }
-        const block = await resolveBlockForOrder(supabase, ownerUserId, {
-            society,
-            tower,
-            block: orderBlock,
-            flatNumber,
-        });
 
         // ─────────────────────────────────────────────
         // 4. Look up plan

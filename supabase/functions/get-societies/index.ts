@@ -23,7 +23,7 @@
 //     );
 //     // 4. Fetch your data
 //     const { data, error } = await supabase.from("SSP_Society").select(
-//       "society_name, registration_number",
+//       "society_name, registration_number, subscription_plan",
 //     );
 //     if (error) throw error;
 //     // 5. Return the wrapper format your Apex API had
@@ -88,14 +88,13 @@ Deno.serve(
         // Build query
         let query = supabase
           .from("SSP_Society")
-          .select("society_name, registration_number", {
+          .select("society_name, registration_number, subscription_plan", {
             count: "exact",
           });
 
         // Apply filters
         Object.entries(filters).forEach(([key, value]) => {
-          if (value && key !== "page" && key !== "limit" &&
-              !["subscription_plan", "subscriptionPlan", "flat_type", "flatType"].includes(key)) {
+          if (value && key !== "page" && key !== "limit") {
             query = query.ilike(key, `%${value}%`);
           }
         });
@@ -149,20 +148,13 @@ Deno.serve(
         }
 
         const { page, limit, offset } = getPaginationParams(url);
-        const { data: memberships, error: membershipError } = await supabase
-          .from("SSP_Society_User")
-          .select("society")
-          .eq("user_id", authCtx.user.id)
-          .is("deleted_at", null);
-        if (membershipError) return errorResponse("Failed to fetch society membership", 500);
-        const societyIds = [...new Set((memberships ?? []).map(row => row.society).filter(Boolean))];
 
         const { data, count, error } = await supabase
           .from("SSP_Society")
-          .select("society_name, registration_number", {
+          .select("society_name, registration_number, subscription_plan", {
             count: "exact",
           })
-          .in("society_id", societyIds)
+          .eq("created_by", authCtx.user.id)
           .range(offset, offset + limit - 1);
 
         if (error) {
@@ -197,8 +189,8 @@ Deno.serve(
         if (id) {
           const { data, error } = await supabase
             .from("SSP_Society")
-            .select("society_name, registration_number")
-            .eq("society_id", id)
+            .select("society_name, registration_number, subscription_plan")
+            .eq("id", id)
             .single();
 
           if (error) {

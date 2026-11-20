@@ -1,4 +1,3 @@
-import { residentFlatTypeFields } from "../_shared/resident-flat-type.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -148,7 +147,7 @@ async function deleteSocietyUser(
   // Fetch user record
   const { data: record, error: fetchErr } = await supabaseAdmin
     .from("SSP_Society_User")
-    .select("user_id, role, contact, deleted_at")
+    .select("user_id, role, contact")
     .eq("user_id", memberId)
     .maybeSingle();
 
@@ -164,21 +163,84 @@ async function deleteSocietyUser(
     ? record.role.join(", ")
     : record.role || "NA";
 
-  // Preserve linked visitor, complaint, booking and payment history.
-  // A physical DELETE cannot safely satisfy all member foreign keys.
-  if (!record.deleted_at) {
-    const { data: saved, error: deleteErr } = await supabaseAdmin
+  // Check if user has dependent records
+  const tablesToCheck = [
+    { table: "SSP_Complaint", column: "society_user" },
+    { table: "SSP_Facility_Booking", column: "requested_by" },
+    { table: "SSP_Alert", column: "society_user" },
+    { table: "SSP_Notice", column: "created_by" },
+  ];
+
+  for (const { table, column } of tablesToCheck) {
+    const { data: dependentRecords, error: checkError } = await supabaseAdmin
+      .from(table)
+      .select("id")
+      .eq(column, memberId)
+      .limit(1);
+
+    if (checkError) {
+      console.warn(`⚠️ Failed to check dependencies in ${table}:`, checkError);
+      continue;
+    }
+
+    if (dependentRecords && dependentRecords.length > 0) {
+      // Delete dependent records
+      const { error: deleteDependencyError } = await supabaseAdmin
+        .from(table)
+        .delete()
+        .eq(column, memberId);
+
+      if (deleteDependencyError) {
+        console.warn(
+          `⚠️ Failed to delete dependencies in ${table}:`,
+          deleteDependencyError,
+        );
+      }
+    }
+  }
+
+  // Get contact_id before deleting the user
+  const contactId = record.contact;
+
+  // Delete the society user
+  const { error: deleteErr } = await supabaseAdmin
+    .from("SSP_Society_User")
+    .delete()
+    .eq("user_id", memberId);
+
+  if (deleteErr) {
+    throw new Error(`Failed to delete member: ${deleteErr.message}`);
+  }
+
+  // Optionally delete the contact if not linked to any other user
+  if (contactId) {
+    const { data: otherUsers, error: checkContactError } = await supabaseAdmin
       .from("SSP_Society_User")
-      .update({ deleted_at: new Date().toISOString(), status: false, one_time_password_otp: null })
-      .eq("user_id", memberId)
-      .is("deleted_at", null)
       .select("user_id")
-      .maybeSingle();
-    if (deleteErr) throw new Error(`Failed to delete member: ${deleteErr.message}`);
-    if (!saved) {
-      const {data: latest, error} = await supabaseAdmin.from("SSP_Society_User")
-        .select("deleted_at").eq("user_id", memberId).maybeSingle();
-      if (error || !latest?.deleted_at) throw new Error("Member changed. Please refresh and retry.");
+      .eq("contact", contactId)
+      .limit(1);
+
+    if (!checkContactError && (!otherUsers || otherUsers.length === 0)) {
+      // Check if contact is used by vendor
+      const { data: vendorUsers, error: vendorCheckError } = await supabaseAdmin
+        .from("SSP_Non_Society_User")
+        .select("non_society_user_id")
+        .eq("contact", contactId)
+        .limit(1);
+
+      if (!vendorCheckError && (!vendorUsers || vendorUsers.length === 0)) {
+        // No other users reference this contact, safe to delete
+        const { error: deleteContactErr } = await supabaseAdmin
+          .from("SSP_Contact")
+          .delete()
+          .eq("contact_id", contactId);
+
+        if (deleteContactErr) {
+          console.warn(
+            `⚠️ Failed to delete contact: ${deleteContactErr.message}`,
+          );
+        }
+      }
     }
   }
 
@@ -353,28 +415,6 @@ Deno.serve(
 
       console.log(`🔍 Found member: type=${targetType}, role=${typeInfo.role}`);
 
-      const {data: caller, error: callerError} = await supabaseAdmin
-        .from("SSP_Society_User")
-        .select("society, role, deleted_at")
-        .eq("user_id", authCtx.user.id)
-        .maybeSingle();
-      if (callerError) throw new Error("Failed to verify admin access.");
-      if (!caller || caller.deleted_at || !Array.isArray(caller.role) || !caller.role.includes("admin")) {
-        return buildDeleteErrorResponse("FORBIDDEN", "Only a society admin can delete members.", 403, startTime);
-      }
-      if (targetType !== typeInfo.type) {
-        return buildDeleteErrorResponse("BAD_REQUEST", "memberType does not match the member record.", 400, startTime);
-      }
-      const {data: target, error: targetError} = await supabaseAdmin
-        .from(targetType === "vendor" ? "SSP_Non_Society_User" : "SSP_Society_User")
-        .select(targetType === "vendor" ? "society" : "society,flat_type_id,flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type)")
-        .eq(targetType === "vendor" ? "non_society_user_id" : "user_id", targetMemberId)
-        .maybeSingle();
-      if (targetError) throw new Error("Failed to verify member society.");
-      if (!target || target.society !== caller.society) {
-        return buildDeleteErrorResponse("FORBIDDEN", "Member does not belong to your society.", 403, startTime);
-      }
-
       // ============================================
       // STEP 2: Delete based on type
       // ============================================
@@ -408,7 +448,7 @@ Deno.serve(
       }
 
       return successResponse({
-        deletedMember: {...response, ...(targetType === "vendor" ? {} : residentFlatTypeFields(target))},
+        deletedMember: response,
       });
     } catch (error: any) {
       console.error("❌ delete-members error:", error);

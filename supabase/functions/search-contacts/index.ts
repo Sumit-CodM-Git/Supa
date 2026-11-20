@@ -1,4 +1,3 @@
-import { contactParkingSlot } from "../_shared/contact.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireAuth } from "../_shared/auth.ts";
@@ -185,7 +184,7 @@ serve(
         .from("SSP_Contact")
         .select(
           // ✅ Added the requested fields to the select query
-          "parking_slot, contact_id,name,phone,email,gender,id_proof_type,id_proof_number,society,created_at,emergency_phone,whatsapp_phone,occupation,vehicle_type,vehicle_registration_number",
+          "contact_id,name,phone,email,gender,id_proof_type,id_proof_number,society,created_at,emergency_phone,whatsapp_phone,occupation,vehicle_type,vehicle_registration_number",
           { count: "exact" },
         )
         .eq("society", societyId)
@@ -198,7 +197,6 @@ serve(
       // ── 8. Map to camelCase ──
       const contactList = (contacts ?? []).map((c: Record<string, unknown>) => ({
         contactId: c.contact_id as string,
-        parkingSlot: contactParkingSlot(c),
         name: (c.name as string | null) ?? "NA",
         mobileNumber: (c.phone as string | null) ?? "NA",
         email: c.email as string | null,

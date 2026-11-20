@@ -378,7 +378,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 import { fetchOrder, verifyWebhookSignature } from "../_shared/razorpay.ts";
 import { logger } from "../_shared/logger.ts";
-import { resolveBlockForOrder } from "../_shared/subscription-utils.ts";
 
 interface RazorpayWebhookEvent {
   entity: string;
@@ -398,99 +397,141 @@ function serviceClient() {
 }
 
 serve(async (req) => {
-  const reply = (message: string, status = 200) => new Response(
-    JSON.stringify({ received: status === 200, message }),
-    { status, headers: { "Content-Type": "application/json" } },
-  );
-  if (req.method !== "POST") return reply("Only POST is allowed", 405);
+  // Always 200 — Razorpay retries non-2xx responses
+  const ack = (message: string) =>
+    new Response(JSON.stringify({ received: true, message }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+
   try {
+    // ─────────────────────────────────────────────
+    // 1. Read raw body for signature verification
+    // ─────────────────────────────────────────────
     const rawBody = await req.text();
     const signature = req.headers.get("x-razorpay-signature") ?? "";
-    if (!signature) return reply("Missing signature", 401);
-    if (!await verifyWebhookSignature({ rawBody, signature })) {
-      return reply("Invalid signature", 401);
+
+    if (!signature) {
+      logger.warn({
+        action: "razorpay-webhook",
+        message: "Missing signature header",
+      });
+      return ack("Missing signature");
     }
-    let event: RazorpayWebhookEvent;
-    try { event = JSON.parse(rawBody); }
-    catch { return reply("Invalid JSON", 400); }
-    const eventType = event?.event;
-    if (typeof eventType !== "string" || !eventType) return reply("Missing event type", 400);
-    const entityId = event.payload?.payment?.entity?.id ?? event.payload?.refund?.entity?.id;
-    // A payment has multiple lifecycle events. Its ID alone is not an event ID.
-    const providerEventId = req.headers.get("x-razorpay-event-id")?.trim() ||
-      event.id || (entityId ? `${eventType}:${entityId}` : null);
-    if (!providerEventId) return reply("Missing event ID", 400);
+
+    // ─────────────────────────────────────────────
+    // 2. Verify webhook signature
+    // ─────────────────────────────────────────────
+    const signatureOk = await verifyWebhookSignature({ rawBody, signature });
+    if (!signatureOk) {
+      logger.warn({
+        action: "razorpay-webhook",
+        message: "Invalid webhook signature",
+      });
+      return ack("Invalid signature");
+    }
+
+    // ─────────────────────────────────────────────
+    // 3. Parse event
+    // ─────────────────────────────────────────────
+    const event = JSON.parse(rawBody) as RazorpayWebhookEvent;
+    const eventType = event.event;
+
+    // Dedup key: prefer event.id, fall back to payment/refund id
+    const providerEventId = event.id ??
+      (event.payload?.payment?.entity?.id as string | undefined) ??
+      (event.payload?.refund?.entity?.id as string | undefined) ??
+      `${eventType}_${event.created_at}`;
+
+    if (!providerEventId) {
+      logger.warn({
+        action: "razorpay-webhook",
+        message: "No provider_event_id in payload",
+      });
+      return ack("No event ID");
+    }
+
     const supabase = serviceClient();
-    const now = new Date().toISOString();
+
+    // ─────────────────────────────────────────────
+    // 4. Idempotency — insert event log
+    // ─────────────────────────────────────────────
     const { data: inserted, error: insertErr } = await supabase
       .from("SSP_Payment_Event")
-      .insert({ provider: "razorpay", provider_event_id: providerEventId,
-        event_type: eventType, payload: event, processing_status: "pending", updated_at: now })
-      .select("payment_event_id").single();
-    let eventRowId = inserted?.payment_event_id;
-    let progress: Record<string, any> = {};
+      .insert({
+        provider: "razorpay",
+        provider_event_id: providerEventId,
+        event_type: eventType,
+        payload: event,
+        processing_status: "pending",
+      })
+      .select("payment_event_id")
+      .single();
+
     if (insertErr) {
-      if (insertErr.code !== "23505") throw insertErr;
-      const { data: existing, error: lookupErr } = await supabase
-        .from("SSP_Payment_Event")
-        .select("payment_event_id, processing_status, updated_at, payload")
-        .eq("provider", "razorpay").eq("provider_event_id", providerEventId).maybeSingle();
-      if (lookupErr) throw lookupErr;
-      if (!existing) return reply("Event lookup failed; retry", 503);
-      if (String(existing.processing_status).toLowerCase() === "processed") return reply("Already processed");
-      const stale = Date.now() - new Date(existing.updated_at ?? now).getTime() > 10 * 60 * 1000;
-      if (String(existing.processing_status).toLowerCase() !== "failed" && !stale) {
-        return reply("Event processing in progress; retry", 503);
+      if (insertErr.code === "23505") {
+        // Duplicate — already processed
+        return ack("Already processed");
       }
-      // Claim failed/stale events atomically so concurrent retries do not both run.
-      const { data: claimed, error: claimErr } = await supabase
-        .from("SSP_Payment_Event")
-        .update({ processing_status: "pending", error_message: null, updated_at: now })
-        .eq("payment_event_id", existing.payment_event_id)
-        .eq("processing_status", existing.processing_status)
-        .eq("updated_at", existing.updated_at)
-        .select("payment_event_id").maybeSingle();
-      if (claimErr) throw claimErr;
-      if (!claimed) return reply("Event processing in progress; retry", 503);
-      eventRowId = claimed.payment_event_id;
-      progress = existing.payload?._webhook_progress ?? {};
+      throw insertErr;
     }
-    if (!eventRowId) throw new Error("Failed to log event");
-    const saveProgress = async () => {
-      const { error } = await supabase.from("SSP_Payment_Event")
-        .update({ payload: { ...event, _webhook_progress: progress }, updated_at: new Date().toISOString() })
-        .eq("payment_event_id", eventRowId);
-      if (error) throw error;
-    };
+
+    const eventRowId = inserted.payment_event_id;
+
+    // ─────────────────────────────────────────────
+    // 5. Process by event type
+    // ─────────────────────────────────────────────
     try {
       switch (eventType) {
         case "payment.captured":
-          await handlePaymentCaptured(supabase, event.payload.payment.entity, progress, saveProgress); break;
+          await handlePaymentCaptured(supabase, event.payload.payment.entity);
+          break;
         case "payment.failed":
-          await handlePaymentFailed(supabase, event.payload.payment.entity); break;
+          await handlePaymentFailed(supabase, event.payload.payment.entity);
+          break;
         case "refund.processed":
-          await handleRefundProcessed(supabase, event.payload.refund.entity); break;
+          await handleRefundProcessed(supabase, event.payload.refund.entity);
+          break;
         case "refund.failed":
-          await handleRefundFailed(supabase, event.payload.refund.entity); break;
+          await handleRefundFailed(supabase, event.payload.refund.entity);
+          break;
         default:
-          logger.info({ action: "razorpay-webhook", message: `Unhandled event type: ${eventType}` });
+          logger.info({
+            action: "razorpay-webhook",
+            message: `Unhandled event type: ${eventType}`,
+          });
       }
-      const { error } = await supabase.from("SSP_Payment_Event")
-        .update({ processing_status: "processed", processed_at: new Date().toISOString(), error_message: null, updated_at: new Date().toISOString() })
+
+      await supabase
+        .from("SSP_Payment_Event")
+        .update({
+          processing_status: "processed",
+          processed_at: new Date().toISOString(),
+        })
         .eq("payment_event_id", eventRowId);
-      if (error) throw error;
-      return reply("Event received");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String((error as any)?.message ?? "Processing failed");
-      await supabase.from("SSP_Payment_Event")
-        .update({ processing_status: "failed", error_message: message, updated_at: new Date().toISOString() })
+    } catch (processErr) {
+      const msg = processErr instanceof Error ? processErr.message : "Unknown";
+      logger.error({
+        action: "razorpay-webhook",
+        message: `Processing failed: ${msg}`,
+      });
+
+      await supabase
+        .from("SSP_Payment_Event")
+        .update({
+          processing_status: "failed",
+          error_message: msg,
+        })
         .eq("payment_event_id", eventRowId);
-      logger.error({ action: "razorpay-webhook", message });
-      return reply("Processing failed; retry", 500);
     }
-  } catch (error) {
-    logger.error({ action: "razorpay-webhook", message: String((error as any)?.message ?? error) });
-    return reply("Processing failed; retry", 500);
+
+    return ack("Event received");
+  } catch (err) {
+    logger.error({
+      action: "razorpay-webhook",
+      message: err instanceof Error ? err.message : "Unknown",
+    });
+    return ack("Error logged");
   }
 });
 
@@ -501,8 +542,6 @@ serve(async (req) => {
 async function handlePaymentCaptured(
   supabase: ReturnType<typeof serviceClient>,
   payment: Record<string, unknown>,
-  progress: Record<string, any>,
-  saveProgress: () => Promise<void>,
 ) {
   const paymentId = payment.id as string;
   const orderId = payment.order_id as string;
@@ -518,14 +557,13 @@ async function handlePaymentCaptured(
   // ─────────────────────────────────────────────
   // Idempotency — client verify already created it?
   // ─────────────────────────────────────────────
-  const { data: existing, error: existingErr } = await supabase
+  const { data: existing } = await supabase
     .from("SSP_Subscription_Payment")
     .select("subscription_id")
     .eq("provider", "razorpay")
     .eq("provider_payment_id", paymentId)
     .maybeSingle();
 
-  if (existingErr) throw existingErr;
   if (existing) {
     logger.info({
       action: "razorpay-webhook",
@@ -543,7 +581,7 @@ async function handlePaymentCaptured(
   const ownerUserId = notes.user_id;
   const society = notes.society;
   const tower = notes.tower || null;
-  const orderBlock = notes.block || null;
+  const block = notes.block || null;
   const flatNumber = notes.flat_number;
   const planCode = notes.plan_code;
   const planPriceId = notes.plan_price_id || null;
@@ -554,12 +592,6 @@ async function handlePaymentCaptured(
   if (!society || !flatNumber || !planCode || !ownerUserId) {
     throw new Error("payment.captured: order notes missing required fields");
   }
-  const block = await resolveBlockForOrder(supabase, ownerUserId, {
-    society,
-    tower,
-    block: orderBlock,
-    flatNumber,
-  });
 
   // ─────────────────────────────────────────────
   // Look up plan
@@ -575,9 +607,7 @@ async function handlePaymentCaptured(
   // ─────────────────────────────────────────────
   // Insert SSP_Payment
   // ─────────────────────────────────────────────
-  let paymentRec = progress.paymentRecordId ? { pay_rec_id: progress.paymentRecordId } : null;
-  if (!paymentRec) {
-  const { data: createdPayment, error: paymentErr } = await supabase
+  const { data: paymentRec, error: paymentErr } = await supabase
     .from("SSP_Payment")
     .insert({
       amount: (payment.amount as number) / 100,
@@ -602,19 +632,12 @@ async function handlePaymentCaptured(
     throw new Error(`Failed to create payment: ${paymentErr.message}`);
   }
 
-  paymentRec = createdPayment;
-  progress.paymentRecordId = paymentRec.pay_rec_id;
-  await saveProgress();
-  }
-
   // ─────────────────────────────────────────────
   // Branch on purpose (mirrors verify-razorpay-payment)
   // ─────────────────────────────────────────────
   let subscriptionId: string;
 
-  if (progress.subscriptionId) {
-    subscriptionId = progress.subscriptionId;
-  } else if (paymentPurpose === "renewal" && renewingSubId) {
+  if (paymentPurpose === "renewal" && renewingSubId) {
     // Extend existing
     const { data: existing } = await supabase
       .from("SSP_Subscription")
@@ -627,14 +650,10 @@ async function handlePaymentCaptured(
     const now = new Date();
     const existingEnd = existing.end_date ? new Date(existing.end_date) : null;
     const baseDate = existingEnd && existingEnd > now ? existingEnd : now;
-    const newEnd = progress.targetEndDate ? new Date(progress.targetEndDate) : new Date(baseDate);
-    if (!progress.targetEndDate) {
-      newEnd.setMonth(newEnd.getMonth() + validityMonths);
-      progress.targetEndDate = newEnd.toISOString();
-      await saveProgress();
-    }
+    const newEnd = new Date(baseDate);
+    newEnd.setMonth(newEnd.getMonth() + validityMonths);
 
-    const { error: writeError1 } = await supabase
+    await supabase
       .from("SSP_Subscription")
       .update({
         status: "active",
@@ -643,7 +662,6 @@ async function handlePaymentCaptured(
         updated_at: now.toISOString(),
       })
       .eq("subscription_id", renewingSubId);
-    if (writeError1) throw writeError1;
 
     subscriptionId = renewingSubId;
   } else if (paymentPurpose === "upgrade" && renewingSubId) {
@@ -652,7 +670,7 @@ async function handlePaymentCaptured(
     const newEnd = new Date(now);
     newEnd.setMonth(newEnd.getMonth() + validityMonths);
 
-    const { error: writeError2 } = await supabase
+    await supabase
       .from("SSP_Subscription")
       .update({
         plan_id: planRec.plan_id,
@@ -665,7 +683,6 @@ async function handlePaymentCaptured(
         updated_at: now.toISOString(),
       })
       .eq("subscription_id", renewingSubId);
-    if (writeError2) throw writeError2;
 
     subscriptionId = renewingSubId;
   } else {
@@ -703,8 +720,6 @@ async function handlePaymentCaptured(
   // ─────────────────────────────────────────────
   // Link payment ↔ subscription
   // ─────────────────────────────────────────────
-  progress.subscriptionId = subscriptionId;
-  await saveProgress();
   const { error: linkErr } = await supabase
     .from("SSP_Subscription_Payment")
     .insert({
@@ -784,21 +799,20 @@ async function handleRefundProcessed(
   }
 
   // Find the subscription via the payment link
-  const { data: link, error: linkLookupError } = await supabase
+  const { data: link } = await supabase
     .from("SSP_Subscription_Payment")
     .select("subscription_id, subscription_payment_id")
     .eq("provider", "razorpay")
     .eq("provider_payment_id", paymentId)
     .maybeSingle();
 
-  if (linkLookupError) throw linkLookupError;
   if (!link) {
     logger.warn({
       action: "razorpay-webhook",
       message:
         `refund.processed: no subscription link for payment ${paymentId}`,
     });
-    throw new Error("Refund payment link not available yet");
+    return;
   }
 
   // Find the SSP_Refund row for this payment
@@ -813,7 +827,7 @@ async function handleRefundProcessed(
   if (refundRow) {
     // Update refund to processed (idempotent — only update if not already)
     if (refundRow.status !== "processed") {
-      const { error: writeError3 } = await supabase
+      await supabase
         .from("SSP_Refund")
         .update({
           status: "processed",
@@ -823,7 +837,6 @@ async function handleRefundProcessed(
           razorpay_response: refund,
         })
         .eq("refund_id", refundRow.refund_id);
-      if (writeError3) throw writeError3;
     }
   }
 
@@ -835,7 +848,7 @@ async function handleRefundProcessed(
     .single();
 
   if (sub && sub.status !== "cancelled") {
-    const { error: writeError4 } = await supabase
+    await supabase
       .from("SSP_Subscription")
       .update({
         status: "cancelled",
@@ -843,7 +856,6 @@ async function handleRefundProcessed(
         updated_at: new Date().toISOString(),
       })
       .eq("subscription_id", link.subscription_id);
-    if (writeError4) throw writeError4;
 
     logger.info({
       action: "razorpay-webhook",
@@ -870,20 +882,18 @@ async function handleRefundFailed(
 
   if (!paymentId) return;
 
-  const { data: link, error: linkLookupError } = await supabase
+  const { data: link } = await supabase
     .from("SSP_Subscription_Payment")
     .select("subscription_id")
     .eq("provider", "razorpay")
     .eq("provider_payment_id", paymentId)
     .maybeSingle();
 
-  if (linkLookupError) throw linkLookupError;
-  if (!link) throw new Error("Refund payment link not available yet");
+  if (!link) return;
 
-  const { error: writeError5 } = await supabase
+  await supabase
     .from("SSP_Refund")
     .update({ status: "failed" })
     .eq("subscription_id", link.subscription_id)
     .neq("status", "processed");
-  if (writeError5) throw writeError5;
 }

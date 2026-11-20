@@ -1,6 +1,3 @@
-import { contactParkingSlot } from "../_shared/contact.ts";
-import { isPaymentStaffRole } from "../_shared/payment-access.ts";
-import { createReceiptSignedUrl } from "../_shared/receipt-storage.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -204,10 +201,6 @@ interface PaymentRecord {
       name: string | null;
     };
   };
-  SSP_Document?:
-    | { s3_path: string | null; file_name: string | null }
-    | { s3_path: string | null; file_name: string | null }[]
-    | null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -275,24 +268,6 @@ Deno.serve(async (req: Request) => {
       throw new ApiError("NOT_FOUND", "No society registration found matching the identifier provided.", 404);
     }
 
-    const appUserId =
-      typeof authUser.user_metadata?.user_id === "string"
-        ? authUser.user_metadata.user_id
-        : authUser.id;
-    const { data: membership, error: membershipError } = await supabase
-      .from("SSP_Society_User")
-      .select("role")
-      .eq("user_id", appUserId)
-      .eq("society", societyRecord.society_id)
-      .maybeSingle();
-
-    if (membershipError) {
-      throw new ApiError("SERVER_ERROR", `Society membership lookup failed: ${membershipError.message}`, 500);
-    }
-    if (!membership || !isPaymentStaffRole(membership.role)) {
-      throw new ApiError("FORBIDDEN", "You don't have permission to manage society payments.", 403);
-    }
-
     // 6. DYNAMIC QUERY CONSTRUCTION
     let query = supabase
       .from("SSP_Payment")
@@ -303,11 +278,10 @@ Deno.serve(async (req: Request) => {
         society_user:SSP_Society_User!inner(
           unit_flat_number,
           society,
-          contact:SSP_Contact(parking_slot,
+          contact:SSP_Contact(
             name
           )
-        ),
-        SSP_Document(s3_path, file_name)
+        )
       `,
         { count: "exact" }
       )
@@ -341,7 +315,7 @@ if (searchText && searchText.trim() !== "") {
     .select(`
       user_id,
       unit_flat_number,
-      contact:SSP_Contact(parking_slot,
+      contact:SSP_Contact(
         name
       )
     `)
@@ -411,24 +385,37 @@ if (searchText && searchText.trim() !== "") {
     if (paymentError) throw new ApiError("SERVER_ERROR", `SSP_Payment processing lookup failed: ${paymentError.message}`, 500);
 
     // 7. FORMAT OUTPUT PAYLOAD
-    const formattedRecords = await Promise.all(((paymentRecords ?? []) as unknown as PaymentRecord[]).map(async (p) => {
+    const formattedRecords = (paymentRecords as unknown as PaymentRecord[] || []).map((p) => {
       const userContext = p.society_user;
       const contactContext = userContext?.contact;
 
-      const documents = Array.isArray(p.SSP_Document)
-        ? p.SSP_Document
-        : p.SSP_Document ? [p.SSP_Document] : [];
-      const receiptPaths = [
-        p.receipt_url,
-        ...documents.map((document) => document.s3_path),
-      ].filter((path): path is string => typeof path === "string" && !!path.trim());
-      const signedUrls = await Promise.all(
-        [...new Set(receiptPaths)].map((path) => createReceiptSignedUrl(supabase, path)),
-      );
-      const clickableImageUrl = signedUrls.find((url): url is string => !!url) ?? "N/A";
+      /* let clickableImageUrl = "N/A";
+
+      if (p.receipt_url && p.receipt_url.trim() !== "") {
+        clickableImageUrl = p.receipt_url.startsWith("http")
+          ? p.receipt_url
+          : `\({supabaseUrl}/storage/v1/object/public/society-documents/\){p.receipt_url}`;
+      } */
+           let clickableImageUrl = "N/A";
+
+      if (p.receipt_url && p.receipt_url.trim() !== "") {
+        const cleanPath = p.receipt_url.trim();
+        
+        if (cleanPath.startsWith("http")) {
+          // It's already a full URL (like your first record)
+          clickableImageUrl = cleanPath;
+        } else {
+          // It's just a filename, build the full path.
+          // Based on your screenshot, the path is always /GZB-1234-ab/financial/
+          // We strip any leading slashes from the db value just in case.
+          const finalPath = cleanPath.startsWith("/") ? cleanPath.slice(1) : cleanPath;
+          
+          // We construct: <supabase_url>/storage/v1/object/public/society-documents/GZB-1234-ab/financial/<filename>
+          clickableImageUrl = `${supabaseUrl}/storage/v1/object/public/society-documents/GZB-1234-ab/financial/${finalPath}`;
+        }
+      }
 
       return {
-        parkingSlot: contactParkingSlot(contactContext),
         paymentName: p.payment_id ?? "N/A",
         amount: p.amount != null ? String(p.amount) : "0",
         dueDate: p.due_date ? String(p.due_date) : null,
@@ -445,7 +432,7 @@ if (searchText && searchText.trim() !== "") {
         imageUrl: clickableImageUrl,
         rejectionReason: p.rejection_reason ?? null,
       };
-    }));
+    });
 
     logger.info({ message: `Successfully completed ${action}` });
 

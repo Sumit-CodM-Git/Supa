@@ -1,4 +1,3 @@
-import { facilityImageInputs, createFacilityImageUploads, type FacilityImageInput } from "../_shared/facility-images.ts";
 // import { createClient, SupabaseClient } from "@supabase/supabase-js";
 // import { requireAuth } from "../_shared/auth.ts";
 // import {
@@ -848,8 +847,6 @@ interface FacilityPayload {
   fileType?: string;
   fileSize?: number;
   deleteImage?: boolean;
-  deleteImageIds?: string[];
-  images?: FacilityImageInput[];
 }
 
 interface CreateFacilityRequest {
@@ -895,8 +892,6 @@ interface FacilityResponse {
   maintenanceEnd: string | null;
   maintenanceReason: string | null;
   imageUrl: string | null;
-  images: string[];
-  imageDocuments: { documentId: string; imageUrl: string }[];
 }
 
 interface AuthContext {
@@ -1085,7 +1080,6 @@ function isAdmin(role: unknown): boolean {
 async function deleteFacilityImage(
   supabase: SupabaseClient,
   facilityId: string,
-  documentIds?: string[],
 ): Promise<void> {
   try {
     logger.info({
@@ -1094,10 +1088,10 @@ async function deleteFacilityImage(
       message: "Deleting facility images",
     });
 
-    let documentsQuery = supabase.from("SSP_Document")
-      .select("document_id, file_name").eq("facility", facilityId);
-    if (documentIds) documentsQuery = documentsQuery.in("document_id", documentIds);
-    const { data: existingDocs, error: fetchErr } = await documentsQuery;
+    const { data: existingDocs, error: fetchErr } = await supabase
+      .from("SSP_Document")
+      .select("document_id, file_name")
+      .eq("facility", facilityId);
 
     if (fetchErr) {
       logger.error({
@@ -1126,7 +1120,6 @@ async function deleteFacilityImage(
               error: storageErr.message,
               message: "Failed to delete from storage",
             });
-            throw storageErr;
           }
         }
 
@@ -1166,6 +1159,103 @@ async function deleteFacilityImage(
   }
 }
 
+async function createFacilityImageSignedUrl(
+  supabase: SupabaseClient,
+  facilityId: string,
+  societyId: string,
+  regNum: string,
+  fileName: string,
+  fileType: string,
+  fileSize?: number,
+): Promise<{ uploadUrl: string; documentId: string }> {
+  try {
+    logger.info({
+      action: "create_upload_url",
+      facilityId,
+      fileName,
+      message: "Creating signed upload URL",
+    });
+
+    await deleteFacilityImage(supabase, facilityId);
+
+    const cleanFileName = fileName.replace(/\s+/g, "_");
+    const objectKey =
+      `${regNum}/facilities/${facilityId}/${Date.now()}_${cleanFileName}`;
+
+    const { data: uploadUrlData, error: storageErr } = await supabase.storage
+      .from(BUCKET_NAME)
+      .createSignedUploadUrl(objectKey);
+
+    if (storageErr || !uploadUrlData?.signedUrl) {
+      logger.error({
+        action: "create_upload_url",
+        facilityId,
+        error: storageErr?.message || "No signed URL returned",
+        message: "Failed to create signed URL",
+      });
+      throw new Error(
+        `Signed URL Creation Failed: ${
+          storageErr?.message || "Internal error"
+        }`,
+      );
+    }
+
+    const { data: urlInfo } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(objectKey);
+
+    const { data: doc, error: docErr } = await supabase
+      .from("SSP_Document")
+      .insert({
+        name: fileName,
+        file_name: objectKey,
+        file_type: fileType,
+        file_size: fileSize ? parseFloat(String(fileSize)) : null,
+        // ✅ FIXED: was "Facility Attachment" — must match picklist value
+        document_type: "facility_attachment",
+        s3_path: urlInfo.publicUrl,
+        society: societyId,
+        facility: facilityId,
+        uploaded_on: new Date().toISOString(),
+      })
+      .select("document_id")
+      .single();
+
+    if (docErr || !doc) {
+      logger.error({
+        action: "create_upload_url",
+        facilityId,
+        error: docErr?.message,
+        message: "Failed to register document",
+      });
+      throw new Error(
+        `SSP_Document Registration Failed: ${docErr?.message || "DB failure"}`,
+      );
+    }
+
+    logger.info({
+      action: "create_upload_url",
+      facilityId,
+      documentId: doc.document_id,
+      message: "Upload URL created successfully",
+    });
+
+    return {
+      uploadUrl: uploadUrlData.signedUrl,
+      documentId: doc.document_id,
+    };
+  } catch (error: unknown) {
+    const err = error as Error;
+    logger.error({
+      action: "create_upload_url",
+      facilityId,
+      error: err.message,
+      message: "Failed to create upload URL",
+    });
+    throw error;
+  }
+}
+
 // ============================================
 // AUTH AUTHORIZATION HELPER
 // ============================================
@@ -1197,7 +1287,7 @@ async function authorizeAdmin(
 
     const { data: admins, error: adminErr } = await supabase
       .from("SSP_Society_User")
-      .select("role, SSP_Contact!contact (parking_slot, phone)")
+      .select("role, SSP_Contact!contact (phone)")
       .eq("society", society.society_id);
 
     if (adminErr) {
@@ -1348,26 +1438,10 @@ Deno.serve(
 
       const { societyId } = authResult;
 
-      const imageFiles = act === "CREATE" || act === "UPDATE" ? facilityImageInputs(payload) : [];
-      if (payload?.deleteImageIds !== undefined && (!Array.isArray(payload.deleteImageIds) ||
-          payload.deleteImageIds.some(id => typeof id !== "string" || !id.trim()))) {
-        return errorResponse("deleteImageIds must be an array of document IDs.", 400);
-      }
-
-      if (act === "UPDATE" && imageFiles.length && !payload?.deleteImage) {
-        const { data: currentImages, error: imageCountError } = await supabaseAdmin
-          .from("SSP_Document").select("document_id").eq("facility", id).eq("society", societyId);
-        if (imageCountError) throw imageCountError;
-        const removed = new Set(payload?.deleteImageIds ?? []);
-        const remaining = (currentImages ?? []).filter(image => !removed.has(image.document_id)).length;
-        if (remaining + imageFiles.length > 5) return errorResponse("A facility can have a maximum of 5 images.", 400);
-      }
-
       // ✅ Load picklists once for this request
       const picklists = await loadPicklists(supabaseAdmin, PICKLIST_KEYS);
 
       let dbFacilities: DBFacility[] = [];
-      let imageUploads: { uploadUrl: string; documentId: string }[] = [];
       let uploadUrl: string | null = null;
       let documentId: string | null = null;
       let viewPagination:
@@ -1558,12 +1632,18 @@ Deno.serve(
           message: "Facility created successfully",
         });
 
-        if (imageFiles.length) {
-          imageUploads = await createFacilityImageUploads(
-            supabaseAdmin, createdFacility.id, societyId, String(registrationNumber).trim(), imageFiles,
+        if (payload?.fileName && payload?.fileType) {
+          const uploadDetails = await createFacilityImageSignedUrl(
+            supabaseAdmin,
+            createdFacility.id,
+            societyId,
+            String(registrationNumber).trim(),
+            payload.fileName,
+            payload.fileType,
+            payload.fileSize,
           );
-          uploadUrl = imageUploads[0]?.uploadUrl ?? null;
-          documentId = imageUploads[0]?.documentId ?? null;
+          uploadUrl = uploadDetails.uploadUrl;
+          documentId = uploadDetails.documentId;
         }
       } else if (act === "UPDATE") {
         logger.info({
@@ -1689,16 +1769,20 @@ Deno.serve(
 
         if (payload?.deleteImage) {
           await deleteFacilityImage(supabaseAdmin, id!);
-        } else if (payload?.deleteImageIds?.length) {
-          await deleteFacilityImage(supabaseAdmin, id!, payload.deleteImageIds);
         }
 
-        if (imageFiles.length) {
-          imageUploads = await createFacilityImageUploads(
-            supabaseAdmin, id!, societyId, String(registrationNumber).trim(), imageFiles,
+        if (payload?.fileName && payload?.fileType) {
+          const uploadDetails = await createFacilityImageSignedUrl(
+            supabaseAdmin,
+            id!,
+            societyId,
+            String(registrationNumber).trim(),
+            payload.fileName,
+            payload.fileType,
+            payload.fileSize,
           );
-          uploadUrl = imageUploads[0]?.uploadUrl ?? null;
-          documentId = imageUploads[0]?.documentId ?? null;
+          uploadUrl = uploadDetails.uploadUrl;
+          documentId = uploadDetails.documentId;
         }
       } else if (act === "DELETE") {
         logger.info({
@@ -1708,10 +1792,6 @@ Deno.serve(
           message: "Deleting facility",
         });
 
-        const { data: ownedFacility, error: ownershipError } = await supabaseAdmin
-          .from("SSP_Facility").select("id").eq("id", id).eq("society", societyId).maybeSingle();
-        if (ownershipError) throw ownershipError;
-        if (!ownedFacility) return errorResponse("Facility not found or access denied.", 404);
         await deleteFacilityImage(supabaseAdmin, id!);
 
         const { data, error } = await supabaseAdmin
@@ -1742,21 +1822,20 @@ Deno.serve(
 
       // Fetch images for response
       const facilityIds = dbFacilities.map((f) => f.id);
-      const docMap = new Map<string, { documentId: string; imageUrl: string }[]>();
+      let docMap = new Map<string, string>();
 
       if (facilityIds.length > 0) {
         const { data: docRecords } = await supabaseAdmin
           .from("SSP_Document")
-          .select("document_id, facility, s3_path")
+          .select("facility, s3_path")
           .in("facility", facilityIds);
 
         const docs = (docRecords as DBDocument[]) || [];
-        for (const doc of docs) {
-          if (!doc.facility || !doc.s3_path) continue;
-          const images = docMap.get(doc.facility) ?? [];
-          images.push({ documentId: doc.document_id, imageUrl: doc.s3_path });
-          docMap.set(doc.facility, images);
-        }
+        docMap = new Map(
+          docs
+            .filter((d) => d.facility && d.s3_path)
+            .map((d) => [d.facility as string, d.s3_path as string]),
+        );
       }
 
       // Build response payload
@@ -1779,9 +1858,7 @@ Deno.serve(
         maintenanceStart: facility.maintenance_start,
         maintenanceEnd: facility.maintenance_end,
         maintenanceReason: facility.maintenance_reason,
-        imageUrl: docMap.get(facility.id)?.[0]?.imageUrl ?? null,
-        images: (docMap.get(facility.id) ?? []).map(image => image.imageUrl),
-        imageDocuments: docMap.get(facility.id) ?? [],
+        imageUrl: docMap.get(facility.id) ?? null,
       }));
 
       const responsePayload: Record<string, unknown> = {
@@ -1789,7 +1866,6 @@ Deno.serve(
         operation: act,
       };
 
-      if (imageUploads.length) responsePayload.uploads = imageUploads;
       if (uploadUrl) responsePayload.uploadUrl = uploadUrl;
       if (documentId) responsePayload.documentId = documentId;
 

@@ -1,4 +1,3 @@
-import { loadResidentFacilityBookings, formatResidentFacilityBooking } from "../_shared/resident-facility-bookings.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
@@ -26,17 +25,73 @@ serve(async (req)=>{
       return buildErrorResponse('BAD_REQUEST', 'Society Registration Number and residentId are mandatory fields.', 400);
     }
     const cleanResidentId = residentId.trim();
-    const { data: resident, error: residentError } = await supabase
-      .from('SSP_Society_User')
-      .select('user_id, society:SSP_Society!inner(registration_number)')
-      .eq('user_id', cleanResidentId)
-      .ilike('society.registration_number', String(societyRegistrationNumber).trim())
-      .maybeSingle();
-    if (residentError) throw residentError;
-    if (!resident) return buildErrorResponse('NOT_FOUND', 'Resident not found in this society.', 404);
-
-    const bookingsList = await loadResidentFacilityBookings(supabase, cleanResidentId);
-    const formattedFacilities = bookingsList.map(formatResidentFacilityBooking);
+    //==========================================================
+    // Fetch Facility Bookings
+    //==========================================================
+    const { data: bookingsList, error: dbErr } = await supabase.from('SSP_Facility_Booking').select(`
+        name,
+        booking_status,
+        booking_start_date,
+        booking_end_date,
+        payment_status,
+        capacity,
+        purpose_of_visit,
+        facility,
+        SSP_Facility!facility(
+          id,
+          name
+        )
+      `).eq('requested_by', cleanResidentId);
+    if (dbErr) {
+      return buildErrorResponse('DATABASE_ERROR', `Failed to retrieve records: ${dbErr.message}`, 500);
+    }
+    //==========================================================
+    // Collect Facility IDs
+    //==========================================================
+    const facilityIds = (bookingsList || []).map((bk)=>bk.facility).filter(Boolean);
+    //==========================================================
+    // Payment Map
+    //==========================================================
+    const paymentMap = new Map();
+    if (facilityIds.length > 0) {
+      const { data: payments, error: payErr } = await supabase.from('SSP_Payment').select(`
+          pay_rec_id,
+          facility,
+          payment_method,
+          payment_status
+        `).eq('society_user', cleanResidentId).in('facility', facilityIds).order('created_at', {
+        ascending: false
+      });
+      if (payErr) {
+        console.error(payErr);
+      }
+      if (payments) {
+        payments.forEach((pay)=>{
+          if (pay.facility && !paymentMap.has(pay.facility)) {
+            paymentMap.set(pay.facility, {
+              payRecId: pay.pay_rec_id,
+              paymentMethod: pay.payment_method ?? null,
+              paymentStatus: pay.payment_status ?? null
+            });
+          }
+        });
+      }
+    }
+    //==========================================================
+    // Final Response
+    //==========================================================
+    const formattedFacilities = (bookingsList || []).map((bk)=>({
+        facilityName: bk.SSP_Facility?.name ?? null,
+        bookingStatus: bk.booking_status ?? null,
+        startDateTime: bk.booking_start_date ?? null,
+        endDateTime: bk.booking_end_date ?? null,
+        paymentStatus: paymentMap.get(bk.facility) ? paymentMap.get(bk.facility)?.paymentStatus : bk.payment_status === "approved" || bk.payment_status === "rejected" ? bk.payment_status : null,
+        paymentMethod: paymentMap.get(bk.facility)?.paymentMethod ?? null,
+        capacity: bk.capacity ? parseFloat(bk.capacity) : null,
+        purpose: bk.purpose_of_visit ?? null,
+        facilityBookingId: bk.name ?? null,
+        payRecId: paymentMap.get(bk.facility)?.payRecId ?? null
+      }));
     return new Response(JSON.stringify({
       facilities: formattedFacilities,
       errorResponse: null
@@ -48,10 +103,10 @@ serve(async (req)=>{
       }
     });
   } catch (error) {
-    return buildErrorResponse("DATABASE_ERROR", `Failed to retrieve records: ${error instanceof Error ? error.message : String(error)}`, 500);
+    return buildErrorResponse("DATABASE_ERROR", `Failed to retrieve records: ${error.message}`, 500);
   }
 });
-function buildErrorResponse(code: string, message: string, statusCode: number) {
+function buildErrorResponse(code, message, statusCode) {
   return new Response(JSON.stringify({
     facilities: [],
     errorResponse: {

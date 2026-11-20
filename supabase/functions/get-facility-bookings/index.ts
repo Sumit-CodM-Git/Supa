@@ -1,4 +1,3 @@
-import { resolveFacilityReceiptImage } from "../_shared/facility-receipt.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -224,9 +223,6 @@ const corsHeaders = {
 
 interface BookingData {
   bookingId: string | null;
-  recordType: "booking" | "request";
-  requestId: string | null;
-  createdAt: string | null;
   requestedBy: string | null;
   amenity: string | null;
   approvalStatus: string | null;
@@ -248,39 +244,6 @@ interface BookingData {
   amount: number | null;
   rejectionReason: string | null;
   receiptImageUrl: string | null;
-  receiptUploadStatus: "uploaded" | "missing" | "not_provided" | "unverified";
-}
-
-function normalizeBookingStatus(value: unknown): string {
-  const status = String(value ?? '').trim().toLowerCase()
-  if (['waiting_payment', 'payment_pending', 'pending_payment', 'requested'].includes(status)) return 'requested'
-  if (['approved', 'booked'].includes(status)) return 'approved'
-  if (['rejected', 'failed_slot_already_booked'].includes(status)) return 'rejected'
-  return status
-}
-
-function mergeBookingRecords(
-  confirmed: Record<string, any>[],
-  requests: Record<string, any>[],
-  confirmedPayments: Set<string>,
-): Record<string, any>[] {
-  const rows = [
-    ...confirmed.map(row => ({ ...row, recordType: 'booking' })),
-    ...requests.filter(row => !row.payment || !confirmedPayments.has(row.payment)).map(row => ({
-      ...row,
-      name: row.request_id,
-      approval_status: normalizeBookingStatus(row.status),
-      booking_status: normalizeBookingStatus(row.status),
-      recordType: 'request',
-    })),
-  ] as Record<string, any>[]
-  return rows.sort((a, b) => {
-    const aTime = a.created_at ? Date.parse(a.created_at) : NaN
-    const bTime = b.created_at ? Date.parse(b.created_at) : NaN
-    if (!Number.isFinite(aTime)) return Number.isFinite(bTime) ? 1 : 0
-    if (!Number.isFinite(bTime)) return -1
-    return bTime - aTime || String(b.name ?? '').localeCompare(String(a.name ?? ''))
-  })
 }
 
 serve(async (req: Request) => {
@@ -304,8 +267,7 @@ serve(async (req: Request) => {
     const { 
       societyRegistrationNumber, 
       status, 
-      facilityId,
-      facilityName,
+      facilityId, 
       startDate, 
       endDate,
       searchQuery,
@@ -317,28 +279,15 @@ serve(async (req: Request) => {
       return buildError('BAD_REQUEST', 'societyRegistrationNumber is mandatory.', 400, startTime)
     }
 
-    if (facilityName != null && typeof facilityName !== 'string') {
-      return buildError('BAD_REQUEST', 'facilityName must be text.', 400, startTime)
-    }
-    const cleanFacilityName = typeof facilityName === 'string' ? facilityName.trim() : ''
-    const hasFacilityName = cleanFacilityName !== ''
-    // Match literal names: SQL wildcard characters in a facility label are not filters.
-    const facilityNamePattern = cleanFacilityName.replace(/[\\%_]/g, '\\$&')
-
     const regNum = String(societyRegistrationNumber).trim()
     const pageNum = Math.max(1, Number(page) || 1)
     const limitNum = Math.min(100, Math.max(1, Number(limit) || 10))
     const offset = (pageNum - 1) * limitNum
 
-    const cleanSearch = searchQuery == null ? '' : String(searchQuery).trim()
-    // Separate left embeds let either search branch match without removing
-    // the resident/facility details selected for the response.
-    const searchEmbeds = cleanSearch
-      ? `, search_facility:SSP_Facility(),
-          search_resident:SSP_Society_User!requested_by(SSP_Contact!inner())`
-      : ''
-
-    const bookingSelect = `
+    // 2. Build Base Relational Select Query
+    let query = supabase
+      .from('SSP_Facility_Booking')
+      .select(`
         name,
         purpose_of_visit,
         payment_status,
@@ -349,11 +298,10 @@ serve(async (req: Request) => {
         capacity,
         maintenance_status,
         created_at,
-        payment,
         extra_charges,
         rejection_reason,
 
-        booking_facility:SSP_Facility!inner (
+        SSP_Facility!inner (
           id,
           name
         ),
@@ -371,7 +319,7 @@ serve(async (req: Request) => {
           )
         ),
 
-        booking_resident:SSP_Society_User!requested_by!inner (
+        SSP_Society_User!inner (
           unit_flat_number,
           SSP_Tower!left (
             name
@@ -387,114 +335,70 @@ serve(async (req: Request) => {
             registration_number
           )
         )
-        ${searchEmbeds}
-      `
+      `, { count: 'exact' })
+      .eq('SSP_Society_User.SSP_Society.registration_number', regNum)
 
-    // Apply society/search/date filters to both sources before combining them.
-    function buildQuery(table: string, select: string) {
-      let query = supabase
-        .from(table)
-        .select(select)
-        .eq('booking_resident.SSP_Society.registration_number', regNum)
-
-      if (hasFacilityName) {
-        if (cleanFacilityName.toLowerCase() !== 'all') {
-          query = query.ilike('booking_facility.name', facilityNamePattern)
-        }
-      } else if (facilityId && String(facilityId).trim() !== '') {
-        query = query.eq('booking_facility.id', String(facilityId).trim())
-      }
-
-      if (startDate) {
-        query = query.gte('booking_start_date', startDate)
-      }
-
-      if (endDate) {
-        query = query.lte('booking_end_date', endDate)
-      }
-
-      // PostgREST requires null checks on separate embeds for OR across relations.
-      if (cleanSearch) {
-        const pattern = `%${cleanSearch.replace(/[\\%_]/g, '\\$&')}%`
-        query = query
-          .ilike('search_facility.name', pattern)
-          .ilike('search_resident.SSP_Contact.name', pattern)
-          .or('search_facility.not.is.null,search_resident.not.is.null')
-      }
-
-      return query
+    // 3. Dynamic Filters Evaluation
+    if (status && String(status).trim().toLowerCase() !== 'all') {
+      query = query.eq('approval_status', String(status).trim())
     }
 
-    // Requests have not necessarily been copied into the confirmed booking table.
-    const requestSelect = `
-      name:request_id, request_id, status, purpose_of_visit,
-      booking_start_date, booking_end_date, created_at, rejection_reason, payment,
-      ${bookingSelect.slice(bookingSelect.indexOf('booking_facility:'))}
-    `
-    async function fetchAll(table: string, select: string, idColumn: string) {
-      const rows: Record<string, any>[] = []
-      const batchSize = 500
-      for (let start = 0; ; start += batchSize) {
-        const { data, error } = await buildQuery(table, select)
-          .order('created_at', { ascending: false, nullsFirst: false })
-          .order(idColumn, { ascending: false })
-          .range(start, start + batchSize - 1)
-        if (error) throw error
-        const batch = (data ?? []) as unknown as Record<string, any>[]
-        rows.push(...batch)
-        if (batch.length < batchSize) return rows
-      }
+    if (facilityId && String(facilityId).trim() !== '') {
+      query = query.eq('SSP_Facility.id', String(facilityId).trim())
     }
-    const [confirmed, requests] = await Promise.all([
-      fetchAll('SSP_Facility_Booking', bookingSelect, 'name'),
-      fetchAll('SSP_Facility_Booking_Request', requestSelect, 'request_id')
-    ])
 
-    // A confirmed booking wins over its old request, including when filtered out.
-    const confirmedPayments = new Set<string>(confirmed.map(row => row.payment).filter(Boolean))
-    const requestPayments = [...new Set<string>(requests.map(row => row.payment).filter(Boolean))]
-    for (let start = 0; start < requestPayments.length; start += 100) {
-      const { data, error } = await supabase.from('SSP_Facility_Booking')
-        .select('payment').in('payment', requestPayments.slice(start, start + 100))
-      if (error) throw error
-      for (const row of data ?? []) if (row.payment) confirmedPayments.add(row.payment)
+    if (startDate) {
+      query = query.gte('booking_start_date', startDate)
     }
-    const merged = mergeBookingRecords(confirmed, requests, confirmedPayments)
-    const pendingCount = merged.filter(row => ['pending', 'requested'].includes(normalizeBookingStatus(row.approval_status))).length
-    const approvedCount = merged.filter(row => normalizeBookingStatus(row.approval_status) === 'approved').length
-    const cleanStatus = status ? normalizeBookingStatus(status) : 'all'
-    const matching = cleanStatus === 'all' ? merged
-      : merged.filter(row => normalizeBookingStatus(row.approval_status) === cleanStatus)
-    const count = matching.length
-    const records = matching.slice(offset, offset + limitNum)
+
+    if (endDate) {
+      query = query.lte('booking_end_date', endDate)
+    }
+
+    // ✅ ADDED: Search by Resident Name OR Amenity Name
+    if (searchQuery && String(searchQuery).trim() !== '') {
+      const cleanSearch = String(searchQuery).trim()
+      // PostgREST allows combining OR conditions across joined tables
+      query = query.or(`SSP_Society_User.SSP_Contact.name.ilike.%${cleanSearch}%,SSP_Facility.name.ilike.%${cleanSearch}%`)
+    }
+
+    // 4. Apply Pagination
+    const { data: records, error: dbErr, count } = await query
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limitNum - 1)
+
+    if (dbErr) throw dbErr
 
     // 5. Map Query Output to Target Structure
     const bookingsList: BookingData[] = []
 
     if (records) {
-      const mappedBookings = await Promise.all(records.map(async (record) => {
-        const facilityObj = Array.isArray(record.booking_facility) ? record.booking_facility[0] : record.booking_facility
+      for (const record of records) {
+        const facilityObj = Array.isArray(record.SSP_Facility) ? record.SSP_Facility[0] : record.SSP_Facility
         const paymentObj = Array.isArray(record.SSP_Payment) ? record.SSP_Payment[0] : record.SSP_Payment
-        const userObj = Array.isArray(record.booking_resident) ? record.booking_resident[0] : record.booking_resident
+        const userObj = Array.isArray(record.SSP_Society_User) ? record.SSP_Society_User[0] : record.SSP_Society_User
         const towerObj = Array.isArray(userObj?.SSP_Tower) ? userObj?.SSP_Tower[0] : userObj?.SSP_Tower
         const blockObj = Array.isArray(userObj?.SSP_Block) ? userObj?.SSP_Block[0] : userObj?.SSP_Block
         const contactObj = Array.isArray(userObj?.SSP_Contact) ? userObj?.SSP_Contact[0] : userObj?.SSP_Contact
 
+        let screenshotUrl: string | null = null
         const docArray = paymentObj?.SSP_Document
-        const documents = Array.isArray(docArray) ? docArray : docArray ? [docArray] : []
-        const receipt = await resolveFacilityReceiptImage(supabase, [
-          ...documents.map((doc: any) => doc.s3_path), paymentObj?.receipt_url
-        ])
+        const docObj = Array.isArray(docArray) ? docArray[0] : docArray
+        const rawPath = docObj?.s3_path || paymentObj?.receipt_url || null
+
+        if (rawPath && rawPath.trim() !== '') {
+          const cleanPath = rawPath.trim()
+          screenshotUrl = cleanPath.startsWith('http')
+            ? cleanPath
+            : `${supabaseUrl}/storage/v1/object/public/society-documents/${cleanPath}`
+        }
 
         const resolvedPaymentStatus = paymentObj?.payment_status 
           || record.payment_status 
           || 'Unpaid'
 
-        return {
+        bookingsList.push({
           bookingId: record.name ?? 'NA',
-          recordType: record.recordType,
-          requestId: record.request_id ?? null,
-          createdAt: record.created_at ?? null,
           amenity: facilityObj?.name ?? 'NA',
           approvalStatus: record.approval_status ?? 'Pending',
           bookingStatus: record.booking_status ?? 'Pending',
@@ -515,10 +419,9 @@ serve(async (req: Request) => {
           paymentId: paymentObj?.pay_rec_id ?? null,
           paymentDate: paymentObj?.payment_date ?? null,
           amount: paymentObj?.amount != null ? Number(paymentObj.amount) : null,
-          ...receipt
-        } as BookingData
-      }))
-      bookingsList.push(...mappedBookings)
+          receiptImageUrl: screenshotUrl
+        })
+      }
     }
 
     const totalRecords = count ?? 0
@@ -527,10 +430,7 @@ serve(async (req: Request) => {
     console.log(`Successfully pulled facility ledger details in ${Date.now() - startTime}ms`)
     return new Response(
       JSON.stringify({ 
-        bookings: bookingsList,
-        total: totalRecords,
-        pending: pendingCount,
-        approved: approvedCount,
+        bookings: bookingsList, 
         pagination: {
           page: pageNum,
           limit: limitNum,

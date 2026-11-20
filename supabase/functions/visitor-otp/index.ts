@@ -1,8 +1,6 @@
-import { visitorDateOtp } from "../_shared/visitor-otp-date.ts";
-import { hasVisitorName, readVisitorName, findVisitorDraft, canVerifyVisitorOtp, findPendingVisitorForOtp, VisitorDraftError } from "../_shared/visitor-drafts.ts";
 // // ============================================
 // // visitor-otp - Simple Visitor OTP Flow
-// // One reusable OTP draft per visit; completed visits remain separate records.
+// // (Always creates new visitor for each visit)
 // // ============================================
 
 // import { requireAuth } from "../_shared/auth.ts";
@@ -295,7 +293,7 @@ import { hasVisitorName, readVisitorName, findVisitorDraft, canVerifyVisitorOtp,
 //       // ============================================
 //       // STEP 5: Clear OTP After Verification
 //       // ============================================
-//       const { data: consumed, error: clearError } = await supabaseAdmin
+//       const { error: clearError } = await supabaseAdmin
 //         .from("SSP_Non_Society_User")
 //         .update({
 //           one_time_password: null,
@@ -390,29 +388,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
 
 interface VisitorOtpRequest {
   phoneNumber: string;
-  visitorName?: string;
-  name?: string;
   otp?: string;
-  visitorId?: string;
   /** The resident (SSP_Society_User.user_id) the visitor is visiting. */
   societyUserId: string;
 }
 
 interface VisitorOtpResponse {
   visitorId: string;
-  name: string | null;
-  visitorName: string | null;
   phoneNumber: string;
   message: string;
   otpVerified: boolean;
   isNewVisitor: boolean;
   nextStep: "VERIFY_OTP" | "COMPLETED";
-  requiresVisitorDetails?: boolean;
 }
 
 interface VisitorData {
   non_society_user_id: string;
-  name: string;
   phone_number: string;
   one_time_password: string | null;
   visitor_status: string | null;
@@ -444,7 +435,18 @@ const supabaseAdmin = createClient(
  * Format: 100926 (10 Sep 2026)
  */
 function generateDateOtp(): string {
-  return visitorDateOtp();
+  const now = new Date();
+
+  // Get IST time (UTC+5:30)
+  const istDate = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+  );
+
+  const day = String(istDate.getDate()).padStart(2, "0");
+  const month = String(istDate.getMonth() + 1).padStart(2, "0");
+  const year = String(istDate.getFullYear()).slice(-2);
+
+  return `${day}${month}${year}`;
 }
 
 /**
@@ -608,7 +610,6 @@ async function resolveTargetResident(
 async function createNewVisitor(
   phoneNumber: string,
   target: TargetResident,
-  visitorName: string | null,
 ): Promise<{ visitor: VisitorData | null; error?: string }> {
   try {
     const visitorId = generateId();
@@ -616,13 +617,10 @@ async function createNewVisitor(
     const newVisitorData = {
       non_society_user_id: visitorId,
       phone_number: phoneNumber,
-      name: visitorName ?? "Unknown Visitor",
+      name: "Unknown Visitor",
       role: "visitor",
-      visitor_status: "otp_pending",
-      check_in: null,
-      check_out: null,
-      visitor_approval_status: null,
-      is_otp_verified: false,
+      visitor_status: "pending",
+      visitor_approval_status: "pending",
       pre_approved: false,
       hosted_by: target.userId,
       society: target.society,
@@ -712,7 +710,6 @@ Deno.serve(
         );
       }
 
-      const visitorName = readVisitorName(body);
       const cleanPhone = sanitizeString(phoneNumber);
       const cleanSocietyUserId = sanitizeString(societyUserId);
 
@@ -734,51 +731,54 @@ Deno.serve(
 
       const target = targetResult.resident;
 
+      // ============================================
+      // STEP 1: ALWAYS Create New Visitor Record
+      //         (attached to the target resident)
+      // ============================================
+      const createResult = await createNewVisitor(cleanPhone, target);
+
+      if (createResult.error) {
+        logger.error({
+          level: "error",
+          action: "visitor-otp",
+          message: `Visitor creation failed: ${createResult.error}`,
+          timestamp: new Date().toISOString(),
+        });
+        return errorResponse(`Failed to create visitor: ${createResult.error}`);
+      }
+
+      const visitorData = createResult.visitor;
+
+      if (!visitorData) {
+        return errorResponse("Failed to create visitor record.");
+      }
+
+      // ============================================
+      // STEP 2: Generate Today's OTP
+      // ============================================
+      const generatedOtp = generateDateOtp();
+
+      // Store OTP in database
+      const { error: updateError } = await supabaseAdmin
+        .from("SSP_Non_Society_User")
+        .update({
+          one_time_password: generatedOtp,
+        })
+        .eq("non_society_user_id", visitorData.non_society_user_id);
+
+      if (updateError) {
+        logger.error({
+          level: "error",
+          action: "visitor-otp",
+          message: `Failed to store OTP: ${updateError.message}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      // ============================================
+      // STEP 3: Check if OTP is provided for verification
+      // ============================================
       const cleanOtp = otp ? sanitizeString(otp) : null;
-      if (cleanOtp && !validateOtp(cleanOtp)) return errorResponse("Invalid OTP format. OTP must be 6 digits.");
-      const suppliedVisitorId = (body as VisitorOtpRequest).visitorId?.trim();
-      let draft;
-      try {
-        draft = await findVisitorDraft(supabaseAdmin, target.userId, target.society, cleanPhone, suppliedVisitorId);
-      } catch (error) {
-        // Start a fresh, uniquely indexed draft rather than guessing which historical
-        // duplicate a new OTP request belongs to. Verification still requires certainty.
-        if (!(error instanceof VisitorDraftError) || error.status !== 409 || suppliedVisitorId) throw error;
-        draft = null;
-      }
-      if (!draft && !suppliedVisitorId) draft = await findPendingVisitorForOtp(supabaseAdmin, target.userId, target.society, cleanPhone);
-      if (draft && !canVerifyVisitorOtp(draft)) return errorResponse("This visitor has already been submitted. Start a new visit without visitorId.", 409);
-      if (!draft && cleanOtp) return errorResponse("No active OTP request found. Request an OTP first.", 404);
-      if (!draft) {
-        const created = await createNewVisitor(cleanPhone, target, visitorName);
-        if (created.error) {
-          // Another request may have reserved the same draft concurrently.
-          draft = await findVisitorDraft(supabaseAdmin, target.userId, target.society, cleanPhone);
-          if (!draft) return errorResponse(`Failed to create visitor: ${created.error}`);
-        } else draft = created.visitor;
-      }
-      if (!draft) return errorResponse("Failed to create visitor record.");
-      if (visitorName && draft.name !== visitorName) {
-        if (hasVisitorName(draft.name)) {
-          return errorResponse("Visitor name does not match this visit.", 409);
-        }
-        let nameUpdate = supabaseAdmin.from("SSP_Non_Society_User")
-          .update({ name: visitorName }).eq("non_society_user_id", draft.non_society_user_id)
-          .eq("hosted_by", target.userId).eq("society", target.society);
-        nameUpdate = draft.name == null ? nameUpdate.is("name", null) : nameUpdate.eq("name", draft.name);
-        const { data: savedVisitor, error: nameError } = await nameUpdate.select("*").maybeSingle();
-        if (nameError) return errorResponse(`Failed to save visitor name: ${nameError.message}`, 500);
-        if (!savedVisitor) return errorResponse("Visitor changed. Refresh and retry.", 409);
-        draft = savedVisitor;
-      }
-      const visitorData = draft as VisitorData;
-      if (!cleanOtp) {
-        const { error: updateError } = await supabaseAdmin.from("SSP_Non_Society_User")
-          .update({ one_time_password: generateDateOtp() })
-          .eq("non_society_user_id", visitorData.non_society_user_id)
-          .eq("hosted_by", target.userId);
-        if (updateError) return errorResponse(`Failed to store OTP: ${updateError.message}`);
-      }
 
       // If OTP is NOT provided → Step 1: Generate OTP only
       if (!cleanOtp) {
@@ -794,13 +794,10 @@ Deno.serve(
         return successResponse({
           visitorId: visitorData.non_society_user_id,
           phoneNumber: visitorData.phone_number,
-          name: hasVisitorName(visitorData.name) ? visitorData.name : null,
-          visitorName: hasVisitorName(visitorData.name) ? visitorData.name : null,
           message: `OTP has been sent. Please verify OTP.`,
           otpVerified: false,
           isNewVisitor: true,
           nextStep: "VERIFY_OTP",
-          requiresVisitorDetails: !hasVisitorName(visitorData.name),
         });
       }
 
@@ -815,7 +812,7 @@ Deno.serve(
 
       // Verify OTP
       const isOtpValid =
-        !!visitorData.one_time_password && String(visitorData.one_time_password).trim() === String(cleanOtp).trim() && cleanOtp === generateDateOtp();
+        String(generatedOtp).trim() === String(cleanOtp).trim();
 
       if (!isOtpValid) {
         logger.warn({
@@ -831,25 +828,21 @@ Deno.serve(
       // ============================================
       // STEP 5: Clear OTP After Verification
       // ============================================
-      const { data: consumed, error: clearError } = await supabaseAdmin
+      const { error: clearError } = await supabaseAdmin
         .from("SSP_Non_Society_User")
         .update({
           one_time_password: null,
-          is_otp_verified: true,
-          // Unnamed OTP drafts wait for the details form before requesting resident approval.
-          ...(visitorData.visitor_status === "otp_pending" && hasVisitorName(visitorData.name) ? {
-            visitor_status: "Pending", visitor_approval_status: "pending",
-          } : {}),
         })
-        .eq("non_society_user_id", visitorData.non_society_user_id)
-        .eq("hosted_by", target.userId)
-        .eq("one_time_password", cleanOtp)
-        .select("non_society_user_id");
+        .eq("non_society_user_id", visitorData.non_society_user_id);
 
       if (clearError) {
-        return errorResponse(`Failed to verify OTP: ${clearError.message}`, 500);
+        logger.error({
+          level: "error",
+          action: "visitor-otp",
+          message: `Failed to clear OTP: ${clearError.message}`,
+          timestamp: new Date().toISOString(),
+        });
       }
-      if (!consumed?.length) return errorResponse("OTP has already been used or the request changed. Request a new OTP.", 409);
 
       // ============================================
       // STEP 6: Prepare Response
@@ -857,13 +850,10 @@ Deno.serve(
       const response: VisitorOtpResponse = {
         visitorId: visitorData.non_society_user_id,
         phoneNumber: visitorData.phone_number,
-        name: hasVisitorName(visitorData.name) ? visitorData.name : null,
-        visitorName: hasVisitorName(visitorData.name) ? visitorData.name : null,
         message: "OTP verified successfully.",
         otpVerified: true,
         isNewVisitor: true,
         nextStep: "COMPLETED",
-        requiresVisitorDetails: !hasVisitorName(visitorData.name),
       };
 
       // ============================================
@@ -884,7 +874,6 @@ Deno.serve(
 
       return successResponse(response);
     } catch (error: unknown) {
-      if (error instanceof VisitorDraftError) return errorResponse(error.message, error.status);
       const errorMessage = error instanceof Error
         ? error.message
         : "Unknown error";

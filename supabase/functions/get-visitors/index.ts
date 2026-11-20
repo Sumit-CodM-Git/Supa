@@ -1,5 +1,3 @@
-import { visitorTimeISTISO } from "../_shared/visitor-time.ts";
-import { contactParkingSlot } from "../_shared/contact.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -951,7 +949,7 @@ import { contactParkingSlot } from "../_shared/contact.ts";
 //       // ============================================
 //       // STEP 7: Calculate Stats
 //       // ============================================
-//       const todayStr = visitorTimeISTISO(new Date())!.split("T")[0];
+//       const todayStr = new Date().toISOString().split("T")[0];
 //       let totalVisitedToday = 0;
 //       let currentlyInside = 0;
 //       let currentlyOutside = 0;
@@ -1070,7 +1068,6 @@ interface GetVisitorsRequest {
 }
 
 interface VisitorResponse {
-  visitorName?: string;
   visitorId: string;
   name: string;
   phoneNumber: string;
@@ -1081,7 +1078,6 @@ interface VisitorResponse {
   status: string | null;
   approvalStatus: string | null;
   hostedBy: {
-    parkingSlot?: string | null;
     residentId: string;
     name: string;
     phone: string;
@@ -1451,7 +1447,6 @@ function normalizeVisitorData(
   return {
     visitorId: rawVisitor.non_society_user_id,
     name: rawVisitor.name || "N/A",
-    visitorName: rawVisitor.name || "N/A",
     phoneNumber: rawVisitor.phone_number || "N/A",
     email: rawVisitor.email || null,
     gender: rawVisitor.gender || null,
@@ -1461,7 +1456,6 @@ function normalizeVisitorData(
     approvalStatus: rawVisitor.visitor_approval_status || null,
     hostedBy: hostedByData
       ? {
-          parkingSlot: contactParkingSlot(contact),
           residentId: hostedByData.user_id,
           name: contact?.name || "Unknown",
           phone: contact?.phone || "",
@@ -1470,8 +1464,8 @@ function normalizeVisitorData(
           towerName: tower?.name || null,
         }
       : null,
-    checkIn: visitorTimeISTISO(rawVisitor.check_in),
-    checkOut: visitorTimeISTISO(rawVisitor.check_out),
+    checkIn: rawVisitor.check_in || null,
+    checkOut: rawVisitor.check_out || null,
     isRecurring: rawVisitor.is_recurring || null,
     recurringDays: rawVisitor.recurring_days || null,
     vehicleNumber: rawVisitor.vehicle_number || null,
@@ -1610,7 +1604,7 @@ Deno.serve(
             tower:SSP_Tower!left (
               name
             ),
-            contact:contact (parking_slot,
+            contact:contact (
               name,
               phone
             )
@@ -1660,11 +1654,9 @@ Deno.serve(
         );
       }
 
-      // Newly added entries come first, including guests/deliveries whose
-      // check-in is pending or scheduled. Keep ties stable across pages.
-      const { data: visitors, error: fetchErr } = await query
-        .order("created_at", { ascending: false, nullsFirst: false })
-        .order("non_society_user_id", { ascending: false });
+      const { data: visitors, error: fetchErr } = await query.order("check_in", {
+        ascending: false,
+      });
 
       if (fetchErr) {
         logger.error({
@@ -1690,9 +1682,7 @@ Deno.serve(
           .select("non_society_user, s3_path")
           .in("non_society_user", visitorIds)
           .eq("society", society.society_id)
-          .not("s3_path", "is", null)
-          .in("document_type", ["visitor_image", "security_guard_image", "guest_image", "photo"])
-          .order("created_at", { ascending: false });
+          .not("s3_path", "is", null);
 
         for (const doc of (documents ?? []) as {
           non_society_user: string;
@@ -1758,7 +1748,7 @@ Deno.serve(
       // --------------------------------------------------
       // STEP 7: Stats
       // --------------------------------------------------
-      const todayStr = visitorTimeISTISO(new Date())!.split("T")[0];
+      const todayStr = new Date().toISOString().split("T")[0];
       let totalVisitedToday = 0;
       let currentlyInside = 0;
       let currentlyOutside = 0;

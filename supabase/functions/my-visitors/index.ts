@@ -1,5 +1,3 @@
-import { visitorTimeISTISO } from "../_shared/visitor-time.ts";
-import { contactParkingSlot } from "../_shared/contact.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -938,7 +936,6 @@ interface MyVisitorsRequest {
 }
 
 interface VisitorResponse {
-  visitorName?: string;
   visitorId: string;
   name: string;
   phoneNumber: string;
@@ -1252,7 +1249,6 @@ function normalizeVisitorData(
   return {
     visitorId: rawVisitor.non_society_user_id,
     name: rawVisitor.name || "N/A",
-    visitorName: rawVisitor.name || "N/A",
     phoneNumber: rawVisitor.phone_number || "N/A",
     email: rawVisitor.email || null,
     gender: rawVisitor.gender || null,
@@ -1261,8 +1257,8 @@ function normalizeVisitorData(
     visitorStatus: rawVisitor.visitor_status || null,
     approvalStatus: rawVisitor.visitor_approval_status || null,
     verificationPin: rawVisitor.verification_pin || null,
-    checkIn: visitorTimeISTISO(rawVisitor.check_in),
-    checkOut: visitorTimeISTISO(rawVisitor.check_out),
+    checkIn: rawVisitor.check_in || null,
+    checkOut: rawVisitor.check_out || null,
     isRecurring: rawVisitor.is_recurring || null,
     recurringDays: rawVisitor.recurring_days || null,
     vehicleNumber: rawVisitor.vehicle_number || null,
@@ -1377,7 +1373,7 @@ Deno.serve(
         .select(`
           user_id,
           unit_flat_number,
-          contact:contact (parking_slot,
+          contact:contact (
             name,
             phone,
             email
@@ -1514,9 +1510,7 @@ Deno.serve(
           .select("non_society_user, s3_path")
           .in("non_society_user", visitorIds)
           .eq("society", society.society_id)
-          .not("s3_path", "is", null)
-          .in("document_type", ["visitor_image", "security_guard_image", "guest_image", "photo"])
-          .order("created_at", { ascending: false });
+          .not("s3_path", "is", null);
 
         for (const doc of (documents ?? []) as {
           non_society_user: string;
@@ -1579,7 +1573,6 @@ Deno.serve(
       // STEP 9: Resident details
       // --------------------------------------------------
       const residentResponseDetails = {
-        parkingSlot: contactParkingSlot(contactData),
         residentId: residentData.user_id,
         name: contactData?.name || "Unknown",
         phone: contactData?.phone || "",

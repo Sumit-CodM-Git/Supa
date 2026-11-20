@@ -1,5 +1,3 @@
-import { loadSocietyConfiguration, formatSocietyConfiguration, societyConfigurationVersion } from "../_shared/society-configuration.ts";
-import { parkingCounts } from "../_shared/parking-counts.ts";
 // deno-lint-ignore-file no-import-prefix
 // ============================================
 // get-society-settings - Settings Page Loader
@@ -27,6 +25,7 @@ interface SocietyRow {
     society_id: string;
     society_name: string | null;
     registration_number: string | null;
+    subscription_plan: string | null;
     address_line1: string | null;
     address_line2: string | null;
     city: string | null;
@@ -43,7 +42,6 @@ interface SocietyRow {
 }
 
 interface TowerRow {
-    block: string | null;
     tower_id: string;
     created_at: string;
     active: boolean;
@@ -130,7 +128,7 @@ function successResponse(data: unknown): Response {
         JSON.stringify({ status: "SUCCESS", data }),
         {
             status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "private, no-cache, must-revalidate" },
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
     );
 }
@@ -169,14 +167,11 @@ function formatAddress(s: SocietyRow): string | null {
 function formatTower(row: TowerRow) {
     return {
         towerId: row.tower_id,
-        block: row.block ?? null,
-        blockId: row.block ?? null,
         name: row.name,
         society: row.society,
         active: row.active,
         floors: row.floors ?? 0,
         flatsPerFloor: row.flats_per_floor ?? 0,
-        totalFlats: Number(row.floors ?? 0) * Number(row.flats_per_floor ?? 0),
         createdAt: row.created_at,
     };
 }
@@ -262,7 +257,7 @@ async function authorizeAdmin(
     const { data: society, error: societyErr } = await supabase
         .from("SSP_Society")
         .select(
-            "society_id,society_name,registration_number," +
+            "society_id,society_name,registration_number,subscription_plan," +
                 "address_line1,address_line2,city,state,postal_code," +
                 "phone_number,email,total_unit,open_parking,covered_parking," +
                 "parking_slot,amenities,active",
@@ -392,8 +387,26 @@ serve(async (req: Request) => {
         const { societyId, society } = auth;
 
         // ── Parallel fetch ──
-        const [configuration, facilitiesRes, staffRes] = await Promise.all([
-                loadSocietyConfiguration(supabase, societyId),
+        const [towersRes, blocksRes, facilitiesRes, staffRes, flatTypesRes] =
+            await Promise.all([
+                supabase
+                    .from("SSP_Tower")
+                    .select(
+                        "tower_id,created_at,active,society,name,floors,flats_per_floor",
+                    )
+                    .eq("society", societyId)
+                    .eq("active", true)
+                    .order("name", { ascending: true }),
+
+                supabase
+                    .from("SSP_Block")
+                    .select(
+                        "block_id,created_at,active,society,tower,block_name",
+                    )
+                    .eq("society", societyId)
+                    .eq("active", true)
+                    .order("block_name", { ascending: true }),
+
                 supabase
                     .from("SSP_Facility")
                     .select(
@@ -413,10 +426,20 @@ serve(async (req: Request) => {
                     .order("staff_name", { ascending: true })
                     .limit(MAX_STAFF),
 
+                supabase
+                    .from("SSP_Flat_Type")
+                    .select(
+                        "flat_type_id,created_at,flat_type,maintenance_charges,society",
+                    )
+                    .eq("society", societyId),
             ]);
 
+        // Fail fast
+        if (towersRes.error) throw towersRes.error;
+        if (blocksRes.error) throw blocksRes.error;
         if (facilitiesRes.error) throw facilitiesRes.error;
         if (staffRes.error) throw staffRes.error;
+        if (flatTypesRes.error) throw flatTypesRes.error;
 
         const facilities = (facilitiesRes.data ?? []) as FacilityRow[];
 
@@ -425,35 +448,33 @@ serve(async (req: Request) => {
             ? society.amenities
             : [];
 
-        const parking = parkingCounts(society);
         // ── Build response ──
         const response = {
             society: {
                 societyId: society.society_id,
                 societyName: society.society_name ?? "Unnamed Society",
                 registrationNumber: society.registration_number,
+                subscriptionPlan: society.subscription_plan,
                 address: formatAddress(society),
                 phoneNumber: society.phone_number,
                 email: society.email,
                 totalUnits: Number(society.total_unit ?? 0),
-                openParkingCount: parking.vacantParking,
-                coveredParkingCount: parking.occupiedParking,
+                openParkingCount: Number(society.open_parking ?? 0),
+                coveredParkingCount: Number(society.covered_parking ?? 0),
                 totalParkingSlot: society.parking_slot ?? "0",
                 currentAmenities: societyAmenities,
             },
-            towers: configuration.towers.map((r) =>
+            towers: (towersRes.data ?? []).map((r) =>
                 formatTower(r as TowerRow)
             ),
-            blocks: configuration.blocks.map((r) =>
+            blocks: (blocksRes.data ?? []).map((r) =>
                 formatBlock(r as BlockRow)
             ),
             staff: (staffRes.data ?? []).map((r) => formatStaff(r as StaffRow)),
-            flatTypes: configuration.flatTypes.map((r) =>
+            flatTypes: (flatTypesRes.data ?? []).map((r) =>
                 formatFlatType(r as FlatTypeRow)
             ),
             facilities: facilities.map(formatFacility),
-            societyConfiguration: formatSocietyConfiguration(configuration),
-            configurationVersion: await societyConfigurationVersion(societyId, formatSocietyConfiguration(configuration)),
         };
 
         console.log(

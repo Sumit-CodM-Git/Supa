@@ -54,8 +54,8 @@ serve(async (req)=>{
     let imageUrl = null;
     if (file) {
       const fileExt = file.name.split('.').pop();
-      // Store payment proofs in the canonical lowercase financial folder.
-      const filePath = `${cleanRegNum}/financial/${Date.now()}_${targetPayment.payment_id || targetPayment.pay_rec_id}.${fileExt}`;
+      // Dynamically matches: societyRegistrationNumber/Financial/timestamp_paymentId.ext
+      const filePath = `${cleanRegNum}/Financial/${Date.now()}_${targetPayment.payment_id || targetPayment.pay_rec_id}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('society-documents').upload(filePath, file);
       if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
       imageUrl = filePath;
@@ -113,8 +113,6 @@ serve(async (req)=>{
         // ----------------------------------------------------------
         const { error: bookingError } = await supabase.from("SSP_Facility_Booking").insert({
           requested_by: bookingRequest.requested_by,
-          // Preserve when the resident created the booking request.
-          created_at: bookingRequest.created_at ?? undefined,
           facility: bookingRequest.facility,
           payment: bookingRequest.payment,
           booking_start_date: bookingRequest.booking_start_date,

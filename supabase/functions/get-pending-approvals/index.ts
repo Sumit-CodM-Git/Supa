@@ -1,4 +1,3 @@
-import { contactParkingSlot } from "../_shared/contact.ts";
 /*import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -337,7 +336,7 @@ Deno.serve(async (req: Request): Promise => {
     SSP_Society_User!society_user!inner (
       unit_flat_number,
       SSP_Tower!left ( name ),
-      SSP_Contact!left (parking_slot, name ),
+      SSP_Contact!left ( name ),
       SSP_Society!inner ( registration_number )
     )
   `)
@@ -368,7 +367,7 @@ Deno.serve(async (req: Request): Promise => {
             unit_flat_number,
             SSP_Tower!left ( name ),
             SSP_Block!left ( block_name ),
-            SSP_Contact!left (parking_slot, name, phone ),
+            SSP_Contact!left ( name, phone ),
             SSP_Society!inner ( 
               registration_number,
               amenities 
@@ -402,7 +401,6 @@ Deno.serve(async (req: Request): Promise => {
         const contactObj = Array.isArray(userObj?.SSP_Contact) ? userObj?.SSP_Contact[0] : userObj?.SSP_Contact;
 
         return {
-          parkingSlot: contactParkingSlot(contactObj),
           complaintName: comp.name ?? null,
           complaintType: comp.complaint_type ?? null,
           residentName: contactObj?.name ?? "Resident",
@@ -423,7 +421,6 @@ Deno.serve(async (req: Request): Promise => {
         const societyObj = Array.isArray(userObj?.SSP_Society) ? userObj?.SSP_Society[0] : userObj?.SSP_Society;
 
         return {
-          parkingSlot: contactParkingSlot(contactObj),
           bookingName: book.name ?? null,
           purpose: book.purpose_of_visit ?? null,
           paymentStatus: book.payment_status ?? null,

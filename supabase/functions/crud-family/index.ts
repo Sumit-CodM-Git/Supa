@@ -1,10 +1,3 @@
-import { resolveResidentFlatType, residentFlatTypeFields, ResidentFlatTypeError } from "../_shared/resident-flat-type.ts";
-import {
-  CONTACT_PHONE_DUPLICATE_MESSAGE,
-  contactParkingSlot,
-  contactPhoneAlreadyExists,
-  normalizeParkingSlot,
-} from "../_shared/contact.ts";
 // // deno-lint-ignore-file no-import-prefix no-explicit-any
 // // ============================================
 // // crud-family — Merged CRUD for family members
@@ -1389,7 +1382,6 @@ interface CallerCtx {
     callerUserId: string;
     callerSocietyId: string;
     callerFlat: string;
-    callerFlatTypeId: string | null;
     callerBlock: string | null;
     callerTower: string | null;
     callerOwnership: string;
@@ -1397,8 +1389,6 @@ interface CallerCtx {
 }
 
 interface CrudFamilyRequest {
-    flatTypeId?: string | null;
-    flatType?: string | null;
     action: Action;
     memberName?: string;
     memberPhone?: string;
@@ -1412,8 +1402,6 @@ interface CrudFamilyRequest {
     whatsAppPhone?: string;
     emergencyPhone?: string;
     vehicleNumber?: string;
-    parkingSlot?: string | null;
-    parking_slot?: string | null;
     vehicleType?: string;
     role?: string | string[];
     status?: "active" | "inactive" | boolean;
@@ -1616,7 +1604,7 @@ async function authenticate(
     const { data, error } = await admin
         .from("SSP_Society_User")
         .select(
-            "user_id, society, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), block, tower, user_ownership_type, role, deleted_at",
+            "user_id, society, unit_flat_number, block, tower, user_ownership_type, role, deleted_at",
         )
         .eq("user_id", callerUserId)
         .maybeSingle();
@@ -1644,7 +1632,6 @@ async function authenticate(
             authUserId,
             callerUserId,
             callerSocietyId: String(data.society ?? ""),
-            callerFlatTypeId: data.flat_type_id ?? null,
             callerFlat: String(data.unit_flat_number ?? "").trim(),
             callerBlock: data.block ?? null,
             callerTower: data.tower ?? null,
@@ -1731,13 +1718,15 @@ async function handleCreate(
         );
     }
 
-    // ---- PARALLEL: idempotency + flat members + duplicate contact check ----
+    // ---- PARALLEL: idempotency + flat members + existing contact ----
+    // We fetch the flat members (for duplicate detection) and the existing
+    // contact (for reuse) at the same time. All 3 queries fire together.
     const tChecks = Date.now();
 
     const idemPromise = body.idempotencyKey
         ? admin
             .from("SSP_Society_User")
-            .select("user_id, created_at, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type)")
+            .select("user_id, created_at")
             .eq("idempotency_key", body.idempotencyKey)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null } as any);
@@ -1747,22 +1736,23 @@ async function handleCreate(
         .from("SSP_Society_User")
         .select(`
             user_id,
-            contact:SSP_Contact!inner (parking_slot, phone )
+            contact:SSP_Contact!inner ( phone )
         `)
         .eq("society", ctx.callerSocietyId)
         .eq("unit_flat_number", ctx.callerFlat)
         .is("deleted_at", null);
 
-    const duplicateContactPromise = contactPhoneAlreadyExists(
-        admin,
-        ctx.callerSocietyId,
-        phone,
-    );
+    const existingContactPromise = admin
+        .from("SSP_Contact")
+        .select("contact_id")
+        .eq("society", ctx.callerSocietyId)
+        .eq("phone", phone)
+        .maybeSingle();
 
-    const [idemRes, flatMembersRes, duplicateContactExists] = await Promise.all([
+    const [idemRes, flatMembersRes, existingContactRes] = await Promise.all([
         idemPromise,
         flatMembersPromise,
-        duplicateContactPromise,
+        existingContactPromise,
     ]);
 
     console.log(
@@ -1776,20 +1766,10 @@ async function handleCreate(
                 updated: true,
                 action: "CREATE",
                 residentId: idemRes.data.user_id,
-                ...residentFlatTypeFields(idemRes.data),
                 idempotentReplay: true,
                 createdAt: idemRes.data.created_at,
             },
         });
-    }
-
-    if (duplicateContactExists) {
-          return buildError(
-              req,
-              "DUPLICATE_CONTACT_PHONE",
-              CONTACT_PHONE_DUPLICATE_MESSAGE,
-              400,
-          );
     }
 
     // Duplicate phone within same flat
@@ -1802,65 +1782,57 @@ async function handleCreate(
     if (dup) {
         return buildError(
             req,
-            "DUPLICATE_CONTACT_PHONE",
-            CONTACT_PHONE_DUPLICATE_MESSAGE,
+            "DUPLICATE_MEMBER",
+            `A member with phone ${phone} already exists in this flat.`,
             400,
         );
     }
 
-    const explicitFlatType = body.flatTypeId !== undefined || body.flatType !== undefined;
-    let resolvedFlatType;
-    try {
-        resolvedFlatType = await resolveResidentFlatType(admin, ctx.callerSocietyId,
-            explicitFlatType ? body : {flatTypeId:ctx.callerFlatTypeId});
-    } catch (error) {
-        // A stale inherited assignment must not block a legacy CREATE request.
-        // Explicit assignments still require an active type in this society.
-        if (explicitFlatType || !(error instanceof ResidentFlatTypeError)) throw error;
-        resolvedFlatType = {flatTypeId:null, flatType:null};
-    }
+    // ---- Contact: reuse or create ----
+    let contactId: string;
 
-    // ---- Create contact after the society-scoped duplicate check ----
-    const { data: newContact, error: cErr } = await admin
-        .from("SSP_Contact")
-        .insert({
-            name,
-            phone,
-            society: ctx.callerSocietyId,
-            email: cleanText(body.email, 150) || null,
-            gender: cleanText(body.gender, 20) || null,
-            occupation: cleanText(body.occupation, 100) || null,
-            description: cleanText(body.description, 500) || null,
-            id_proof_type: idProofType,
-            id_proof_number: idProofNumber,
-            whatsapp_phone: cleanPhone(body.whatsAppPhone) || null,
-            emergency_phone: cleanPhone(body.emergencyPhone) || null,
-            vehicle_registration_number:
-                cleanText(body.vehicleNumber, 30) || null,
-            vehicle_type: cleanText(body.vehicleType, 30) || null,
-            parking_slot: normalizeParkingSlot(body.parkingSlot !== undefined ? body.parkingSlot : body.parking_slot) ?? null,
-        })
-        .select("contact_id")
-        .single();
+    if (existingContactRes.data?.contact_id) {
+        contactId = existingContactRes.data.contact_id;
+    } else {
+        const { data: newContact, error: cErr } = await admin
+            .from("SSP_Contact")
+            .insert({
+                name,
+                phone,
+                society: ctx.callerSocietyId,
+                email: cleanText(body.email, 150) || null,
+                gender: cleanText(body.gender, 20) || null,
+                occupation: cleanText(body.occupation, 100) || null,
+                description: cleanText(body.description, 500) || null,
+                id_proof_type: idProofType,
+                id_proof_number: idProofNumber,
+                whatsapp_phone: cleanPhone(body.whatsAppPhone) || null,
+                emergency_phone: cleanPhone(body.emergencyPhone) || null,
+                vehicle_registration_number:
+                    cleanText(body.vehicleNumber, 30) || null,
+                vehicle_type: cleanText(body.vehicleType, 30) || null,
+            })
+            .select("contact_id")
+            .single();
 
-    if (cErr || !newContact) {
-        log("error", "crud-family.CREATE", "Contact insert failed", {
-            err: cErr?.message,
-        });
-        return buildError(
-            req,
-            "SERVER_ERROR",
-            "Failed to create contact.",
-            500,
-        );
+        if (cErr || !newContact) {
+            log("error", "crud-family.CREATE", "Contact insert failed", {
+                err: cErr?.message,
+            });
+            return buildError(
+                req,
+                "SERVER_ERROR",
+                "Failed to create contact.",
+                500,
+            );
+        }
+        contactId = newContact.contact_id;
     }
-    const contactId = newContact.contact_id;
 
     // ---- User insert ----
     const { data: newUser, error: uErr } = await admin
         .from("SSP_Society_User")
         .insert({
-            flat_type_id: resolvedFlatType?.flatTypeId ?? null,
             contact: contactId,
             society: ctx.callerSocietyId,
             unit_flat_number: ctx.callerFlat,
@@ -1889,12 +1861,8 @@ async function handleCreate(
         familyUpdate: {
             updated: true,
             action: "CREATE",
-            ...(resolvedFlatType ?? {flatTypeId:null,flatType:null}),
             residentId: newUser.user_id,
             contactId,
-            parkingSlot: normalizeParkingSlot(
-                body.parkingSlot !== undefined ? body.parkingSlot : body.parking_slot,
-            ) ?? null,
         },
     });
 }
@@ -1926,11 +1894,11 @@ async function handleView(
             relationship,
             status,
             deleted_at,
-            unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type),
+            unit_flat_number,
             tower,
             block,
             created_at,
-            contact:SSP_Contact!inner(parking_slot,
+            contact:SSP_Contact!inner(
                 contact_id, name, phone, email, gender, occupation, description,
                 id_proof_type, id_proof_number, whatsapp_phone, emergency_phone,
                 vehicle_registration_number, vehicle_type, created_at
@@ -1966,10 +1934,19 @@ async function handleView(
         }
     }
 
-    // Keep the primary resident first, then list other family residents from
-    // oldest to newest. The ordering must be stable across pages.
-    q = q.order("user_ownership_type", { ascending: true, nullsFirst: false });
-    q = q.order("created_at", { ascending: true, nullsFirst: false });
+    const sortBy = body.sort?.by ?? "ownershipType";
+    const ascending = body.sort?.dir !== "desc";
+
+    if (sortBy === "name") {
+        q = q.order("name", { ascending, foreignTable: "SSP_Contact" });
+    } else if (sortBy === "createdAt") {
+        q = q.order("created_at", { ascending });
+    } else if (sortBy === "relationship") {
+        q = q.order("relationship", { ascending, nullsFirst: false });
+    } else {
+        q = q.order("user_ownership_type", { ascending: true });
+        q = q.order("created_at", { ascending: false });
+    }
 
     q = q.range(from, to);
 
@@ -2032,7 +2009,6 @@ async function handleView(
         const ownership = String(m.user_ownership_type ?? "").trim();
 
         return {
-            parkingSlot: contactParkingSlot(cObj),
             residentId: m.user_id ?? "",
             name: cObj.name ?? "",
             phone: cObj.phone ?? "",
@@ -2055,9 +2031,8 @@ async function handleView(
             deletedAt: m.deleted_at ?? null,
             towerId: m.tower ?? null,
             blockId: m.block ?? null,
-            ...residentFlatTypeFields(m),
             flatNumber: m.unit_flat_number ?? "",
-            createdAt: m.created_at ?? cObj.created_at ?? null,
+            createdAt: cObj.created_at ?? m.created_at ?? null,
         };
     });
 
@@ -2110,7 +2085,7 @@ async function handleUpdate(
     const { data: target, error: tErr } = await admin
         .from("SSP_Society_User")
         .select(
-            "user_id, society, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), block, tower, contact, user_ownership_type, deleted_at",
+            "user_id, society, unit_flat_number, block, tower, contact, user_ownership_type, deleted_at",
         )
         .eq("user_id", targetId)
         .maybeSingle();
@@ -2140,8 +2115,6 @@ async function handleUpdate(
 
     // ---- Build contact updates ----
     const cu: Record<string, unknown> = {};
-    const parkingSlot = normalizeParkingSlot(body.parkingSlot !== undefined ? body.parkingSlot : body.parking_slot);
-    if (parkingSlot !== undefined) cu.parking_slot = parkingSlot;
     if (body.memberName !== undefined) {
         const v = cleanText(body.memberName, 150);
         if (!v) {
@@ -2191,31 +2164,8 @@ async function handleUpdate(
         cu.vehicle_type = cleanText(body.vehicleType, 30) || null;
     }
 
-    if (
-        typeof cu.phone === "string" &&
-        target.contact &&
-        await contactPhoneAlreadyExists(
-            admin,
-            ctx.callerSocietyId,
-            cu.phone,
-            target.contact,
-        )
-    ) {
-        return buildError(
-            req,
-            "DUPLICATE_CONTACT_PHONE",
-            CONTACT_PHONE_DUPLICATE_MESSAGE,
-            400,
-        );
-    }
-
-    if (!isPrimary && (body.flatTypeId !== undefined || body.flatType !== undefined))
-        return buildError(req, "FORBIDDEN", "Only the primary resident can change flat type assignments.", 403);
-    const resolvedFlatType = await resolveResidentFlatType(admin, ctx.callerSocietyId, body);
-
     // ---- Build user updates ----
     const uu: Record<string, unknown> = {};
-    if (resolvedFlatType) uu.flat_type_id = resolvedFlatType.flatTypeId;
 
     if (isPrimary) {
         if (body.relationship !== undefined) {
@@ -2325,7 +2275,7 @@ async function handleUpdate(
     console.log(`[crud-family][UPDATE] TOTAL ${Date.now() - t0}ms`);
 
     return buildSuccess(req, {
-        familyUpdate: { updated: true, action: "UPDATE", residentId: targetId, ...(resolvedFlatType ?? residentFlatTypeFields(target)), ...(parkingSlot !== undefined ? { parkingSlot } : {}) },
+        familyUpdate: { updated: true, action: "UPDATE", residentId: targetId },
     });
 }
 
@@ -2367,7 +2317,7 @@ async function handleDelete(
     const { data: target } = await admin
         .from("SSP_Society_User")
         .select(
-            "user_id, society, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), block, tower, user_ownership_type, deleted_at",
+            "user_id, society, unit_flat_number, block, tower, user_ownership_type, deleted_at",
         )
         .eq("user_id", targetId)
         .maybeSingle();
@@ -2417,7 +2367,6 @@ async function handleDelete(
         familyUpdate: {
             updated: true,
             action: "DELETE",
-            ...residentFlatTypeFields(target),
             residentId: targetId,
             soft: true,
         },
@@ -2451,7 +2400,7 @@ async function handleRestore(
 
     const { data: target } = await admin
         .from("SSP_Society_User")
-        .select("user_id, society, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), block, tower, deleted_at")
+        .select("user_id, society, unit_flat_number, block, tower, deleted_at")
         .eq("user_id", targetId)
         .maybeSingle();
 
@@ -2494,7 +2443,6 @@ async function handleRestore(
         familyUpdate: {
             updated: true,
             action: "RESTORE",
-            ...residentFlatTypeFields(target),
             residentId: targetId,
         },
     });
@@ -2529,7 +2477,7 @@ async function handleChangePrimary(
 
     const { data: target } = await admin
         .from("SSP_Society_User")
-        .select("user_id, society, unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type), block, tower, deleted_at")
+        .select("user_id, society, unit_flat_number, block, tower, deleted_at")
         .eq("user_id", targetId)
         .maybeSingle();
 
@@ -2700,7 +2648,6 @@ serve(async (req: Request) => {
 
         return response!;
     } catch (e: unknown) {
-        if (e instanceof ResidentFlatTypeError) return buildError(req, "INVALID_PARAMETERS", e.message, 400);
         const msg = e instanceof Error ? e.message : "Unknown error";
         log("error", "crud-family", "Unhandled", {
             action,

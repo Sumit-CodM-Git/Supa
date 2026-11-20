@@ -1,5 +1,3 @@
-import { residentFlatTypeFields } from "../_shared/resident-flat-type.ts";
-import { contactParkingSlot } from "../_shared/contact.ts";
 // deno-lint-ignore-file no-import-prefix no-explicit-any
 // ============================================
 // search-resident - Security gate lookup with pagination, filters & sorting
@@ -63,8 +61,6 @@ interface SearchResidentRequest {
 }
 
 interface ResidentRow {
-  flat_type_id?: string | null;
-  flatTypeRecord?: {flat_type?: string | null} | null;
   user_id: string;
   unit_flat_number: string | null;
   user_ownership_type: string | null;
@@ -105,7 +101,6 @@ function buildErrorResponse(
 }
 
 function pickContact(row: ResidentRow): {
-  parkingSlot: string | null;
   name: string;
   phone: string;
   email: string;
@@ -113,7 +108,6 @@ function pickContact(row: ResidentRow): {
   const raw = row.SSP_Contact;
   const contact = Array.isArray(raw) ? raw[0] : raw;
   return {
-    parkingSlot: contactParkingSlot(contact),
     name: contact?.name ?? "",
     phone: contact?.phone ?? "",
     email: contact?.email ?? "",
@@ -428,14 +422,14 @@ Deno.serve(
         .from("SSP_Society_User")
         .select(`
           user_id,
-          unit_flat_number, flat_type_id, flatTypeRecord:SSP_Flat_Type!flat_type_id(flat_type),
+          unit_flat_number,
           user_ownership_type,
           relationship,
           status,
           created_at,
           block,
           tower,
-          SSP_Contact:SSP_Contact!contact (parking_slot,
+          SSP_Contact:SSP_Contact!contact (
             name,
             phone,
             email
@@ -576,12 +570,10 @@ Deno.serve(
         };
 
         return {
-          parkingSlot: contactParkingSlot(contact),
           societyUserId: row.user_id ?? "",
           name: contact.name,
           phoneNumber: contact.phone,
           email: contact.email,
-          ...residentFlatTypeFields(row),
           flatNumber: row.unit_flat_number ?? "",
           towerId: row.tower ?? null,
           towerName: row.tower ? (towerMap.get(row.tower) ?? null) : null,

@@ -1,4 +1,3 @@
-import { resolveComplaintAssignee } from "../_shared/staff.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -318,12 +317,94 @@ function getDocumentTypeDisplay(documentType: ImageType): string {
   return display[documentType] || documentType;
 }
 
+/**
+ * Validate staff authorization for upload
+ */
+async function validateStaffAuthorization(
+  complaintId: string,
+  staffId: string,
+  staffType: "SERVICE_AGENT" | "VENDOR",
+): Promise<{ authorized: boolean; message?: string }> {
+  try {
+    const { data: complaint, error } = await supabaseAdmin
+      .from("SSP_Complaint")
+      .select("assigned_agent, non_society_user")
+      .eq("complaint_id", complaintId)
+      .maybeSingle();
+
+    if (error) {
+      return { authorized: false, message: error.message };
+    }
+
+    if (!complaint) {
+      return { authorized: false, message: "Complaint not found" };
+    }
+
+    if (staffType === "SERVICE_AGENT") {
+      if (complaint.assigned_agent !== staffId) {
+        return {
+          authorized: false,
+          message: "You are not assigned to this complaint",
+        };
+      }
+    } else if (staffType === "VENDOR") {
+      if (complaint.non_society_user !== staffId) {
+        return {
+          authorized: false,
+          message: "You are not assigned to this complaint",
+        };
+      }
+    }
+
+    return { authorized: true };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error
+      ? error.message
+      : "Unknown error";
+    return { authorized: false, message: errorMessage };
+  }
+}
+
+/**
+ * Get staff type from user
+ */
+async function getStaffType(
+  userId: string,
+): Promise<"SERVICE_AGENT" | "VENDOR" | null> {
+  // Check if Service Agent
+  const { data: userRole, error: roleErr } = await supabaseAdmin
+    .from("SSP_Society_User")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!roleErr && userRole) {
+    const roles = userRole.role || [];
+    if (roles.includes("service_agent")) {
+      return "SERVICE_AGENT";
+    }
+  }
+
+  // Check if Vendor
+  const { data: vendorData } = await supabaseAdmin
+    .from("SSP_Non_Society_User")
+    .select("non_society_user_id")
+    .eq("non_society_user_id", userId)
+    .maybeSingle();
+
+  if (vendorData) {
+    return "VENDOR";
+  }
+
+  return null;
+}
+
 // ============================================
 // MAIN HANDLER
 // ============================================
 
 Deno.serve(
-  requireAuth(async (req: Request, authCtx: { user: { id: string; authId?: string } }) => {
+  requireAuth(async (req: Request, authCtx: { user: { id: string } }) => {
     if (req.method === "OPTIONS") {
       return new Response("ok", { headers: corsHeaders });
     }
@@ -445,14 +526,28 @@ Deno.serve(
           return errorResponse("Society not found.");
         }
 
-        // Resolve against this assignment, including linked vendor profiles for
-        // multi-role sessions; a caller's other role must not override the assignee.
-        const authCheck = await resolveComplaintAssignee({
-          complaintId: cleanComplaintId,
-          callerAuthId: authCtx.user.id,
-          callerAuthUserId: authCtx.user.authId,
-        });
-        if (!authCheck.ok) return errorResponse(authCheck.message, authCheck.code);
+        // Check if user is authorized (Service Agent or Vendor only)
+        const staffType = await getStaffType(authCtx.user.id);
+
+        if (!staffType) {
+          return errorResponse(
+            "Only Service Agents or Vendors can upload BEFORE/AFTER images.",
+          );
+        }
+
+        // Verify staff is assigned to this complaint
+        const authCheck = await validateStaffAuthorization(
+          cleanComplaintId,
+          authCtx.user.id,
+          staffType,
+        );
+
+        if (!authCheck.authorized) {
+          return errorResponse(
+            authCheck.message ||
+              "You are not authorized to upload images for this complaint.",
+          );
+        }
 
         // Step A: Generate Presigned URLs (isUploaded === false or not provided)
         const isUploadedValue = isUploaded === true || isUploaded === "true";

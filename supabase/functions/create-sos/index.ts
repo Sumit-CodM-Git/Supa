@@ -9,8 +9,9 @@
 //   1. requireAuth extracts user_id from JWT
 //   2. Parse body (category, note?, idempotencyKey?)
 //   3. Look up resident profile + contact + tower + block
-//   4. Insert row into SSP_SOS_Alert (status=ACTIVE)
-//   5. Return sos_id
+//   4. Rate-limit per resident (3 SOS / hour)
+//   5. Insert row into SSP_SOS_Alert (status=ACTIVE)
+//   6. Return sos_id
 //
 // The DB trigger (send_sos_push_webhook) fires automatically.
 // ============================================
@@ -18,6 +19,9 @@
 import { requireAuth } from "../_shared/auth.ts";
 import { errorResponse, successResponse } from "../_shared/response.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.7";
+
+const RATE_LIMIT_PER_HOUR = 3;
+const RATE_LIMIT_WINDOW_SECONDS = 3600;
 
 const VALID_CATEGORIES = [
     "medical_emergency",
@@ -35,44 +39,6 @@ interface CreateSosRequest {
     category: string;
     note?: string;
     idempotencyKey?: string;
-}
-
-interface SosResponseRow {
-    sos_id: string;
-    status: string;
-    category: string;
-    resident_name: string | null;
-    resident_phone: string | null;
-    flat_number: string | null;
-    tower_name: string | null;
-    block_name: string | null;
-    note: string | null;
-    created_at: string;
-}
-
-function buildSosResponse(
-    row: SosResponseRow,
-    traceId: string,
-    isDuplicate: boolean,
-) {
-    return {
-        sosId: row.sos_id,
-        status: row.status,
-        category: row.category,
-        alertType: row.category,
-        residentName: row.resident_name ?? "Resident",
-        residentPhone: row.resident_phone,
-        flatNumber: row.flat_number,
-        towerName: row.tower_name,
-        blockName: row.block_name,
-        note: row.note,
-        createdAt: row.created_at,
-        isDuplicate,
-        ...(!isDuplicate
-            ? { message: "SOS raised. Emergency staff are being notified." }
-            : {}),
-        traceId,
-    };
 }
 
 Deno.serve(
@@ -128,17 +94,20 @@ Deno.serve(
             if (idempotencyKey) {
                 const { data: existing } = await supabase
                     .from("SSP_SOS_Alert")
-                    .select(
-                        "sos_id, status, category, resident_name, resident_phone, flat_number, tower_name, block_name, note, created_at",
-                    )
+                    .select("sos_id, status, created_at")
                     .eq("raised_by_user", userId)
                     .eq("idempotency_key", idempotencyKey)
                     .maybeSingle();
 
                 if (existing) {
-                    return successResponse(
-                        buildSosResponse(existing as SosResponseRow, traceId, true),
-                    );
+                    return successResponse({
+                        sosId: (existing as { sos_id: string }).sos_id,
+                        status: (existing as { status: string }).status,
+                        isDuplicate: true,
+                        createdAt:
+                            (existing as { created_at: string }).created_at,
+                        traceId,
+                    });
                 }
             }
 
@@ -192,7 +161,7 @@ Deno.serve(
             if (user.contact) {
                 const { data: contactRow } = await supabase
                     .from("SSP_Contact")
-                    .select("parking_slot, name, phone, emergency_phone")
+                    .select("name, phone, emergency_phone")
                     .eq("contact_id", user.contact)
                     .maybeSingle();
 
@@ -235,6 +204,27 @@ Deno.serve(
                 }
             }
 
+            // ── Rate limit ──
+            const cutoff = new Date(
+                Date.now() - RATE_LIMIT_WINDOW_SECONDS * 1000,
+            ).toISOString();
+
+            const { count: recentCount, error: rateErr } = await supabase
+                .from("SSP_SOS_Alert")
+                .select("sos_id", { count: "exact", head: true })
+                .eq("raised_by_user", userId)
+                .gte("created_at", cutoff);
+
+            if (rateErr) throw rateErr;
+
+            if ((recentCount ?? 0) >= RATE_LIMIT_PER_HOUR) {
+                return errorResponse(
+                    `Too many SOS alerts. You can raise up to ${RATE_LIMIT_PER_HOUR} per hour.`,
+                    429,
+                    { errorCode: "RATE_LIMITED", traceId, recentCount },
+                );
+            }
+
             // ── Insert ──
             const insertPayload: Record<string, unknown> = {
                 society: user.society,
@@ -253,36 +243,38 @@ Deno.serve(
             const { data: inserted, error: insertErr } = await supabase
                 .from("SSP_SOS_Alert")
                 .insert(insertPayload)
-                .select(
-                    "sos_id, status, category, resident_name, resident_phone, flat_number, tower_name, block_name, note, created_at",
-                )
+                .select("sos_id, status, category, created_at")
                 .single();
 
             if (insertErr) {
                 if (insertErr.code === "23505" && idempotencyKey) {
                     const { data: existing } = await supabase
                         .from("SSP_SOS_Alert")
-                        .select(
-                            "sos_id, status, category, resident_name, resident_phone, flat_number, tower_name, block_name, note, created_at",
-                        )
+                        .select("sos_id, status, created_at")
                         .eq("raised_by_user", userId)
                         .eq("idempotency_key", idempotencyKey)
                         .maybeSingle();
 
                     if (existing) {
-                        return successResponse(
-                            buildSosResponse(
-                                existing as SosResponseRow,
-                                traceId,
-                                true,
-                            ),
-                        );
+                        return successResponse({
+                            sosId: (existing as { sos_id: string }).sos_id,
+                            status: (existing as { status: string }).status,
+                            isDuplicate: true,
+                            createdAt:
+                                (existing as { created_at: string }).created_at,
+                            traceId,
+                        });
                     }
                 }
                 throw insertErr;
             }
 
-            const row = inserted as SosResponseRow;
+            const row = inserted as {
+                sos_id: string;
+                status: string;
+                category: string;
+                created_at: string;
+            };
 
             console.log(
                 `[${traceId}] SOS created: ${row.sos_id} in ${
@@ -290,10 +282,15 @@ Deno.serve(
                 }ms`,
             );
 
-            return successResponse(
-                buildSosResponse(row, traceId, false),
-                201,
-            );
+            return successResponse({
+                sosId: row.sos_id,
+                status: row.status,
+                category: row.category,
+                createdAt: row.created_at,
+                isDuplicate: false,
+                message: "SOS raised. Emergency staff are being notified.",
+                traceId,
+            }, 201);
         } catch (err) {
             const msg = err instanceof Error ? err.message : "Unknown error";
             console.error(`[${traceId}] create-sos error:`, msg);

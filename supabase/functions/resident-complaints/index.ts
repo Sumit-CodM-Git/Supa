@@ -1,5 +1,3 @@
-import { parseComplaintAssignmentTime } from "../_shared/complaint-time.ts";
-import { contactParkingSlot } from "../_shared/contact.ts";
 // import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // const corsHeaders = {
@@ -388,7 +386,6 @@ interface DocumentImage {
 }
 
 interface ContactInfo {
-  parkingSlot?: string | null;
   contact_id: string;
   name: string;
   phone: string;
@@ -723,7 +720,7 @@ async function findResidentUser(
         tower,
         block,
         society,
-        contact:SSP_Contact!inner(parking_slot,
+        contact:SSP_Contact!inner(
           contact_id,
           name,
           phone,
@@ -756,7 +753,6 @@ async function findResidentUser(
         block: userData.block || null,
         society: userData.society,
         contact: {
-          parkingSlot: contactParkingSlot(contactData),
           contact_id: contactData.contact_id,
           name: contactData.name,
           phone: contactData.phone,
@@ -788,7 +784,7 @@ async function findResidentByIdOrName(
         tower,
         block,
         society,
-        contact:SSP_Contact!inner(parking_slot,
+        contact:SSP_Contact!inner(
           contact_id,
           name,
           phone,
@@ -832,7 +828,6 @@ async function findResidentByIdOrName(
         block: users.block || null,
         society: users.society,
         contact: {
-          parkingSlot: contactParkingSlot(contactData),
           contact_id: contactData.contact_id,
           name: contactData.name,
           phone: contactData.phone,
@@ -1163,7 +1158,7 @@ Deno.serve(
           priority: comp.priority || "medium",
           type: comp.complaint_type || "general",
           createdAt: comp.created_at || new Date().toISOString(),
-          assignedDateTime: formatToIST(parseComplaintAssignmentTime(comp.assigned_date_time)),
+          assignedDateTime: formatToIST(comp.assigned_date_time),
           completionDateTime: formatToIST(comp.completion_date_time),
           assignedAgent: {
             agentId: comp.assigned_agent || null,
@@ -1206,7 +1201,6 @@ Deno.serve(
       // ============================================
       const contact = extractContact(residentContact);
       const residentResponseDetails = {
-        parkingSlot: contactParkingSlot(contact),
         residentId: resident.user_id,
         name: contact?.name || "Unknown",
         phone: contact?.phone || "",

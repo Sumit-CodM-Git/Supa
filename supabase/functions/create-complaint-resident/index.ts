@@ -1,4 +1,3 @@
-import { contactParkingSlot } from "../_shared/contact.ts";
 // ============================================
 // create-complaint - Create New Complaint
 // ============================================
@@ -46,7 +45,6 @@ interface ComplaintResponse {
   message: string;
   createdAt: string;
   residentDetails: {
-    parkingSlot?: string | null;
     residentId: string;
     name: string;
   };
@@ -67,7 +65,6 @@ interface DocumentResponse {
 }
 
 interface ContactInfo {
-  parkingSlot?: string | null;
   contact_id: string;
   name: string;
   phone: string;
@@ -140,7 +137,7 @@ async function findResidentUser(
         tower,
         block,
         society,
-        contact:SSP_Contact!inner(parking_slot,
+        contact:SSP_Contact!inner(
           contact_id,
           name,
           phone,
@@ -176,7 +173,6 @@ async function findResidentUser(
       data: {
         user_id: userData.user_id,
         contact: {
-          parkingSlot: contactParkingSlot(contactData),
           contact_id: contactData.contact_id,
           name: contactData.name,
           phone: contactData.phone,
@@ -535,7 +531,6 @@ Deno.serve(
         message: "Complaint created successfully",
         createdAt: complaint.created_at,
         residentDetails: {
-          parkingSlot: contactParkingSlot(targetUser.contact),
           residentId: targetUser.user_id,
           name: targetUser.contact.name,
         },

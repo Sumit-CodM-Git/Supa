@@ -207,9 +207,7 @@ Deno.serve(
         }
 
         const trimmedPayId = String(payId).trim();
-        const requestedStatus = String(approvalStatus).trim().toLowerCase();
-        const normalizedStatus = requestedStatus === "approve" ? "approved"
-          : requestedStatus === "reject" ? "rejected" : requestedStatus;
+        const normalizedStatus = String(approvalStatus).trim().toLowerCase();
 
         let targetDbPaymentStatus = "";
         let isApproved = false;
@@ -230,7 +228,7 @@ Deno.serve(
         // ---- Locate target payment (UUID or human-readable) ----
         let paymentQuery = supabaseAdmin
           .from("SSP_Payment")
-          .select("pay_rec_id, payment_id, payment_status, payment_date, facility, society_user, amount");
+          .select("pay_rec_id, payment_id, payment_status, facility, society_user, amount");
 
         paymentQuery = isUuid(trimmedPayId)
           ? paymentQuery.eq("pay_rec_id", trimmedPayId)
@@ -264,77 +262,6 @@ Deno.serve(
           );
         }
 
-        // Approval removes the request row; subsequent actions use the booking.
-        const { data: existingBookings, error: existingBookingErr } = await supabaseAdmin
-          .from("SSP_Facility_Booking")
-          .select("name, approval_status, booking_status, payment_status, rejection_reason")
-          .eq("payment", targetPayment.pay_rec_id)
-          .eq("requested_by", paymentOwner.user_id);
-        if (existingBookingErr) {
-          throw new Error(`Failed to find linked bookings: ${existingBookingErr.message}`);
-        }
-
-        if (existingBookings && existingBookings.length > 0) {
-          const bookingStatus = isApproved ? "approved" : "rejected";
-          const reason = isApproved ? null : String(rejectionReason ?? "").trim() || null;
-          const alreadyUpdated = String(targetPayment.payment_status).toLowerCase() === targetDbPaymentStatus &&
-            existingBookings.every((booking) =>
-              String(booking.approval_status).toLowerCase() === bookingStatus &&
-              String(booking.booking_status).toLowerCase() === bookingStatus &&
-              String(booking.payment_status).toLowerCase() === targetDbPaymentStatus &&
-              (booking.rejection_reason ?? null) === reason
-            );
-
-          if (!alreadyUpdated) {
-            const { error: paymentErr } = await supabaseAdmin
-              .from("SSP_Payment")
-              .update({
-                payment_status: targetDbPaymentStatus,
-                payment_date: isApproved ? targetPayment.payment_date ?? new Date().toISOString() : null,
-              })
-              .eq("pay_rec_id", targetPayment.pay_rec_id);
-            if (paymentErr) throw new Error(`Failed to update payment: ${paymentErr.message}`);
-
-            const { data: updatedBookings, error: bookingErr } = await supabaseAdmin
-              .from("SSP_Facility_Booking")
-              .update({
-                approval_status: bookingStatus,
-                booking_status: bookingStatus,
-                payment_status: targetDbPaymentStatus,
-                rejection_reason: reason,
-              })
-              .in("name", existingBookings.map((booking) => booking.name))
-              .eq("payment", targetPayment.pay_rec_id)
-              .eq("requested_by", paymentOwner.user_id)
-              .select("name");
-
-            if (bookingErr || !updatedBookings?.length) {
-              const { error: rollbackErr } = await supabaseAdmin
-                .from("SSP_Payment")
-                .update({
-                  payment_status: targetPayment.payment_status,
-                  payment_date: targetPayment.payment_date,
-                })
-                .eq("pay_rec_id", targetPayment.pay_rec_id);
-              if (rollbackErr) {
-                throw new Error(`Booking update failed and payment rollback failed: ${rollbackErr.message}`);
-              }
-              throw new Error(`Failed updating linked booking: ${bookingErr?.message ?? "Booking no longer exists."}`);
-            }
-          }
-
-          return successResponse({
-            payRecId: targetPayment.pay_rec_id,
-            bookingId: existingBookings[0].name,
-            paymentStatus: targetDbPaymentStatus,
-            status: alreadyUpdated
-              ? isApproved ? "ALREADY_APPROVED" : "ALREADY_REJECTED"
-              : isApproved ? "PAYMENT_VERIFIED_BOOKING_APPROVED" : "REJECTED",
-            isUpdatedSuccessfully: !alreadyUpdated,
-            rejection: isApproved ? null : { reason },
-          });
-        }
-
         // ---- Idempotency: already in target state ----
         if (targetPayment.payment_status === targetDbPaymentStatus) {
           logger.warn({
@@ -358,7 +285,7 @@ Deno.serve(
         const { data: bookingRequest, error: reqFetchErr } = await supabaseAdmin
           .from("SSP_Facility_Booking_Request")
           .select(`
-            request_id, created_at, requested_by, facility, payment,
+            request_id, requested_by, facility, payment,
             booking_start_date, booking_end_date, purpose_of_visit, is_all_day
           `)
           .eq("payment", targetPayment.pay_rec_id)
@@ -407,8 +334,6 @@ Deno.serve(
               .from("SSP_Facility_Booking")
               .insert({
                 requested_by: bookingRequest.requested_by,
-                // Preserve when the resident created the booking request.
-                created_at: bookingRequest.created_at ?? undefined,
                 facility: bookingRequest.facility,
                 payment: bookingRequest.payment,
                 booking_start_date: bookingRequest.booking_start_date,

@@ -195,7 +195,6 @@ interface RawSosRecord {
   tower_name?: string | null;
   blockName?: string | null;
   block_name?: string | null;
-  note?: string | null;
   createdAt?: string;
   created_at?: string;
 }
@@ -211,7 +210,6 @@ interface SosRow {
   flat_number: string | null;
   tower_name: string | null;
   block_name: string | null;
-  note: string | null;
   created_at: string | null;
   push_attempts: number;
   push_completed_at: string | null;
@@ -265,84 +263,21 @@ function normalize(raw: RawSosRecord) {
   };
 }
 
-function buildStaffNotification(sos: {
-  sosId: string;
-  category: string;
-  severity: "critical" | "high";
+function buildStaffBody(sos: {
   residentName: string;
   flatNumber: string | null;
   towerName: string | null;
   blockName: string | null;
   residentPhone: string;
-  note: string | null;
-}) {
-  const alertType = categoryLabel(sos.category);
+}): string {
   const lines: string[] = [];
-  lines.push(`Resident: ${sos.residentName || "Resident"}`);
-  lines.push(
-    `Flat: ${[sos.flatNumber, sos.towerName, sos.blockName].filter(Boolean).join(", ") || "Not provided"}`,
-  );
-  lines.push(`Phone: ${sos.residentPhone || "Not provided"}`);
-  lines.push(`Alert type: ${alertType}`);
-  if (sos.note) lines.push(`Note: ${sos.note}`);
+  lines.push(sos.residentName || "Resident");
+  const loc = [sos.flatNumber, sos.towerName, sos.blockName].filter(Boolean)
+    .join(", ");
+  if (loc) lines.push(loc);
+  if (sos.residentPhone) lines.push(`Phone: ${sos.residentPhone}`);
   lines.push("Tap to respond");
-  return {
-    title: `${sos.severity === "critical" ? "🚨" : "⚠️"} SOS — ${alertType}`,
-    body: lines.join("\n"),
-    highPriority: sos.severity === "critical",
-    data: {
-      sosId: sos.sosId,
-      sos_id: sos.sosId,
-      category: sos.category,
-      alertType: sos.category,
-      alert_type: alertType,
-      severity: sos.severity,
-      residentName: sos.residentName || "Resident",
-      resident_name: sos.residentName || "Resident",
-      flatNumber: sos.flatNumber ?? "",
-      flat_number: sos.flatNumber ?? "",
-      towerName: sos.towerName ?? "",
-      tower_name: sos.towerName ?? "",
-      blockName: sos.blockName ?? "",
-      block_name: sos.blockName ?? "",
-      residentPhone: sos.residentPhone,
-      resident_phone: sos.residentPhone,
-      note: sos.note ?? "",
-      type: "SOS_ALERT",
-      deepLink: `app://sos/${sos.sosId}`,
-    },
-  };
-}
-
-async function notifySocietyAdmins(
-  client: typeof supabase,
-  societyId: string,
-  notification: ReturnType<typeof buildStaffNotification>,
-  send = sendFcmToUser,
-) {
-  const { data, error } = await client
-    .from("SSP_Society_User")
-    .select("user_id")
-    .eq("society", societyId)
-    .eq("status", true)
-    .is("deleted_at", null)
-    .overlaps("role", ["admin", "society_admin"]);
-  if (error) throw error;
-
-  const userIds = [...new Set<string>((data ?? []).map((user: { user_id: string }) => user.user_id))];
-  const delivery = { adminCount: userIds.length, totalDevices: 0, sent: 0, failed: 0, deactivated: 0 };
-  for (let i = 0; i < userIds.length; i += CONCURRENCY) {
-    const results = await Promise.all(userIds.slice(i, i + CONCURRENCY).map(
-      (userId) => send(client, userId, notification, "society_user"),
-    ));
-    for (const result of results) {
-      delivery.totalDevices += result.totalTokens;
-      delivery.sent += result.sent;
-      delivery.failed += result.failed;
-      delivery.deactivated += result.deactivated;
-    }
-  }
-  return delivery;
+  return lines.join("\n");
 }
 
 // ── Audit log helper (via RPC, bypasses onConflict inference) ──
@@ -429,7 +364,7 @@ Deno.serve(async (req: Request) => {
     const { data: dbRow, error: dbErr } = await supabase
       .from("SSP_SOS_Alert")
       .select(
-        "sos_id, society, raised_by_user, category, status, resident_name, resident_phone, flat_number, tower_name, block_name, note, created_at, push_attempts, push_completed_at",
+        "sos_id, society, raised_by_user, category, status, resident_name, resident_phone, flat_number, tower_name, block_name, created_at, push_attempts, push_completed_at",
       )
       .eq("sos_id", sos.sosId)
       .maybeSingle();
@@ -539,7 +474,6 @@ Deno.serve(async (req: Request) => {
       rawRecord.tower_name ?? null;
     const blockName = row.block_name ?? rawRecord.blockName ??
       rawRecord.block_name ?? null;
-    const note = row.note ?? rawRecord.note ?? null;
 
     // ── Find matching staff ──
     const { data: staffList, error: staffErr } = await supabase
@@ -555,21 +489,17 @@ Deno.serve(async (req: Request) => {
     if (staffErr) throw staffErr;
 
     const severity = severityFor(row.category);
-    const notification = buildStaffNotification({
-      sosId: row.sos_id,
-      category: row.category,
-      severity,
+    const highPriority = severity === "critical";
+    const title = `${highPriority ? "🚨" : "⚠️"} SOS — ${
+      categoryLabel(row.category)
+    }`;
+    const body = buildStaffBody({
       residentName,
       residentPhone,
       flatNumber,
       towerName,
       blockName,
-      note,
     });
-
-    // Admins receive the same alert independently of emergency staff availability.
-    const adminDelivery = await notifySocietyAdmins(supabase, row.society, notification);
-    console.log(`[${traceId}] Admin delivery: ${JSON.stringify(adminDelivery)}`);
 
     // ── No staff path ──
     if (!staffList || staffList.length === 0) {
@@ -621,7 +551,6 @@ Deno.serve(async (req: Request) => {
         sosId: row.sos_id,
         category: row.category,
         staffCount: 0,
-        adminDelivery,
         residentNotified,
         message: "No staff available; resident notified.",
         traceId,
@@ -639,7 +568,17 @@ Deno.serve(async (req: Request) => {
 
       const results = await Promise.all(chunk.map(async (staff) => {
         const summary = await sendFcmToStaff(supabase, staff.staff_id, {
-          ...notification,
+          title,
+          body,
+          highPriority,
+          data: {
+            sosId: row.sos_id,
+            category: row.category,
+            severity,
+            residentPhone: residentPhone || "",
+            type: "SOS_ALERT",
+            deepLink: `app://sos/${row.sos_id}`,
+          },
         });
 
         const logStatus = summary.totalTokens === 0
@@ -744,7 +683,6 @@ Deno.serve(async (req: Request) => {
       category: row.category,
       severity,
       staffCount: staffList.length,
-      adminDelivery,
       totalDevices,
       notificationsSent: totalSent,
       notificationsFailed: totalFailed,
